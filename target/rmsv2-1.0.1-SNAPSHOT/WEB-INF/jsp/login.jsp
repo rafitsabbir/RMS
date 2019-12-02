@@ -7,10 +7,11 @@
 
 <html>
 <head>
-<link rel="stylesheet" type="text/css" href="/resources/css/login.css">
+<spring:url value="/resources/css/login.css" var="logincss" />
+<link rel="stylesheet" type="text/css" href="${logincss}"/>
 <link
 	href="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css"
-	rel="stylesheet" id="bootstrap-css">
+	rel="stylesheet" id="bootstrap-css"/>
 <script
 	src="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"></script>
 <script
@@ -25,7 +26,7 @@
 					<h2>Login</h2>
 					<p>Please enter your User Name and Password</p>
 				</div>
-				<spring:url value="/doLogin" var="loginUrl" />
+				<spring:url value="/welcome" var="loginUrl" />
 				<form:form id="Login" action="${loginUrl}" method="POST">
 
 					<div class="form-group">

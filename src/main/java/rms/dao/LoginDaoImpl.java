@@ -29,7 +29,6 @@ public class LoginDaoImpl implements LoginDao {
 	private static final class UserMapper implements RowMapper<UserInfo> {
 		public UserInfo mapRow(ResultSet rs, int rowNum) throws SQLException {
 			UserInfo userinfo = new UserInfo();
-			userinfo = new UserInfo();
 			userinfo.setIsactive(rs.getInt("isactive"));
 			userinfo.setUserid(rs.getString("userid"));
 			userinfo.setUsername(rs.getString("username"));
@@ -48,7 +47,13 @@ public class LoginDaoImpl implements LoginDao {
 		Map<String, String> paramMap = new HashMap<String, String>();
 		paramMap.put("username", username);
 		paramMap.put("password", password);
-		return namedParameterJdbcTemplate.queryForObject(listallusers, paramMap, String.class);
+		String userid= namedParameterJdbcTemplate.queryForObject(listallusers, paramMap, String.class);
+		
+		if(userid.isEmpty()){
+			return null;
+		}else{
+			return userid;
+		}
 	}
 
 	public UserInfo getUserInfo(String userid) {

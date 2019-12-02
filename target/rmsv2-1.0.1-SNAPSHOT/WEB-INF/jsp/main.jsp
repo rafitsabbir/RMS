@@ -1,10 +1,20 @@
 <%@ page language="java" contentType="text/html; charset=ISO-8859-1"
-	pageEncoding="ISO-8859-1"%>
+	pageEncoding="ISO-8859-1" isELIgnored="false"%>
+<%@ taglib uri="http://www.springframework.org/tags/form" prefix="form" %>
+<%@ taglib uri="http://www.springframework.org/tags" prefix="spring" %>
+<!------ Include the above in your HEAD tag ---------->
 <%@ page import="rms.model.*"%>
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
 <head>
-<link rel="stylesheet" type="text/css" href="/resources/css/main.css">
+<spring:url value="/resources/css/main.css" var="maincss" />
+<spring:url value="/adminviewmarks" var="adminviewmarks" />
+<spring:url value="/createlanguage" var="createlanguage" />
+<spring:url value="/viewlanguagelist" var="viewlanguagelist" />
+
+
+
+<link rel="stylesheet" type="text/css" href="${maincss }">
 <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet"
@@ -104,10 +114,10 @@
 			document.getElementById("container").innerHTML = '<object type="text/html" data="jsp/header.jsp" ></object>';
 		}
 		function load_language() {
-			document.getElementById("container").innerHTML = '<object type="text/html" data="LanguageController" ></object>';
+			document.getElementById("container").innerHTML = '<object type="text/html" data="${createlanguage}" ></object>';
 		}
 		function load_view_language() {
-			document.getElementById("container").innerHTML = '<object type="text/html" data="LanguageController?param=VIEW" ></object>';
+			document.getElementById("container").innerHTML = '<object type="text/html" data="${viewlanguagelist}" ></object>';
 		}
 		function load_position() {
 			document.getElementById("container").innerHTML = '<object type="text/html" data="PositionController" ></object>';
@@ -140,7 +150,7 @@
 			document.getElementById("container").innerHTML = '<object type="text/html" data="MarksController?user=<%=userinfo.getUserid()%>&param=VIEW" ></object>';
 		}
 		function load_view_admin_marks() {
-			document.getElementById("container").innerHTML = '<object type="text/html" data="MarksController?param=ADMINVIEW" ></object>';
+			document.getElementById("container").innerHTML = '<object type="text/html" data="${adminviewmarks}" ></object>';
 		}
 		function load_job() {
 			document.getElementById("container").innerHTML = '<object type="text/html" data="JobController" ></object>';
