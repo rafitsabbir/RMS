@@ -7,6 +7,7 @@ import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -47,12 +48,12 @@ public class LoginDaoImpl implements LoginDao {
 		Map<String, String> paramMap = new HashMap<String, String>();
 		paramMap.put("username", username);
 		paramMap.put("password", password);
-		String userid= namedParameterJdbcTemplate.queryForObject(listallusers, paramMap, String.class);
 		
-		if(userid.isEmpty()){
+		try {
+		String userid= namedParameterJdbcTemplate.queryForObject(listallusers, paramMap, String.class);	
+		return userid;
+		} catch (EmptyResultDataAccessException e) {
 			return null;
-		}else{
-			return userid;
 		}
 	}
 
