@@ -9,10 +9,15 @@
 <head>
 <spring:url value="/resources/css/main.css" var="maincss" />
 <spring:url value="/adminviewmarks" var="adminviewmarks" />
+
 <spring:url value="/createlanguage" var="createlanguage" />
 <spring:url value="/viewlanguagelist" var="viewlanguagelist" />
 
+<spring:url value="/createposition" var="createposition" />
+<spring:url value="/viewpositionlist" var="viewpositionlist" />
 
+<spring:url value="/createcandidate" var="createcandidate" />
+<spring:url value="/viewcandidatelist" var="viewcandidatelist" />
 
 <link rel="stylesheet" type="text/css" href="${maincss }">
 <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
@@ -120,16 +125,16 @@
 			document.getElementById("container").innerHTML = '<object type="text/html" data="${viewlanguagelist}" ></object>';
 		}
 		function load_position() {
-			document.getElementById("container").innerHTML = '<object type="text/html" data="PositionController" ></object>';
+			document.getElementById("container").innerHTML = '<object type="text/html" data="${createposition}" ></object>';
 		}
 		function load_view_position() {
-			document.getElementById("container").innerHTML = '<object type="text/html" data="PositionController?param=VIEW" ></object>';
+			document.getElementById("container").innerHTML = '<object type="text/html" data="${viewpositionlist}" ></object>';
 		}
 		function load_candidate() {
-			document.getElementById("container").innerHTML = '<object type="text/html" data="CandidateController" ></object>';
+			document.getElementById("container").innerHTML = '<object type="text/html" data="${createcandidate}" ></object>';
 		}
 		function load_view_candidate() {
-			document.getElementById("container").innerHTML = '<object type="text/html" data="CandidateController?param=VIEW" ></object>';
+			document.getElementById("container").innerHTML = '<object type="text/html" data="${viewcandidatelist}" ></object>';
 		}
 		function load_interviewer() {
 			document.getElementById("container").innerHTML = '<object type="text/html" data="InterviewerController" ></object>';

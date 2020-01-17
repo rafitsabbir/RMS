@@ -45,6 +45,7 @@ public class LanguageDaoImpl implements LanguageDao {
 		}
 	}
 
+	@Override
 	public List<LanguageInfo> getAllLanguage() {
 		// TODO Auto-generated method stub
 		Map<String, Object> paramMap = new HashMap<String, Object>();
@@ -53,6 +54,7 @@ public class LanguageDaoImpl implements LanguageDao {
 		return list;
 	}
 
+	@Override
 	public void addLanguage(LanguageInfo languageinfo) {
 		// TODO Auto-generated method stub
 		Map<String, Object> paramMap = new HashMap<String, Object>();
@@ -73,6 +75,7 @@ public class LanguageDaoImpl implements LanguageDao {
 
 	}
 
+	@Override
 	public LanguageInfo findLanguageById(int languagekey) {
 		// TODO Auto-generated method stub
 		Map<String, Object> paramMap = new HashMap<String, Object>();
@@ -80,6 +83,7 @@ public class LanguageDaoImpl implements LanguageDao {
 		return namedParameterJdbcTemplate.queryForObject(findlanguagebyid, paramMap, new LanguageMapper());
 	}
 
+	@Override
 	public void updateLanguage(LanguageInfo languageinfo) {
 		// TODO Auto-generated method stub
 		Map<String, Object> paramMap = new HashMap<String, Object>();
@@ -90,6 +94,7 @@ public class LanguageDaoImpl implements LanguageDao {
 		namedParameterJdbcTemplate.update(updatelanguage, paramMap);
 	}
 
+	@Override
 	public void deleteLanguage(int languagekey) {
 		// TODO Auto-generated method stub
 		Map<String, Object> paramMap = new HashMap<String, Object>();

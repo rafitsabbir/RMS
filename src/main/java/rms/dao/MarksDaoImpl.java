@@ -34,6 +34,7 @@ public class MarksDaoImpl implements MarksDao {
 	}
 
 	private static final class MarksMapper implements RowMapper<MarksInfo> {
+		@Override
 		public MarksInfo mapRow(ResultSet rs, int rowNum) throws SQLException {
 			MarksInfo marksinfo = new MarksInfo();
 			marksinfo.setInterviewerid(rs.getString(1));
@@ -57,21 +58,25 @@ public class MarksDaoImpl implements MarksDao {
 
 	}
 
+	@Override
 	public void saveMarks(MarksInfo marksinfo) {
 		// TODO Auto-generated method stub
 
 	}
 
+	@Override
 	public int getFullmarks(MarksInfo marksinfo) {
 		// TODO Auto-generated method stub
 		return 0;
 	}
 
+	@Override
 	public List<MarksInfo>  getAllMarksByInterviewer(String userid) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
+	@Override
 	public List<MarksInfo> getAllMarksByAdmin() {
 		// TODO Auto-generated method stub
 		Map<String, String> paramMap = new HashMap<String, String>();

@@ -18,27 +18,32 @@ public class LanguageServiceImpl implements LanguageService {
 		this.languagedao = languagedao;
 	}	
 
+	@Override
 	public void updateLanguage(LanguageInfo languageinfo) {
 		// TODO Auto-generated method stub
 		languagedao.updateLanguage(languageinfo);
 	}
 
+	@Override
 	public void addLanguage(LanguageInfo languageinfo) {
 		// TODO Auto-generated method stub
 		languagedao.addLanguage(languageinfo);
 		
 	}
 
+	@Override
 	public List<LanguageInfo> getAllLanguage() {
 		// TODO Auto-generated method stub
 		return languagedao.getAllLanguage();
 	}
 
+	@Override
 	public LanguageInfo findLanguageById(int languagekey) {
 		// TODO Auto-generated method stub
 		return languagedao.findLanguageById(languagekey);
 	}
 
+	@Override
 	public void deleteLanguage(int languagekey) {
 		// TODO Auto-generated method stub
 		languagedao.deleteLanguage(languagekey);
