@@ -20,6 +20,19 @@ Read this when: you're starting any task. Start here, not with every doc.
 | Working on incomplete/missing features | [gaps.md](gaps.md), then the relevant [business-flows/](business-flows/README.md) file | `main.jsp` (menu links to unbuilt modules), `MarksDaoImpl.java` (stubs) |
 | Unclear behaviour or missing module | [open-questions.md](open-questions.md) | `main.jsp` (menu links to unbuilt modules) |
 
+## Subagents
+Project subagents are defined in `.claude/agents/`. Each one starts by reading this router.
+
+| Task type | Agent | Edits files? |
+|---|---|---|
+| "Where is X / how does Y work", exploring modules, SQL, config or git history | `repo-explorer` | No |
+| Tracing or documenting one business capability end to end, with a Mermaid diagram | `business-flow-tracer` | No |
+| Finding partial, stubbed, dead or missing features; refreshing [gaps.md](gaps.md) | `gap-analyzer` | No |
+| Merging confirmed findings into docs, deduplicating, keeping `CLAUDE.md` lean and this router complete | `docs-keeper` | `.md` only |
+| Reviewing a diff or branch before commit or merge | `java-code-reviewer` | No |
+
+Typical chain: `repo-explorer` / `business-flow-tracer` / `gap-analyzer` → `docs-keeper`; code change → `java-code-reviewer`.
+
 ## Keeping docs current
 - **Where to write:** when a task confirms or changes a fact, update the one category file that owns it and bump its "Last updated" date.
 - **Open questions:** move an item out of [open-questions.md](open-questions.md) once it's resolved.

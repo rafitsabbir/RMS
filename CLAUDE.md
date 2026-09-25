@@ -1,6 +1,7 @@
 # RMS — Recruitment Management System
 
 **Before any task, read [docs/ROUTER.md](docs/ROUTER.md) and load only the files it points to.**
+Use subagents in .claude/agents/ — see ROUTER.md.
 
 ## Summary
 - RMS is a small recruitment management web app (`README.md`) with two roles: admin and interviewer, chosen by `isinterviewer` (`main.jsp`).
