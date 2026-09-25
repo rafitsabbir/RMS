@@ -34,4 +34,10 @@ sequenceDiagram
 - **Password check:** the password is compared as plain text in SQL (`LoginDaoImpl.listallusers`).
 - **Session use:** the `user` session attribute is set but never checked by other controllers (`rms/controller/*`).
 - **Shared field:** `LoginController` keeps `userinfo` in an instance field, which is shared across requests because the controller is a singleton (`LoginController.java`).
-- **Known gaps:** G11 (no auth checks), G12 (shared field) and G13 (plain-text password), in [gaps.md](../gaps.md).
+- **Known gaps** (details in [gaps.md](../gaps.md)):
+  - G11: no auth checks.
+  - G12: shared field.
+  - G13: plain-text password.
+  - G26: HTTP 500 if a user has no `admin` row.
+  - G27: unescaped profile output in `main.jsp`.
+  - G30: the menu is only reached via POST; the fallback redirect ignores the app's context path; the session isn't renewed at login.

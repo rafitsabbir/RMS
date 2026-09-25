@@ -51,3 +51,10 @@ sequenceDiagram
 ## Notes
 - **Duplicates:** a duplicate name on create is silently skipped. The update path doesn't check for duplicates (`*DaoImpl.update*`).
 - **Missing key:** `findPositionById` and `findLanguageById` fail with an unhandled error if the key doesn't exist (`queryForObject`).
+- **Known gaps** (details in [gaps.md](../gaps.md)):
+  - G14: duplicate saves fail silently, and the JSP alerts are never set.
+  - G15: missing key.
+  - G17: hard delete via GET.
+  - G18: update doesn't check for duplicates.
+  - G27: names shown unescaped (XSS).
+  - G28: no validation, so blank names are saved.

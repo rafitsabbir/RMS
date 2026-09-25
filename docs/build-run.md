@@ -21,4 +21,5 @@ Read this when: you're building, deploying, setting up an environment, or fixing
 
 ## Repo notes
 - `target/` (build output, including the WAR) is committed, and there's no `.gitignore` (`git ls-files target`).
+- **The committed WAR is out of date:** it contains no Position classes or JSPs (`unzip -l target/rmsv2-1.0.1-SNAPSHOT.war`), so it was built before commit `e5705c0`. Don't deploy it as-is. Rebuild it (see gap G29 in [gaps.md](gaps.md)).
 - Eclipse project files are committed: `.project`, `.classpath`, `.settings/`.

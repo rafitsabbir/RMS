@@ -22,6 +22,6 @@ Read this when: you're upgrading dependencies, checking compatibility, or answer
 | Testing | Not found | — | No `src/test/`, no test dependencies in `pom.xml` |
 | Packaging | WAR file `rmsv2-1.0.1-SNAPSHOT` | — | `pom.xml` |
 
-**Libraries bundled in the committed WAR** (`WEB-INF/lib/`): spring-aop, spring-beans, spring-context, spring-core, spring-expression, spring-jdbc, spring-tx, spring-web and spring-webmvc (all 4.3.0.RELEASE), jstl-1.2, mysql-connector-java-5.1.36, commons-logging-1.2.
+**Libraries bundled in the committed WAR** (`WEB-INF/lib/`; the WAR itself is out of date, built before commit `e5705c0`, see [build-run.md](build-run.md)): spring-aop, spring-beans, spring-context, spring-core, spring-expression, spring-jdbc, spring-tx, spring-web and spring-webmvc (all 4.3.0.RELEASE), jstl-1.2, mysql-connector-java-5.1.36, commons-logging-1.2.
 
 **Pending upgrades:** three unmerged Dependabot branches on GitHub bump `mysql-connector-java` to 8.0.28, `spring-web` to 6.0.0 and `spring-webmvc` to 5.2.20.RELEASE (`git branch -r`).
