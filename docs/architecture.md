@@ -1,80 +1,46 @@
-# RMS — Detailed Flow Traces
+# Architecture
 
-Detailed request traces that support the summary in [CLAUDE.md](../CLAUDE.md). Every step was confirmed by reading the source files named here.
+Purpose: How RMS is layered and how a request moves through it.
+Last updated: 2026-09-25
+Read this when: you need the overall picture before changing code, or you're deciding which layer a change belongs in.
 
-## Flow 1: Login (`POST /welcome`)
-Evidence: `src/main/java/rms/controller/LoginController.java`, `rms/service/LoginServiceImpl.java`, `rms/dao/LoginDaoImpl.java`, `src/main/webapp/WEB-INF/jsp/login.jsp`, `main.jsp`.
-
+## Overall diagram
 ```mermaid
-sequenceDiagram
-  participant B as Browser (login.jsp)
-  participant C as LoginController.doLogin
-  participant S as LoginServiceImpl
-  participant D as LoginDaoImpl
-  participant DB as MySQL
-  B->>C: POST /welcome (username, password)
-  C->>S: checkLogin(u, p)
-  S->>D: checkUser(u, p)
-  D->>DB: select userid from users where username=? and password=?
-  alt userid found
-    C->>S: getUserInfo(userid)
-    S->>D: getUserInfo
-    D->>DB: select * from admin where userid=?
-    C->>C: session.setAttribute("user", UserInfo)
-    C-->>B: view "main" (menu depends on isinterviewer Y/N)
-  else no row (EmptyResultDataAccessException → null)
-    C-->>B: view "login" + errorMessage "Invalid login!"
-  end
+flowchart TB
+  U[Browser] -->|HTTP| DS["DispatcherServlet mapped to / (WebInitializer)"]
+  DS --> CTL["rms.controller: Login, Position, Language, Marks"]
+  CTL --> SVC["rms.service: *ServiceImpl (pass-through)"]
+  SVC --> DAO["rms.dao: *DaoImpl with NamedParameterJdbcTemplate"]
+  DAO --> DB[("MySQL: users, admin, position, language, marks, candidate")]
+  DAO --> M["rms.model: *Info POJOs"]
+  CTL --> V["JSP views in /WEB-INF/jsp (InternalResourceViewResolver)"]
+  V --> U
+  JNDI["Container JNDI jdbc/springrms"] -.->|DataSource| DAO
 ```
-- `GET /login` invalidates the session and shows `login.jsp`. The Logout link in `main.jsp` points to `login`.
-- `main.jsp` shows the admin menu when `isinterviewer` is `N` and the interviewer menu when it is `Y`.
+Evidence: `src/main/java/rms/config/WebInitializer.java`, `rms/config/WebConfig.java`, and the `rms/controller`, `rms/service`, `rms/dao`, `rms/model` packages. There are no external integrations (`pom.xml`).
 
-## Flow 2: Position maintenance (Language is identical)
-Evidence: `rms/controller/PositionController.java`, `rms/service/PositionServiceImpl.java`, `rms/dao/PositionDaoImpl.java`, `WEB-INF/jsp/createposition.jsp`, `viewposition.jsp`. For Language: `LanguageController`, `LanguageServiceImpl`, `LanguageDaoImpl`, table `language`.
+## Layers
+| Layer | Package / location | Role | Evidence |
+|---|---|---|---|
+| Bootstrap | `rms.config.WebInitializer` | Registers the DispatcherServlet on `/` with `WebConfig` as the root config; there's no `main()` | `WebInitializer.java` |
+| Config | `rms.config.WebConfig` | Sets up MVC, component scanning of `rms`, the DataSource and JdbcTemplate beans, the view resolver and static resources | `WebConfig.java` |
+| Controller | `rms.controller` | `@Controller` classes returning `ModelAndView` | `rms/controller/*.java` |
+| Service | `rms.service` | `@Service` classes that pass calls straight to the DAO, with no logic | `rms/service/*Impl.java` |
+| DAO | `rms.dao` | `@Repository` classes with SQL as string fields and `RowMapper` inner classes | `rms/dao/*Impl.java` |
+| Model | `rms.model` | Plain `*Info` POJOs | `rms/model/*.java` |
+| View | `src/main/webapp/WEB-INF/jsp` | JSP pages with scriptlets and JSTL | `WEB-INF/jsp/*.jsp` |
 
-```mermaid
-sequenceDiagram
-  participant B as Browser
-  participant C as PositionController
-  participant D as PositionDaoImpl (via PositionServiceImpl)
-  participant DB as MySQL position
-  B->>C: GET /createposition
-  C-->>B: createposition.jsp (empty PositionInfo)
-  B->>C: POST /saveposition (positionname, positionkey)
-  alt positionkey > 0
-    C->>D: updatePosition
-    D->>DB: UPDATE position SET positionname (UPPER + trim)
-  else new
-    C->>D: addPosition
-    D->>DB: SELECT positionname (duplicate check)
-    alt exists
-      D->>D: System.out "already exist!" (no user feedback)
-    else not found
-      D->>DB: INSERT position (isActive=1, positionname)
-    end
-  end
-  C-->>B: redirect:/viewpositionlist
-  B->>C: GET /viewpositionlist
-  C->>D: getAllPosition
-  D->>DB: SELECT ... WHERE isactive=1
-  C-->>B: viewposition.jsp (DataTable, Update/Delete links)
-  B->>C: GET /deleteposition/{key}
-  C->>D: deletePosition
-  D->>DB: DELETE FROM position (hard delete)
-```
+## Request lifecycle
+1. A `@Controller` method with `@RequestMapping(value, method)` receives the request (`rms/controller/*`).
+2. It calls a `*ServiceImpl`, which passes the call to a `*DaoImpl` (`rms/service/*Impl.java`).
+3. The DAO runs SQL through `NamedParameterJdbcTemplate` and maps rows to `*Info` models (`rms/dao/*Impl.java`).
+4. The controller returns a `ModelAndView`, which resolves to `/WEB-INF/jsp/<view>.jsp`, or a `redirect:` after saves and deletes (`WebConfig.viewResolver`, `PositionController.save`).
+5. **UI shell:** `main.jsp` is the page frame. Each menu item loads its page into `#container` inside an `<object>` element (`main.jsp`, the `load_*()` functions).
 
-## Flow 3: Candidate evaluation results (`GET /adminviewmarks`)
-Evidence: `rms/controller/MarksController.java`, `rms/service/MarksServiceImpl.java`, `rms/dao/MarksDaoImpl.java` (`getAllMarksByAdmin`, `MarksMapper`), `WEB-INF/jsp/viewmarks.jsp`.
-
-```mermaid
-flowchart LR
-  A["main.jsp admin menu: Candidate Status"] --> B[MarksController.adminViewMarks]
-  B --> C[MarksServiceImpl.getAllMarksByAdmin]
-  C --> D[MarksDaoImpl.getAllMarksByAdmin]
-  D --> E[("marks + candidate + position + language, admin subquery")]
-  E --> F["MarksMapper, maps by column index"]
-  F --> G["viewmarks.jsp: 10 scores, Total = sum, status S/R/other"]
-```
-- The 10 criteria (`MarksInfo`) are work experience, technical knowledge, leadership, decision making, problem solving, stress tolerance, educational background, communication skill, attitude and personality.
-- The total is the unweighted sum of the 10 scores (`viewmarks.jsp`, `getFullmarks`).
-- The status column shows an image: `S` → `happy.jpg`, `R` → `sad.jpg`, anything else → `new.jpg` (`viewmarks.jsp`).
+## Cross-cutting concerns
+- **Transactions:** none. There's no `@Transactional` or transaction manager, although `spring-tx` is a dependency (`pom.xml`, `src/main/java`).
+- **Error handling:** no `@ExceptionHandler` or `@ControllerAdvice`. Only `EmptyResultDataAccessException` is caught, in `LoginDaoImpl.checkUser` and `*DaoImpl.add*`. `findPositionById` and `findLanguageById` fail with an error when the key doesn't exist (`PositionDaoImpl`, `LanguageDaoImpl`).
+- **Logging:** only `System.out.println` (`LanguageDaoImpl.addLanguage`, `PositionDaoImpl.addPosition`).
+- **Security:** nothing checks the session after login. There's no filter or interceptor, and no controller reads the `user` session attribute (`rms/controller/*`). The password is compared as plain text in SQL (`LoginDaoImpl`).
+- **Validation:** none (no `@Valid` or `BindingResult`). The only checks are uppercase/trim and the duplicate-name check in `*DaoImpl.add*`.
+- **Deletes:** sent as GET requests and remove the row (`*Controller.delete`, `*DaoImpl.delete*`).
