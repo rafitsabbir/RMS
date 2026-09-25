@@ -20,3 +20,6 @@ Partial and missing features are tracked with evidence in [gaps.md](gaps.md): ca
 10. **Interview schedule:** what should a schedule hold (candidate, interviewer, date/time, location/link), and are notifications needed? (`main.jsp:52,64`; blocks G3)
 11. **Password migration:** can existing plain-text passwords be migrated to hashes, and how should current users be switched over? (`LoginDaoImpl.java:19`; blocks G13)
 12. **Nullable columns:** can `admin.isinterviewer` or `candidate.candidatestatus` be NULL? If so, `main.jsp:42,67` and `viewmarks.jsp:89,91` crash with a NullPointerException (G16).
+13. **Unique users:** can two `users` rows share the same username and password? If so, `LoginDaoImpl.java:53` throws `IncorrectResultSizeDataAccessException` (HTTP 500). The same applies if `admin.userid` or `candidate.candidateid` aren't unique, which the subqueries at `MarksDaoImpl.java:19-21` rely on. This depends on the schema (G22).
+14. **HTTPS:** is TLS enforced in front of the app? `web.xml` has no `<security-constraint>`, and the login form POSTs the password in plain text (G13).
+15. **Old web.xml format:** does the target Tomcat handle the Servlet 2.3 `web.xml` correctly alongside `SpringServletContainerInitializer`? It evidently ran in 2020, but this hasn't been tested (G37).

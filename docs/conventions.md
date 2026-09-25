@@ -31,3 +31,9 @@ Read this when: you're adding or reviewing code, or creating a new screen or mod
 - **Git:**
   - `master` is the default branch; work happens on `dev` (`git branch -a`).
   - Commit authors are recorded as `rafitsabbir` (`git log`).
+
+## Known deviations (fix in passing, don't copy)
+- `WebConfig.java:23-24` injects the `DataSource` with `@Autowired` into the same config class that creates it. Prefer a method parameter: `getNamedParameterJdbcTemplate(DataSource ds)`.
+- `main.jsp:34` sets the `user` session attribute again, although `LoginController.java:45` already set it.
+- Parameter-name typos: `fositioninfo` (`PositionDao.java:9,11`) and `irstname` (`UserInfo.java:71`).
+- Security and robustness issues are tracked as gaps in [gaps.md](gaps.md), not here.
