@@ -34,3 +34,4 @@ sequenceDiagram
 - **Password check:** the password is compared as plain text in SQL (`LoginDaoImpl.listallusers`).
 - **Session use:** the `user` session attribute is set but never checked by other controllers (`rms/controller/*`).
 - **Shared field:** `LoginController` keeps `userinfo` in an instance field, which is shared across requests because the controller is a singleton (`LoginController.java`).
+- **Known gaps:** G11 (no auth checks), G12 (shared field) and G13 (plain-text password), in [gaps.md](../gaps.md).

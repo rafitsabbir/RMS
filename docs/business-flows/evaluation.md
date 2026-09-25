@@ -26,4 +26,4 @@ flowchart LR
 - **Interviewer score entry:** `MarksDaoImpl.saveMarks` is empty, `getAllMarksByInterviewer` returns `null`, and `getFullmarks` returns 0.
 - **Menu link:** the interviewer menu calls `MarksController?user=…`, which no mapping matches (`main.jsp`).
 
-See [open-questions.md](../open-questions.md) for the column-mapping issue.
+Known gaps: G5–G7 (score entry), G8 (dead `getFullmarks`), G9 (status never written) and G10 (column mapping), in [gaps.md](../gaps.md).

@@ -17,6 +17,7 @@ Read this when: you're starting any task. Start here, not with every doc.
 | Understanding the overall system | [architecture.md](architecture.md), [business-flows/README.md](business-flows/README.md) | `WebConfig.java`, `rms/controller/` |
 | Code review / following conventions | [conventions.md](conventions.md), plus the "Cross-cutting concerns" section of [architecture.md](architecture.md) | the changed files |
 | Auth / security change | [business-flows/login.md](business-flows/login.md), plus the "Cross-cutting concerns" section of [architecture.md](architecture.md) | `LoginController.java`, `LoginDaoImpl.java`, `main.jsp` |
+| Working on incomplete/missing features | [gaps.md](gaps.md), then the relevant [business-flows/](business-flows/README.md) file | `main.jsp` (menu links to unbuilt modules), `MarksDaoImpl.java` (stubs) |
 | Unclear behaviour or missing module | [open-questions.md](open-questions.md) | `main.jsp` (menu links to unbuilt modules) |
 
 ## Keeping docs current
