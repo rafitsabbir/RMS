@@ -28,6 +28,17 @@ The application code is modern-friendly. The real blockers are:
 
 Versions are listed in [tech-stack.md](tech-stack.md); this table adds support status and risk.
 
+**GitHub security alerts:** the push message of 2026-09-26 reported **26** Dependabot alerts on the default branch `master`:
+
+| Severity | Alerts |
+|---|---|
+| Critical | 2 |
+| High | 9 |
+| Moderate | 12 |
+| Low | 3 |
+
+This is an external figure: which alert belongs to which dependency can't be verified from the code [A]. Phase 1 is meant to close the Spring and driver alerts; re-check the count after each phase.
+
 | Component | Current | Support status | Known security risk | Upgrade difficulty | Evidence |
 |---|---|---|---|---|---|
 | JDK | Built with 1.8.0_221; the pom sets no level (Maven's default is 1.5); Eclipse is set to 1.5 | Temurin 8 is patched until 2030-12-31, but Spring 6/7 and Tomcat 10.1/11 need 17+ [A] | The runtime JDK is unknown. If it's still 8u221 (2019), it's missing years of fixes [A] | **Low** for code; blocked by G35 and the old war plugin | WAR `META-INF/MANIFEST.MF`, `pom.xml:12-17`, `.settings/org.eclipse.jdt.core.prefs:4,6,16` [C] |
