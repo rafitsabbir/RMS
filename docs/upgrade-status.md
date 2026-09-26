@@ -30,6 +30,7 @@ Owners:
 | `target/` untracked, `.gitignore` (G29) | Done | dev | `.gitignore` |
 | Inferred `db/schema.sql` and synthetic `db/test-seed.sql` | Done | dev | `db/` |
 | Characterization tests: controller 16, DAO 18, smoke 2 | Done | dev | `src/test/java/rms/` |
+| Local DB setup scripts (`rms_local`: script or Docker Compose) | Done (written; **not yet executed**, no MySQL or Docker here) | dev | `db/local/README.md` |
 | Run the DAO tests with Docker (`RMS_REQUIRE_DOCKER=true`) | **Open** | dev | [build-run.md](build-run.md); no Docker on the first machine (#18) |
 | Confirm or replace the inferred DDL with a DDL-only export | **Open** | owner | [open-questions.md](open-questions.md) #19, G22 |
 | Deploy to local Tomcat 9; run `SmokeTest` and the acceptance checklist | **Open** | dev | [plan §6](modernization-plan.md#acceptance-checklist-for-domain-users-after-phases-1-2-and-3) |
@@ -68,7 +69,7 @@ Owners:
 
 ## Next actions, in order
 1. On a machine with Docker, run `RMS_REQUIRE_DOCKER=true ./mvnw -B verify`. All 18 DAO tests must run and pass. If they fail, suspect the inferred schema first (#19).
-2. Deploy `target/rmsv2-1.0.1-SNAPSHOT.war` to a local Tomcat 9 that has a local test MySQL loaded from `db/`. Never use production. Then run `SmokeTest` with `RMS_BASE_URL` and the seed users, work through the acceptance checklist, and take the baseline screenshot.
+2. Deploy `target/rmsv2-1.0.1-SNAPSHOT.war` to a local Tomcat 9 that has a local test MySQL loaded with `db/local/` (see its README). Never use production. Then run `SmokeTest` with `RMS_BASE_URL` and the seed users, work through the acceptance checklist, and take the baseline screenshot.
 3. Do the browser check of every page and the non-ASCII test (G34).
 4. Hand the container changes to ops (driver class name, `lib/`, SSL), then merge to `master` and release Phase 1.
 5. Once Phase 1 is in production, start Phase 2.

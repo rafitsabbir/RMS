@@ -47,6 +47,7 @@ src/main/webapp/
   resources/                  css, js, images
 src/test/java/rms/            controller, DAO (Testcontainers) and smoke tests
 db/                           schema.sql (inferred), test-seed.sql (synthetic)
+  local/                      local MySQL setup: create DB + load schema and seed (README.md)
 mvnw, .mvn/wrapper/           Maven Wrapper
 docs/                         project knowledge; start at docs/ROUTER.md
 target/                       build output (git-ignored)

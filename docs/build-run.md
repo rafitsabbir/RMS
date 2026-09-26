@@ -23,6 +23,7 @@ Read this when: you're building, deploying, setting up an environment, or fixing
   - Connector/J 8 defaults to `sslMode=PREFERRED` and no longer offers TLS 1.0/1.1 (Connector/J documentation; not tested against the production server). Prefer `sslMode=REQUIRED` (or `VERIFY_CA`) in production. Don't copy the tests' `allowPublicKeyRetrieval=true` into production without the owner's sign-off: it lets a man-in-the-middle swap the server key.
   - Character sets: Connector/J 8 negotiates character sets differently from 5.1.36 [assumption]. Run the non-ASCII round-trip test (G34).
   - Keep the old driver jar and settings until sign-off, so the Phase 0 WAR can be redeployed ([modernization-plan.md](modernization-plan.md) Phase 1).
+- **Local database:** `db/local/` builds a local `rms_local` database from `db/schema.sql` and `db/test-seed.sql`. It offers either a script for an existing local MySQL (`setup-local-db.ps1` or `.sh`) or a throwaway `mysql:8.0` through `docker-compose.yml`. The scripts refuse non-loopback hosts by default and commit no passwords. See `db/local/README.md`. Written on 2026-09-26; not yet executed, because this machine has no MySQL or Docker (#18).
 - **Entry URLs:** `GET /login` shows the login page (`LoginController.loginPage`). `index.jsp` is a "Hello World!" placeholder (`src/main/webapp/index.jsp`).
 
 ## Test

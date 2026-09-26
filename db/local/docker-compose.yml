@@ -1,0 +1,22 @@
+# Throwaway local MySQL for RMS, built from ../schema.sql and ../test-seed.sql on first start.
+# Set RMS_DB_PASSWORD in your shell first (never commit it), then from this folder:
+#   docker compose up -d        start; the DB builds itself on the first start only
+#   docker compose down -v      stop and delete the data (next start rebuilds it)
+# Bound to 127.0.0.1 only. See README.md.
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: rms-local-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${RMS_DB_PASSWORD:?Set RMS_DB_PASSWORD before running docker compose}
+      MYSQL_DATABASE: rms_local
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+    ports:
+      - "127.0.0.1:${RMS_DB_PORT:-3306}:3306"
+    volumes:
+      - ../schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ../test-seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+      - rms-local-data:/var/lib/mysql
+
+volumes:
+  rms-local-data:
