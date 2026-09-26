@@ -22,6 +22,8 @@ Read this when: you're upgrading libraries, the JDK, the framework, the servlet 
 - **What this changes:** database compatibility below means MySQL compatibility.
 
 ## 1. Current state
+*This section is the assessment from before Phase 0 (2026-09-25). For what Phase 0 has since changed, see its status block in section 4.*
+
 The application code is modern-friendly. The real blockers are:
 - **No safety net:** no tests, no schema, no environment.
 - **Unknown runtime:** the container, runtime JDK and MySQL server version are all configured outside the repo.
@@ -152,7 +154,7 @@ Move one axis at a time. Pass through Spring 5.3 so the security fixes ship befo
 - **Risks:**
   - A reverse-engineered DDL may have wrong types or constraints.
   - Docker may not be available.
-- **Rollback:** everything is additive, so revert the commit. The only production-visible change is the bytecode level: 1.5 → 1.8, on the same JDK 8.
+- **Rollback:** everything is additive, so revert the commit. The only production-visible change is the bytecode level: 1.5 → 1.8, on the same JDK (confirmed: the old `master` WAR has class version 49, the Phase 0 build 52) 8.
 - **Verification:**
   - `mvnw -B verify` passes on JDK 8.
   - `jar tf` shows the Position classes, which the stale WAR lacks.
@@ -339,8 +341,14 @@ Checked 2026-09-25. Sources: endoflife.date, the Spring Framework Versions wiki,
 
 The schema (G22) is also needed.
 
-**Owner decisions:**
-- Lift the "no builds" rule for phase work, while keeping "no DB access"; tests would use a throwaway local MySQL container only.
+**Decisions made on 2026-09-26 (Phase 0 start):**
+- The "no builds" rule is lifted for phase work; "no DB access" stays. Tests use a throwaway MySQL container only.
+- Toolchain: Temurin JDK 8 via winget, plus the Maven Wrapper.
+- Schema: reverse-engineer it from the DAO SQL now (`db/schema.sql`) and verify it later against a DDL-only export (open question #19).
+- DAO tests: Testcontainers, skipped where Docker is missing, unless `RMS_REQUIRE_DOCKER=true`.
+- `target/`: untrack it.
+
+**Owner decisions still open:**
 - Choose the JDK standard: 21, or an organisational 17 or 25.
 - Close the three stale Dependabot branches.
 - Choose the deployment target after Phase 4, and whether GitHub Actions is acceptable for CI.

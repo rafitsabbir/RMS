@@ -38,6 +38,10 @@ Read this when: you're adding or reviewing code, or creating a new screen or mod
 - **Layout and naming:** `src/test/java/rms/<layer>/<Class>Test.java`, package-private JUnit 5 classes, tab indentation, AssertJ assertions.
 - **Controllers:** standalone MockMvc with Mockito `@Mock` services and `@InjectMocks` into the `@Autowired` fields. Pass `new WebConfig().viewResolver()` so view names resolve as in production (`src/test/java/rms/controller/PositionControllerTest.java`).
 - **DAOs:** extend `MySqlContainerSupport`. It recreates the schema from `db/schema.sql` and `db/test-seed.sql` before every test, against a throwaway MySQL container, and is skipped without Docker. Set `RMS_REQUIRE_DOCKER=true` where Docker must be present, so a missing Docker fails the build instead of skipping. Wire the DAO through its setter (`src/test/java/rms/dao/MySqlContainerSupport.java`).
+- **Why `MySqlContainerSupport` manages the container itself** (both confirmed by `mvnw` runs on 2026-09-26; don't "simplify" back):
+  - `@Testcontainers(disabledWithoutDocker = true)` disables the class before any `@BeforeAll` runs, so a `RMS_REQUIRE_DOCKER` gate there never fires.
+  - An assumption failing in `@BeforeAll` is reported by surefire as "Tests run: 0", not as skipped, which hides the gap. So `@BeforeAll` only starts the container, and the skip is an `assumeTrue` in `@BeforeEach`.
+- **Mocks:** `@InjectMocks` fills the controllers' package-private `@Autowired` fields, so the controllers need no changes to be testable (`src/test/java/rms/controller/*Test.java`).
 - **Data:** only synthetic values from `db/test-seed.sql` or the test itself. No real credentials, hostnames or production data.
 
 ## Known deviations (fix in passing, don't copy)

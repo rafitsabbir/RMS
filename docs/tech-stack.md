@@ -6,7 +6,7 @@ Read this when: you're upgrading dependencies, checking compatibility, or answer
 
 | Layer | Technology | Version | Evidence |
 |---|---|---|---|
-| Language/JDK | Java 1.8 source/target, set in `pom.xml`; built with JDK 8 (Temurin 1.8.0_504 on 2026-09-26). The WAR formerly committed on `master` was built with JDK 1.8.0_221. Eclipse `.settings` still say 1.5 | 1.8 | `pom.xml:16-17`, `master:target/rmsv2-1.0.1-SNAPSHOT.war` → `META-INF/MANIFEST.MF`, `.settings/org.eclipse.jdt.core.prefs` |
+| Language/JDK | Java 1.8 source/target, set in `pom.xml`; built with JDK 8 (Temurin 1.8.0_504 on 2026-09-26). The WAR formerly committed on `master` was built with JDK 1.8.0_221 and has Java 5 bytecode (class version 49). Eclipse `.settings` still say 1.5 | 1.8 | `pom.xml:16-17`, `master:target/rmsv2-1.0.1-SNAPSHOT.war` → `META-INF/MANIFEST.MF`, `.settings/org.eclipse.jdt.core.prefs` |
 | Build | Maven 3.9.16 via the Maven Wrapper; compiler 3.13.0, surefire 3.5.3 and war 3.4.0 plugins; Java 1.8 level, UTF-8 | 3.9.16 | `.mvn/wrapper/maven-wrapper.properties`, `pom.xml:16-18,131-155` |
 | Runtime | External Servlet 3.1 container; which one isn't named | Servlet API 3.1.0 (provided) | `pom.xml`, `rms/config/WebInitializer.java` |
 | Web/UI | JSP with scriptlets, JSTL, Spring form/url tags | JSTL 1.2 | `pom.xml`, `WEB-INF/jsp/*.jsp` |
