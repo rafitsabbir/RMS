@@ -1,7 +1,7 @@
 # Tech Stack
 
 Purpose: Every technology and version in use, with evidence.
-Last updated: 2026-09-25
+Last updated: 2026-09-26
 Read this when: you're upgrading dependencies, checking compatibility, or answering "what does RMS use for X?".
 
 | Layer | Technology | Version | Evidence |
@@ -24,4 +24,8 @@ Read this when: you're upgrading dependencies, checking compatibility, or answer
 
 **Libraries bundled in the committed WAR** (`WEB-INF/lib/`; the WAR itself is out of date, built before commit `e5705c0`, see [build-run.md](build-run.md)): spring-aop, spring-beans, spring-context, spring-core, spring-expression, spring-jdbc, spring-tx, spring-web and spring-webmvc (all 4.3.0.RELEASE), jstl-1.2, mysql-connector-java-5.1.36, commons-logging-1.2.
 
-**Pending upgrades:** three unmerged Dependabot branches on GitHub bump `mysql-connector-java` to 8.0.28, `spring-web` to 6.0.0 and `spring-webmvc` to 5.2.20.RELEASE (`git branch -r`).
+**Pending upgrades:** there are three unmerged Dependabot branches on GitHub (`git branch -r`):
+- One bumps `mysql-connector-java` to 8.0.28.
+- The two named after `spring-web` 6.0.0 and `spring-webmvc` 5.2.20.RELEASE each change the shared `spring.version` property (`pom.xml:13`), so each would move **every** Spring module. The 6.0.0 branch can't compile on this codebase (see B8 in [modernization-plan.md](modernization-plan.md)).
+
+**Support status and upgrade path:** see [modernization-plan.md](modernization-plan.md). Spring 4.3 support ended in 2020, and the target is Spring 7.0 on JDK 21 and Tomcat 11, going through 5.3.

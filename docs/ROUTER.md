@@ -1,7 +1,7 @@
 # Docs Router
 
 Purpose: Points each kind of task to the minimum set of docs and code to read.
-Last updated: 2026-09-25
+Last updated: 2026-09-26
 Read this when: you're starting any task. Start here, not with every doc.
 
 **Rule:** read only the files listed for your task. Open other docs only if those files point you there, or the task clearly spans categories.
@@ -13,7 +13,8 @@ Read this when: you're starting any task. Start here, not with every doc.
 | DB / SQL change | [data-model.md](data-model.md), then the affected module in business-flows/ | `rms/dao/*DaoImpl.java` (SQL string fields and `RowMapper`s), `rms/model/*Info.java` |
 | Build, deploy or environment issue | [build-run.md](build-run.md), [tech-stack.md](tech-stack.md) | `pom.xml`, `rms/config/WebInitializer.java`, `WebConfig.getDataSource` |
 | Config or integration change | [config.md](config.md) | `rms/config/WebConfig.java`, `src/main/webapp/WEB-INF/web.xml` |
-| Dependency upgrade / security fix | [tech-stack.md](tech-stack.md), [build-run.md](build-run.md) | `pom.xml` |
+| Upgrading libraries/JDK/framework | [modernization-plan.md](modernization-plan.md), [tech-stack.md](tech-stack.md), [conventions.md](conventions.md) | `pom.xml`, `WebConfig.java`, `LoginController.java` (the only `javax.servlet` user), `WEB-INF/web.xml`, JSP `<head>` CDN links |
+| Dependency upgrade / security fix | [modernization-plan.md](modernization-plan.md) (phase and gates first), then [tech-stack.md](tech-stack.md), [build-run.md](build-run.md) | `pom.xml` |
 | Understanding the overall system | [architecture.md](architecture.md), [business-flows/README.md](business-flows/README.md) | `WebConfig.java`, `rms/controller/` |
 | Code review / following conventions | [conventions.md](conventions.md), plus the "Cross-cutting concerns" section of [architecture.md](architecture.md) | the changed files |
 | Auth / security change | [business-flows/login.md](business-flows/login.md), plus the "Cross-cutting concerns" section of [architecture.md](architecture.md) | `LoginController.java`, `LoginDaoImpl.java`, `main.jsp` |

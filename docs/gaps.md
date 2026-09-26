@@ -1,7 +1,7 @@
 # Gaps — Partial & Missing Features
 
 Purpose: Every partially implemented or missing piece of RMS, with evidence, impact, effort and a proposed order of work.
-Last updated: 2026-09-25 (re-verified against `dev`; G26–G31 from the gap check; G32–G38 and the Critical ratings from a full code review)
+Last updated: 2026-09-26 (G24 plan now points to [modernization-plan.md](modernization-plan.md)). 2026-09-25: re-verified against `dev`; G26–G31 from the gap check; G32–G38 and the Critical ratings from a full code review.
 Read this when: you're building an unfinished feature, fixing a known defect, or planning work. Find the gap ID first, then open the relevant business-flows file.
 
 - **Scope:** RMS was last worked on on 2020-01-17. Features came in over four commits:
@@ -72,7 +72,7 @@ Read this when: you're building an unfinished feature, fixing a known defect, or
 | ID | Missing | Needed to complete | Depends on | Risk | Effort |
 |---|---|---|---|---|---|
 | G22 | DB schema | Get DDL from the owner or a DB dump; add `db/schema.sql` + seed | Owner access | Nothing can be run or tested without it | M |
-| G24 | Security upgrades | Upgrade to Spring 5.3.x (Java 8 compatible, same `javax.servlet`) instead of the 6.0 branch; Connector/J 8.x (driver class and JNDI URL changes) | G22 and a working local environment | `WebMvcConfigurerAdapter` is deprecated in 5.x; the container's JNDI config changes | M |
+| G24 | Security upgrades | Phased per [modernization-plan.md](modernization-plan.md):<br>• Spring 5.3.39 via the Spring BOM as a waypoint (Java 8, `javax`)<br>• JDK 21<br>• the target, Spring 7.0 + Jakarta + Tomcat 11<br>• `com.mysql:mysql-connector-j` in the series matching the server (driver class and JNDI URL change)<br>Close the three Dependabot branches | G22, G23 (Phase 0 safety net) | `WebMvcConfigurerAdapter` must go before 6.x; the container's JNDI config changes; the JDK must not move before Spring (Spring4Shell) | M |
 | G11 (Critical) | Auth enforcement | `HandlerInterceptor` registered in `WebConfig.addInterceptors`, excluding `/login`, `/welcome`, `/resources/**`; role check for admin URLs (`isinterviewer='N'`) | — | Low | S |
 | G13 (Critical) | Password hashing | BCrypt (e.g. `spring-security-crypto`); `LoginDaoImpl.checkUser` fetches the hash and compares in code; migrate existing rows | G22, owner sign-off | Existing logins break unless passwords are migrated | M |
 | G1 | Candidate CRUD | `Candidate{Controller,Service,Dao,Info}` + `createcandidate.jsp`/`viewcandidatelist.jsp`, copying `PositionController`, with position and language dropdowns | G22 | Low; the pattern already exists | M |
@@ -92,7 +92,7 @@ Read this when: you're building an unfinished feature, fixing a known defect, or
    - G12, G14, G33, G15, G16, G18
    - G26, G28, G30, G36, G34, G37
    - G20/G21, G25, G31
-2. **Critical path:** G32 CSRF with POST-only state changes (build it on the G11 interceptor) → G24 dependency upgrade → G13 password hashing (Critical) → G10 map columns by name.
+2. **Critical path:** G32 CSRF with POST-only state changes (build it on the G11 interceptor) → G24 dependency upgrade (phases and gates in [modernization-plan.md](modernization-plan.md)) → G13 password hashing (Critical) → G10 map columns by name.
 3. **Core features:** G1 Candidate → G2 Interviewer → G5–G7 Score entry → G9 Status decision.
 4. **Secondary:** G4 Job, G3 Schedule, G17 soft delete with POST deletes, G19 transactions, and broader tests (G23).
 
