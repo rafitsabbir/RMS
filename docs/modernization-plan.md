@@ -208,7 +208,7 @@ Move one axis at a time. Pass through Spring 5.3 so the security fixes ship befo
 - **Risks:**
   - **Spring 4→5:** suffix-pattern URL matching is off by default [A]. RMS URLs have no extensions [C].
   - **Driver:** SSL, time-zone and character-set defaults change [A]. There are no date columns [C]. Non-ASCII text needs testing (G34).
-  - **Front-end bumps:** the visual appearance may shift.
+  - **Front-end bumps:** the visual appearance may shift. The JavaScript API risk is low [C]: the only inline scripts are `$(document).ready(...)` with `$('#…').DataTable()` (`viewposition.jsp:29`, `viewlanguage.jsp:29`, `viewmarks.jsp:42`) and the plain-DOM dropdown toggle in `main.jsp:100-113`. No Bootstrap JS plugin (modal, tooltip, dropdown…) is called.
 - **Rollback:**
   - Redeploy the Phase 0 WAR.
   - Keep the old driver jar and `driverClassName` until sign-off.
@@ -303,7 +303,7 @@ Move one axis at a time. Pass through Spring 5.3 so the security fixes ship befo
 | 4 | Med | Med | Med | DB connectivity comes from a new config template |
 
 ### MySQL compatibility
-- **Server version:** the unknown server version is the biggest DB risk. The newest driver series supports 8.4+ only [A].
+- **Server version:** the unknown server version is the biggest DB risk. Driver support by release, from the Connector/J release notes and docs (checked 2026-09-26) [C]: 8.1.0 and 8.2.0 support MySQL 5.7 and later; 8.3.0 and 8.4.0 support 8.0 and later; the newest series (26.7) supports 8.4 and later. Phase 1 uses 8.2.0.
 - **Column positions:** results are mapped by column position over `m.*` (`MarksDaoImpl.java:40-55`). No driver changes that, but it's fragile, so Phase 0 tests pin it.
 - **MySQL syntax:** the 3-argument `concat()` and comma joins (`MarksDaoImpl.java:19-25`) work with any MySQL driver.
 - **Active flags:** `isactive` is read with `getInt` (`LoginDaoImpl.java:33`, `MarksDaoImpl.java:44`), which is safe for both TINYINT(1) and BIT [A].
@@ -341,6 +341,9 @@ Checked 2026-09-25. Sources: endoflife.date, the Spring Framework Versions wiki,
 | MySQL server | 5.7, 8.0 | Ended |
 | MySQL server | 8.4 LTS | Premier support to 2029-04 |
 | MySQL server | 9.7 LTS | Premier support to 2034-04 |
+| MySQL Connector/J | 8.1.0, 8.2.0 | Supports servers 5.7+ (release notes, checked 2026-09-26) |
+| MySQL Connector/J | 8.3.0, 8.4.0 | Supports servers 8.0+ (release notes) |
+| MySQL Connector/J | 26.7 | Supports servers 8.4+ (Connector/J docs) |
 
 ## 8. Top risks
 1. **No safety net** (G22, G23). Every phase depends on Phase 0.

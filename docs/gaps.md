@@ -1,7 +1,7 @@
 # Gaps — Partial & Missing Features
 
 Purpose: Every partially implemented or missing piece of RMS, with evidence, impact, effort and a proposed order of work.
-Last updated: 2026-09-26 (Phase 1 on `dev`: G24 code done, not released. Phase 0: G29 and G35 fixed, G22 and G23 partial). 2026-09-25: re-verified against `dev`; G26–G31 from the gap check; G32–G38 and the Critical ratings from a full code review.
+Last updated: 2026-09-26 (G39 added; Phase 1 on `dev`: G24 code done, not released. Phase 0: G29 and G35 fixed, G22 and G23 partial). 2026-09-25: re-verified against `dev`; G26–G31 from the gap check; G32–G38 and the Critical ratings from a full code review.
 Read this when: you're building an unfinished feature, fixing a known defect, or planning work. Find the gap ID first, then open the relevant business-flows file.
 
 - **Scope:** RMS was last worked on on 2020-01-17. Features came in over four commits:
@@ -54,19 +54,20 @@ Read this when: you're building an unfinished feature, fixing a known defect, or
 | G36 | Login | Session | Partial flow | Partial | `UserInfo.java:3` isn't `Serializable`, but it's stored in the session (`LoginController.java:45`, `main.jsp:34`). Persisting or replicating sessions fails, and users are logged out silently | Low | S | Confirmed |
 | G37 | Config | Web descriptor | Partial flow | Partial | `web.xml:1-3` uses the Servlet 2.3 DTD, under which EL is ignored by default. Each JSP only works by opting in (`isELIgnored="false"`); `viewmarks.jsp:1-2` doesn't opt in, so any EL added there would print as literal text | Low | S | Confirmed |
 | G38 | UI / Marks | Security (XSS, IDOR) | Partial flow | Partial | `main.jsp:152,155` write `userinfo.getUserid()` unescaped into a JavaScript string, and pass it as the client-side `user` parameter to the planned score-entry URL. That's an XSS sink not covered by G27, and G5 might trust the parameter instead of the session (IDOR: acting on another user's data) | Low | S | Confirmed |
+| G39 | UI | Menu shell | Dead code | Unused | `src/main/webapp/resources/js/main.js` (24 lines, added in `4b727b0`) holds the same dropdown-toggle code as the inline script in `main.jsp:100-113`, but no JSP loads it (`grep -rn ".js" WEB-INF/jsp` finds only CDN links) | Low | S | Confirmed |
 
 **Not found:** stored procedures, feature flags, `printStackTrace`, empty catch blocks, commented-out Java logic (only the `main.css:80` rule, G20), and WIP commits. The messages of `4b727b0` and `e5705c0` don't describe their contents.
 
 ## Counts
-- **By type (38 total):** Partial flow 18 · Missing link 11 · Dead code 5 · Stub 2 · Silent failure 1 · No tests 1
-- **By impact:** Critical 2 · High 8 · Med 12 · Low 16
-- **By confidence:** Confirmed 31 · Likely 7
+- **By type (39 total):** Partial flow 18 · Missing link 11 · Dead code 6 · Stub 2 · Silent failure 1 · No tests 1
+- **By impact:** Critical 2 · High 8 · Med 12 · Low 17
+- **By confidence:** Confirmed 32 · Likely 7
 
 ## By business capability
 - **Recruitment pipeline:** G1, G2, G3, G4, G5–G7, G8, G9, G10
 - **Access & security:** G11, G12, G13, G24, G26, G27, G30, G32, G36, G38
 - **Master data (Position/Language):** G14, G15, G17, G18, G28, G33
-- **Platform / UI:** G16, G19, G20, G21, G22, G23, G25, G29, G31, G34, G35, G37
+- **Platform / UI:** G16, G19, G20, G21, G22, G23, G25, G29, G31, G34, G35, G37, G39
 
 ## Critical & high-impact items
 | ID | Missing | Needed to complete | Depends on | Risk | Effort |
@@ -88,7 +89,7 @@ Read this when: you're building an unfinished feature, fixing a known defect, or
 1. **Quick wins (S each, no domain input needed):**
    - G11 (Critical), G27, G38
    - G12, G14, G33, G15, G16, G18
-   - G26, G28, G30, G36, G34, G37
+   - G26, G28, G30, G36, G34, G37, G39
    - G20/G21, G25, G31
 2. **Critical path:** G32 CSRF with POST-only state changes (build it on the G11 interceptor) → G24 dependency upgrade (phases and gates in [modernization-plan.md](modernization-plan.md)) → G13 password hashing (Critical) → G10 map columns by name.
 3. **Core features:** G1 Candidate → G2 Interviewer → G5–G7 Score entry → G9 Status decision.
