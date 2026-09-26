@@ -1,7 +1,7 @@
 # Data Model
 
 Purpose: The database tables and columns RMS uses, as seen in the SQL in the code.
-Last updated: 2026-09-25
+Last updated: 2026-09-26
 Read this when: you're changing SQL, adding a column or table, or fixing a data-mapping bug.
 
 - **Database:** MySQL (`pom.xml`, Connector/J 5.1.36).
@@ -31,3 +31,5 @@ Read this when: you're changing SQL, adding a column or table, or fixing a data-
 - New position and language rows get `isActive = 1`. Lists show only rows with `isactive = 1`. Deletes remove the row instead of setting `isactive = 0` (`*DaoImpl`).
 - The relationships `candidate.positionkey` → `position` and `candidate.languagekey` → `language` are joins in `MarksDaoImpl`. Whether real foreign keys exist is unknown.
 - `MarksMapper` reads result columns by position (1–5 and 8–18), so the query's column order matters (`MarksDaoImpl`).
+- **The SQL is MySQL-specific:** it uses the 3-argument `concat()` and comma-style joins (`MarksDaoImpl.java:19-25`).
+- **No date or time columns:** the row mappers read columns only with `getInt`/`getString` (`LoginDaoImpl.java:33-41`, `MarksDaoImpl.java:40-55`, `PositionDaoImpl.java:40-41`, `LanguageDaoImpl.java:42-43`).

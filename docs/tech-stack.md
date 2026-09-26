@@ -10,7 +10,7 @@ Read this when: you're upgrading dependencies, checking compatibility, or answer
 | Build | Maven with `maven-war-plugin` (committed WAR built with Maven 3.6.1) | plugin 2.3 | `pom.xml`, WAR `MANIFEST.MF` |
 | Runtime | External Servlet 3.1 container; which one isn't named | Servlet API 3.1.0 (provided) | `pom.xml`, `rms/config/WebInitializer.java` |
 | Web/UI | JSP with scriptlets, JSTL, Spring form/url tags | JSTL 1.2 | `pom.xml`, `WEB-INF/jsp/*.jsp` |
-| Front-end libraries (CDN) | Bootstrap 3.3.7 and 4.1.1, jQuery 3.2.1/3.3.1, DataTables 1.10.19, Font Awesome 4.7.0 | as listed | `WEB-INF/jsp/*.jsp` |
+| Front-end libraries (CDN) | Bootstrap 3.3.7 and 4.1.1, jQuery 3.2.1/3.3.1, DataTables 1.10.19, Font Awesome 4.7.0 | as listed | `login.jsp:13-18`, `create*.jsp:10-14`, `view*.jsp:12-21`, `main.jsp:26` |
 | Framework | Spring MVC with Java config | 4.3.0.RELEASE | `pom.xml`, `rms/config/WebConfig.java` |
 | Persistence | Spring JDBC `NamedParameterJdbcTemplate`, no ORM | 4.3.0.RELEASE | `WebConfig.java`, `rms/dao/*DaoImpl.java` |
 | Database driver | MySQL Connector/J | 5.1.36 | `pom.xml` |

@@ -1,7 +1,7 @@
 # Build & Run
 
 Purpose: How RMS is built, packaged, deployed and tested.
-Last updated: 2026-09-25
+Last updated: 2026-09-26
 Read this when: you're building, deploying, setting up an environment, or fixing a build or startup failure.
 
 ## Build
@@ -10,6 +10,7 @@ Read this when: you're building, deploying, setting up an environment, or fixing
   - This is standard Maven behaviour for WAR packaging (`pom.xml`). It hasn't been run in this environment: Java and Maven aren't installed on this machine as of 2026-09-25.
 - **Java version:** `pom.xml` doesn't set a compiler level. The committed WAR was built with JDK 1.8.0_221 and Maven 3.6.1 (`target/rmsv2-1.0.1-SNAPSHOT.war` → `META-INF/MANIFEST.MF`).
 - **WAR settings:** `maven-war-plugin` 2.3, with `warSourceDirectory=src/main/webapp` and `failOnMissingWebXml=false` (`pom.xml`).
+- **Source encoding:** `pom.xml` sets no `project.build.sourceEncoding`, so the build uses the platform encoding (`pom.xml:12-17`).
 
 ## Run / deploy
 - **How it runs:** deploy the WAR to a Servlet 3.1 container. `javax.servlet-api` 3.1.0 is `provided` (`pom.xml`). There's no embedded server and no `main()` (`rms/config/WebInitializer.java`).

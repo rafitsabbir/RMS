@@ -1,7 +1,7 @@
 # Conventions
 
 Purpose: The coding patterns RMS actually uses, so new code matches existing code.
-Last updated: 2026-09-25
+Last updated: 2026-09-26
 Read this when: you're adding or reviewing code, or creating a new screen or module.
 
 ## Package & naming
@@ -26,6 +26,7 @@ Read this when: you're adding or reviewing code, or creating a new screen or mod
 - **Views:**
   - JSPs use scriptlets as well as JSTL.
   - URLs are built with `<spring:url>`.
+  - **EL opt-in:** 6 of the 7 JSPs declare `isELIgnored="false"` (lines 1-2), because `web.xml` uses the Servlet 2.3 DTD, where EL is off by default. `viewmarks.jsp` doesn't opt in and uses no EL, so keep the attribute on new JSPs (`WEB-INF/jsp/*.jsp`, `web.xml:1-3`, G37).
   - List pages use DataTables with Update/Delete links (`viewposition.jsp`, `viewlanguage.jsp`).
 - **Style:** tab indentation. Eclipse "Auto-generated method stub" TODO comments are left in place (`rms/service/*Impl.java`, `rms/dao/*Impl.java`).
 - **Git:**
