@@ -5,7 +5,7 @@ Last updated: 2026-09-26 (Phase 1 code on `dev`, not released; Phase 0 owner ste
 Read this when: you're upgrading libraries, the JDK, the framework, the servlet container or the DB driver, or planning a security fix to the stack.
 
 **Status and rules:**
-- **Status:** approved. Phases 0 and 1 are coded on `dev` (2026-09-26); see their status blocks. Neither is signed off, so Phase 1 is not releasable yet. Phases 2–4 have not started.
+- **Status:** approved. Phases 0 and 1 are coded on `dev` (2026-09-26); see their status blocks. Neither is signed off, so Phase 1 is not releasable yet. Phases 2–4 have not started. The live tracker is [upgrade-status.md](upgrade-status.md).
 - **Go-ahead:** every phase needs its own go-ahead, because it needs builds (see [CLAUDE.md](../CLAUDE.md) critical rules).
 - **Principle:** make the smallest change that restores security patches, vendor support and maintainability:
   - no rewrite

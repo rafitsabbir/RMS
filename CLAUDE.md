@@ -29,6 +29,7 @@ Evidence: `pom.xml`, `.mvn/wrapper/maven-wrapper.properties`, `rms/config/WebCon
 - **Code style:**
   - Match the existing layering (`controller → service → dao → model`), `*Impl` / `*Info` naming, SQL in DAO string fields with named params, and tab indentation. See [docs/conventions.md](docs/conventions.md).
   - Keep tests as characterization tests: pin current behaviour, and mark known defects with `// characterizes Gnn`.
+- **Upgrade progress:** done, open and pending items, next actions and new-machine setup are in [docs/upgrade-status.md](docs/upgrade-status.md).
 - **Docs:**
   - Keep them evidence-based: cite file paths, and record unconfirmed items in [docs/open-questions.md](docs/open-questions.md).
   - Update the owning file under `docs/` when facts change.
