@@ -1,7 +1,7 @@
 # Flow: Position & Language Masters
 
 Purpose: Traces create, list, update and delete for the job-position and language/skill lists.
-Last updated: 2026-09-25
+Last updated: 2026-09-26
 Read this when: you're fixing or extending position or language management, or adding a new list screen that follows the same pattern.
 
 Evidence:
@@ -24,7 +24,7 @@ sequenceDiagram
     C->>D: addPosition
     D->>DB: SELECT positionname (duplicate check)
     alt exists
-      D->>D: System.out "already exist!" (no user feedback)
+      D->>D: log.warn "already exists; not added" (no user feedback)
     else not found
       D->>DB: INSERT position (isActive=1, positionname)
     end

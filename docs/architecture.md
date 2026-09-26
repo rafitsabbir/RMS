@@ -40,7 +40,7 @@ Evidence: `src/main/java/rms/config/WebInitializer.java`, `rms/config/WebConfig.
 ## Cross-cutting concerns
 - **Transactions:** none. There's no `@Transactional` or transaction manager, although `spring-tx` is a dependency (`pom.xml`, `src/main/java`).
 - **Error handling:** no `@ExceptionHandler` or `@ControllerAdvice`. Only `EmptyResultDataAccessException` is caught, in `LoginDaoImpl.checkUser` and `*DaoImpl.add*`. `findPositionById` and `findLanguageById` fail with an error when the key doesn't exist (`PositionDaoImpl`, `LanguageDaoImpl`).
-- **Logging:** only `System.out.println`: the duplicate-name messages (`LanguageDaoImpl.java:69`, `PositionDaoImpl.java:69`) and the not-logged-in fallback (`main.jsp:172`).
+- **Logging:** SLF4J with Logback, console only (`src/main/resources/logback.xml`; `rms` at INFO, `org.springframework` at WARN). The duplicate-name messages are `log.warn` (`PositionDaoImpl.java:73`, `LanguageDaoImpl.java:73`). One `System.out.println` remains: the not-logged-in fallback (`main.jsp:172`, G30).
 - **Security:** nothing checks the session after login. There's no filter or interceptor, and no controller reads the `user` session attribute (`rms/controller/*`). The password is compared as plain text in SQL (`LoginDaoImpl`).
 - **Validation:** none (no `@Valid` or `BindingResult`). The only checks are uppercase/trim and the duplicate-name check in `*DaoImpl.add*`.
 - **Deletes:** sent as GET requests and remove the row (`*Controller.delete`, `*DaoImpl.delete*`).

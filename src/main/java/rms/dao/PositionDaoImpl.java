@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -17,6 +19,8 @@ import rms.model.PositionInfo;
 
 @Repository
 public class PositionDaoImpl implements PositionDao {
+	private static final Logger log = LoggerFactory.getLogger(PositionDaoImpl.class);
+
 	private String ifexist = "select positionname from position where positionname=:positionname ";
 	private String saveposition = "insert into position  (isActive, positionname) VALUES (:isActive,:positionname)";
 	private String updateposition = "update position set positionname=:positionname where positionkey=:positionkey";
@@ -66,7 +70,7 @@ public class PositionDaoImpl implements PositionDao {
 			String positionname = namedParameterJdbcTemplate.queryForObject(
 					ifexist, paramMap, String.class);
 
-			System.out.println(positionname + "already exist!");
+			log.warn("Position {} already exists; not added", positionname);
 
 		} catch (EmptyResultDataAccessException e) {
 			paramMap.put("isActive", 1);

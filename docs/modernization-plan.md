@@ -1,11 +1,11 @@
 # Modernization Plan
 
 Purpose: The agreed plan for bringing RMS up to a supported stack: current state, target stack with reasons, phases, risks and gates.
-Last updated: 2026-09-26 (Phase 0 in progress: build, tests and schema done; owner steps open)
+Last updated: 2026-09-26 (Phase 1 code on `dev`, not released; Phase 0 owner steps still open)
 Read this when: you're upgrading libraries, the JDK, the framework, the servlet container or the DB driver, or planning a security fix to the stack.
 
 **Status and rules:**
-- **Status:** approved. Phase 0 started 2026-09-26; see its status block. Phases 1–4 have not started.
+- **Status:** approved. Phases 0 and 1 are coded on `dev` (2026-09-26); see their status blocks. Neither is signed off, so Phase 1 is not releasable yet. Phases 2–4 have not started.
 - **Go-ahead:** every phase needs its own go-ahead, because it needs builds (see [CLAUDE.md](../CLAUDE.md) critical rules).
 - **Principle:** make the smallest change that restores security patches, vendor support and maintainability:
   - no rewrite
@@ -65,7 +65,7 @@ This is an external figure: which alert belongs to which dependency can't be ver
 | B2 | No DB schema in the repo, so DAO tests are impossible | G22 [C] | Phase 0 (owner supplies the DDL) |
 | B3 | No toolchain on the dev machine; no container or JNDI definition in the repo | [build-run.md](build-run.md) [C]; [open-questions.md](open-questions.md) #4 | Phase 0 (toolchain); ops (container) |
 | B4 | The build fails on JDK 9+: no compiler level (G35), and war plugin 2.3 | `pom.xml:74-88` [C]; plugin failure [A] | Phase 0 |
-| B5 | `WebMvcConfigurerAdapter` is used; it's deprecated in Spring 5 and removed in 6 | `WebConfig.java:14,21` [C]; removal [A] | Phase 1 |
+| B5 | `WebMvcConfigurerAdapter` is used; it's deprecated in Spring 5 and removed in 6 | `WebConfig.java:14,21` [C]; removal [A] | Phase 1 (resolved on `dev` 2026-09-26) |
 | B6 | `javax.*` Jakarta EE usage, in exactly 4 places (see below) | Import grep [C] | Phase 3 |
 | B7 | Coupling to the app server: the JNDI name `java:comp/env/jdbc/springrms` is standard and portable. The resource definition, and probably the driver jar, live in the container | `WebConfig.java:31-37` [C]; driver location [A] | Phases 1 and 3 (ops) |
 | B8 | Both Spring Dependabot branches change the **shared** `spring.version`. The 6.0.0 branch moves every Spring module to 6.0 and can't compile (Jakarta namespace, removed adapter, JDK 17). The 5.2.20 branch compiles, but 5.2 is EOL | `git diff master...origin/dependabot/*` → `pom.xml:13` [C]; EOL [A] | Close them in Phase 1 |
@@ -95,7 +95,7 @@ Move one axis at a time. Pass through Spring 5.3 so the security fixes ship befo
 | **Framework** | **Spring Framework 7.0.x** (plain Spring MVC, no Boot), via **5.3.39** | The only Spring line with open-source support. The code changes are 1 config class, 1 controller, the pom and 2 taglib lines | **Spring Boot 4:** its docs say JSPs should be avoided with embedded containers and work only with WAR packaging. All 7 views are scriptlet JSPs, there are only 2 config classes, and Boot 4 uses the same Framework 7, so there's no support gain. Revisit once the views are replaced.<br>**Stopping at 5.3 or 6.2:** open-source EOL | M | [A] support dates, Boot docs; [C] code footprint |
 | **Container** | Tomcat 9.0 (Phases 0–2) → **Tomcat 11.0** (Phase 3) | Tomcat 9 runs `javax` code on JDK 8 and 21. Tomcat 11 provides Servlet 6.1, the Spring 7 baseline (Jakarta EE 11) | **Tomcat 10.1:** Servlet 6.0 is below Spring 7's baseline [A].<br>**Other servers:** the current one is unknown; Tomcat is the lowest-friction choice for JSP | M (ops) | [A] |
 | **Persistence** | Keep `NamedParameterJdbcTemplate` and the row mappers | All the DAOs use it; the API is stable through 7.0 | **JPA, MyBatis or jOOQ:** each rewrites every DAO. `JdbcClient` (6.1+) is optional, for new code only | None | [C] `rms/dao/*` |
-| **DB driver** | `com.mysql:mysql-connector-j`, in the newest series that supports the production server (the latest for 8.4+, the 8.x series for 5.7 or 8.0) | Keeps MySQL and the existing SQL. Supports JRE 8+, so it can ship in Phase 1 | **5.1:** legacy, with known CVEs | S (code) + S–M (container) | [A] MySQL docs |
+| **DB driver** | `com.mysql:mysql-connector-j`, in the newest series that supports the production server (the latest for 8.4+; 8.2.0 is the newest that supports 5.7, since 8.3.0+ need 8.0+ per the release notes) | Keeps MySQL and the existing SQL. Supports JRE 8+, so it can ship in Phase 1 | **5.1:** legacy, with known CVEs | S (code) + S–M (container) | [A] MySQL docs |
 | **Logging** | SLF4J 2 + Logback (1.3.x on Java 8, 1.5.x on 21) | Spring 5.3+ routes its logging to SLF4J. Replaces the 3 `System.out` calls | **Log4j2:** heavier configuration.<br>**java.util.logging:** weak configuration.<br>No existing config to keep | S | [A] routing; [C] call sites |
 | **Testing** | JUnit Jupiter 5.x, Mockito, AssertJ, spring-test `MockMvc` (standalone), **Testcontainers MySQL**, and a manual acceptance checklist | Standalone MockMvc needs no Spring test runner, so the same tests work from 4.3 to 7.0. A real MySQL matches the MySQL-specific SQL | **H2 in MySQL mode:** doesn't prove driver or `concat()` behaviour.<br>**JUnit 4:** a dead end.<br>JUnit 6 and Mockito 5 need newer Java, so switch in Phase 2 | M | [A] compatibility; [C] SQL |
 | **Packaging** | WAR on external Tomcat 11 with the JNDI name kept; CI builds the WAR; `target/` no longer committed; optional container image | Keeps today's model. JSP and `src/main/webapp` need a WAR | **Executable JAR:** `src/main/webapp` is ignored in a JAR [A: Boot docs] | S–M | [C] `pom.xml:6`, G29 |
@@ -162,8 +162,26 @@ Move one axis at a time. Pass through Spring 5.3 so the security fixes ship befo
   - `git status` shows no `target/`.
 
 ### Phase 1 — Dependency and security upgrades on Java 8 with `javax` (**M**)
+- **Status (2026-09-26):**
+  - **Done on `dev`:**
+    - Spring BOM 5.3.39, with no per-module versions (`pom.xml:13,32-39`). The `spring.version` property stays; it now only sets the BOM version.
+    - `WebConfig implements WebMvcConfigurer` (B5).
+    - `com.mysql:mysql-connector-j` 8.2.0, excluding `protobuf-java` (only for the X DevAPI). 8.2.0 is the newest release that still supports MySQL 5.7; 8.3.0+ need 8.0+ (release notes). It was chosen because the server version is unknown (open question #16). 8.4.0 was tried first and replaced after the code review found that it doesn't support 5.7.
+    - SLF4J 2.0.20 and Logback 1.3.16, with `logback.xml`; the two DAO `System.out` calls are now `log.warn`. CR/LF in log messages are replaced with `_` (checked with a scratch run).
+    - Front end: jQuery 3.7.1, Bootstrap 3.4.1/4.6.2 (now from jsDelivr), DataTables 1.13.11 and Font Awesome 4.7.0, all with SRI hashes. The hashes were computed from the files the CDNs served on 2026-09-26; the vendor-published Bootstrap hashes match.
+    - The DAO test image moved to `mysql:8.0`.
+    - The three Dependabot branches were deleted (owner approved).
+    - `mvnw -B verify` passes: 16 run and pass, 20 skipped. The WAR has one Spring version and no old driver.
+  - **Left out by the owner:** `.github/dependabot.yml`.
+  - **Open before release:**
+    - The Phase 0 owner steps (DAO tests with Docker, smoke test, checklist).
+    - Container: `driverClassName` → `com.mysql.cj.jdbc.Driver`, no old MySQL or logging jars in `lib/`, and review the SSL settings ([build-run.md](build-run.md)).
+    - Code review (2026-09-26): nothing Critical or High; the Med findings were all about the container and the docs, and are addressed in build-run.md.
+    - A browser check of every page after the front-end bumps.
+    - A non-ASCII round-trip test (G34).
+    - Confirm which GitHub alerts close once the change reaches `master`. Some Spring advisories are likely fixed only in commercial 5.3.x releases after 5.3.39 [A], so a few may stay open until Phases 2–3.
 - **Scope:**
-  1. **Spring:** import `spring-framework-bom` **5.3.39** in `dependencyManagement`, and remove the per-module versions and the `spring.version` property.
+  1. **Spring:** import `spring-framework-bom` **5.3.39** in `dependencyManagement`, and remove the per-module versions. (`spring.version` is kept, but only as the BOM version.)
   2. **`WebConfig`:** `extends WebMvcConfigurerAdapter` → `implements WebMvcConfigurer` (`WebConfig.java:14,21`).
   3. **Driver:** `com.mysql:mysql-connector-j` in the series that matches the server.
      - Update it in the pom **and** in the container's `lib/` if the JNDI pool loads it from there.
@@ -348,8 +366,13 @@ The schema (G22) is also needed.
 - DAO tests: Testcontainers, skipped where Docker is missing, unless `RMS_REQUIRE_DOCKER=true`.
 - `target/`: untrack it.
 
+**Decisions made on 2026-09-26 (Phase 1 start):**
+- Start Phase 1 before Phase 0 is signed off, but don't release it until the DAO tests and checklist pass.
+- The server version is unknown, so use Connector/J 8.2.0 (the last release supporting 5.7; corrected from 8.4.0 after the review) and test on `mysql:8.0`.
+- Include the front-end bumps with SRI and SLF4J/Logback; leave out `dependabot.yml`.
+- Delete the three Dependabot branches (done).
+
 **Owner decisions still open:**
 - Choose the JDK standard: 21, or an organisational 17 or 25.
-- Close the three stale Dependabot branches.
 - Choose the deployment target after Phase 4, and whether GitHub Actions is acceptable for CI.
 - Confirm there's no Oracle database and no plan to move to one.

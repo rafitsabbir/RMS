@@ -28,6 +28,9 @@ Read this when: you're adding or reviewing code, or creating a new screen or mod
   - URLs are built with `<spring:url>`.
   - **EL opt-in:** 6 of the 7 JSPs declare `isELIgnored="false"` (lines 1-2), because `web.xml` uses the Servlet 2.3 DTD, where EL is off by default. `viewmarks.jsp` doesn't opt in and uses no EL, so keep the attribute on new JSPs (`WEB-INF/jsp/*.jsp`, `web.xml:1-3`, G37).
   - List pages use DataTables with Update/Delete links (`viewposition.jsp`, `viewlanguage.jsp`).
+- **Logging:** use SLF4J, with `private static final Logger log = LoggerFactory.getLogger(X.class);` as the first class field and `{}` placeholders (`PositionDaoImpl.java:22,73`). No new `System.out`. Never log passwords or other personal data. `logback.xml` replaces CR/LF in messages, so logged user input can't forge log lines.
+- **Front-end libraries:** load them from a pinned CDN version with an SRI `integrity` hash (sha384) and `crossorigin="anonymous"`, as in every JSP head since Phase 1 (`viewposition.jsp:11-21`). Compute the hash from the exact file, e.g. `curl -s URL | openssl dgst -sha384 -binary | openssl base64 -A`.
+- **MVC config:** implement `WebMvcConfigurer`, not the deprecated `WebMvcConfigurerAdapter` (`WebConfig.java:21`).
 - **Style:** tab indentation. Eclipse "Auto-generated method stub" TODO comments are left in place (`rms/service/*Impl.java`, `rms/dao/*Impl.java`).
 - **Git:**
   - `master` is the default branch; work happens on `dev` (`git branch -a`).

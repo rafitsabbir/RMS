@@ -11,8 +11,9 @@ Use subagents in .claude/agents/ — see ROUTER.md.
 **Stack:**
 - Java: 1.8 (source/target in `pom.xml`), built with JDK 8.
 - Build: Maven 3.9 via the Maven Wrapper (`mvnw`), packaged as a WAR.
-- Framework: Spring MVC 4.3.0 with JSP/JSTL and Spring JDBC (`NamedParameterJdbcTemplate`, no ORM).
-- Database: MySQL (Connector/J 5.1.36) through JNDI `jdbc/springrms`, in an external Servlet 3.1 container.
+- Framework: Spring MVC 5.3.39 (Spring BOM) with JSP/JSTL and Spring JDBC (`NamedParameterJdbcTemplate`, no ORM).
+- Database: MySQL (Connector/J 8.2.0, `com.mysql.cj.jdbc.Driver`) through JNDI `jdbc/springrms`, in an external Servlet 3.1 container.
+- Logging: SLF4J 2.0 with Logback 1.3 (`src/main/resources/logback.xml`).
 
 Evidence: `pom.xml`, `.mvn/wrapper/maven-wrapper.properties`, `rms/config/WebConfig.java`.
 

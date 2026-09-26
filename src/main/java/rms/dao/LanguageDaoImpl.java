@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -18,6 +20,8 @@ import rms.model.LanguageInfo;
 
 @Repository
 public class LanguageDaoImpl implements LanguageDao {
+	private static final Logger log = LoggerFactory.getLogger(LanguageDaoImpl.class);
+
 	private String savelanguage = "insert into language  (isActive, languagename) VALUES (:isActive,:languagename)";
 	private String ifexist = "select languagename from language where languagename=:languagename ";
 	private String alllanguage = "select languagekey, languagename from language where  isactive=1";
@@ -66,7 +70,7 @@ public class LanguageDaoImpl implements LanguageDao {
 			String languagename = namedParameterJdbcTemplate.queryForObject(
 					ifexist, paramMap, String.class);
 
-			System.out.println(languagename + "already exist!");
+			log.warn("Language {} already exists; not added", languagename);
 
 		} catch (EmptyResultDataAccessException e) {
 			paramMap.put("isActive", 1);

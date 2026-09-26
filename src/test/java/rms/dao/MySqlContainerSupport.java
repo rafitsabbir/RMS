@@ -25,8 +25,8 @@ import org.testcontainers.containers.MySQLContainer;
  * which makes them fail instead. One container is shared by all DAO test classes
  * and removed by Testcontainers when the JVM exits.
  *
- * MySQL 5.7 because the current driver (Connector/J 5.1.36) cannot authenticate
- * to MySQL 8's default caching_sha2_password. Phase 1 moves driver and image together.
+ * MySQL 8.0 is an assumed production line (open question #16). Connector/J 8.2.0 supports
+ * servers from 5.7 on (release notes). Change the image when the production version is known.
  */
 abstract class MySqlContainerSupport {
 
@@ -45,7 +45,7 @@ abstract class MySqlContainerSupport {
 			assertTrue(docker, "Docker is required (RMS_REQUIRE_DOCKER=true) but not available");
 		}
 		if (docker && mysql == null) {
-			mysql = new MySQLContainer<>("mysql:5.7");
+			mysql = new MySQLContainer<>("mysql:8.0");
 			mysql.start();
 		}
 	}
@@ -54,10 +54,10 @@ abstract class MySqlContainerSupport {
 	void resetDatabase() {
 		assumeTrue(docker, "Docker not available: DAO test skipped");
 		String url = mysql.getJdbcUrl();
-		url += (url.contains("?") ? "&" : "?") + "useSSL=false";
+		url += (url.contains("?") ? "&" : "?") + "sslMode=DISABLED&allowPublicKeyRetrieval=true";
 		DriverManagerDataSource datasource = new DriverManagerDataSource(url, mysql.getUsername(),
 				mysql.getPassword());
-		datasource.setDriverClassName("com.mysql.jdbc.Driver");
+		datasource.setDriverClassName("com.mysql.cj.jdbc.Driver");
 
 		jdbcTemplate = new JdbcTemplate(datasource);
 		for (String table : TABLES) {
