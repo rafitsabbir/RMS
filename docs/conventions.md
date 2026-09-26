@@ -33,6 +33,13 @@ Read this when: you're adding or reviewing code, or creating a new screen or mod
   - `master` is the default branch; work happens on `dev` (`git branch -a`).
   - Commit authors are recorded as `rafitsabbir` (`git log`).
 
+## Tests
+- **Kind:** characterization tests. They pin what the code does today, including known defects, so an upgrade that changes behaviour fails a test. Mark a test that pins a defect with a comment naming the gap, e.g. `// characterizes G14` (`src/test/java/rms/dao/PositionDaoImplTest.java`).
+- **Layout and naming:** `src/test/java/rms/<layer>/<Class>Test.java`, package-private JUnit 5 classes, tab indentation, AssertJ assertions.
+- **Controllers:** standalone MockMvc with Mockito `@Mock` services and `@InjectMocks` into the `@Autowired` fields. Pass `new WebConfig().viewResolver()` so view names resolve as in production (`src/test/java/rms/controller/PositionControllerTest.java`).
+- **DAOs:** extend `MySqlContainerSupport`. It recreates the schema from `db/schema.sql` and `db/test-seed.sql` before every test, against a throwaway MySQL container, and is skipped without Docker. Set `RMS_REQUIRE_DOCKER=true` where Docker must be present, so a missing Docker fails the build instead of skipping. Wire the DAO through its setter (`src/test/java/rms/dao/MySqlContainerSupport.java`).
+- **Data:** only synthetic values from `db/test-seed.sql` or the test itself. No real credentials, hostnames or production data.
+
 ## Known deviations (fix in passing, don't copy)
 - `WebConfig.java:23-24` injects the `DataSource` with `@Autowired` into the same config class that creates it. Prefer a method parameter: `getNamedParameterJdbcTemplate(DataSource ds)`.
 - `main.jsp:34` sets the `user` session attribute again, although `LoginController.java:45` already set it.

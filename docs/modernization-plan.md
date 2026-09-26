@@ -1,11 +1,11 @@
 # Modernization Plan
 
 Purpose: The agreed plan for bringing RMS up to a supported stack: current state, target stack with reasons, phases, risks and gates.
-Last updated: 2026-09-26 (plan approved; no phase started)
+Last updated: 2026-09-26 (Phase 0 in progress: build, tests and schema done; owner steps open)
 Read this when: you're upgrading libraries, the JDK, the framework, the servlet container or the DB driver, or planning a security fix to the stack.
 
 **Status and rules:**
-- **Status:** proposed and approved. No phase has started.
+- **Status:** approved. Phase 0 started 2026-09-26; see its status block. Phases 1–4 have not started.
 - **Go-ahead:** every phase needs its own go-ahead, because it needs builds (see [CLAUDE.md](../CLAUDE.md) critical rules).
 - **Principle:** make the smallest change that restores security patches, vendor support and maintainability:
   - no rewrite
@@ -54,7 +54,7 @@ This is an external figure: which alert belongs to which dependency can't be ver
 | Front-end (CDN) | Bootstrap 3.3.7 and 4.1.1, jQuery 3.2.1 and 3.3.1, DataTables 1.10.19, Font Awesome 4.7 | Out of date; Bootstrap 3 and 4 are EOL [A] | XSS and prototype-pollution CVEs, fixed in jQuery 3.5+, Bootstrap 3.4.1 and 4.3.1+ [A] | **Low** for in-major bumps; **High** for merging on one Bootstrap version (out of scope) | `login.jsp:13-18`, `create*.jsp:10-14`, `view*.jsp:12-21`, `main.jsp:26` [C] |
 | Logging | None: 3 `System.out` calls; `commons-logging` 1.2 comes in through Spring | — | No audit trail of logins or failures | **Low** | `PositionDaoImpl.java:69`, `LanguageDaoImpl.java:69`, `main.jsp:172` [C] |
 | Testing | None | — | No regression detection | **Blocker** | No `src/test/` (G23) [C] |
-| Packaging | WAR; `target/` is committed; the committed WAR is stale | — | Deploying the committed WAR ships old code | **Low** | G29 [C] |
+| Packaging | WAR; `target/` was committed with a stale WAR (untracked in Phase 0, 2026-09-26) | — | Deploying the committed WAR ships old code | **Low** | G29 [C] |
 
 ## 2. Blockers
 | # | Blocker | Evidence | Resolved in |
@@ -105,6 +105,22 @@ Move one axis at a time. Pass through Spring 5.3 so the security fixes ship befo
 - Each phase is released and signed off before the next starts.
 
 ### Phase 0 — Safety net (**M**; **L** if the schema has to be reverse-engineered)
+- **Status (2026-09-26):**
+  - **Done:**
+    - Toolchain: Temurin JDK 8 and the Maven Wrapper (Maven 3.9.16).
+    - `pom.xml` build fixes (G35), with no existing dependency version changes; the war plugin moved 2.3 → 3.4.0, and test-scope dependencies were added.
+    - `.gitignore`, and `target/` untracked (G29).
+    - `db/schema.sql`, **inferred** from the DAO SQL (owner decision: reverse-engineer first, verify later), plus synthetic `db/test-seed.sql`.
+    - Characterization tests: controller, DAO and smoke.
+    - `mvnw -B verify` passes on JDK 8: 16 run and pass, 20 skipped.
+    - The new WAR contains the Position classes and has the same `WEB-INF/lib` as before.
+  - **Open (owner, or a machine with Docker and Tomcat):**
+    - Run the DAO tests with Docker.
+    - Confirm or replace the inferred DDL (open question #19).
+    - Deploy to local Tomcat 9, run `SmokeTest` and the acceptance checklist.
+    - Screenshot the results page.
+  - Phase 0 is complete when these pass.
+  - Details: [build-run.md](build-run.md).
 - **Scope:**
   1. **Toolchain:** JDK 8 and Maven (via the Maven Wrapper); Docker for Testcontainers; a local Tomcat 9 plus MySQL (dev only).
   2. **Build fixes in `pom.xml`, with no dependency version changes:**

@@ -13,7 +13,7 @@ Partial and missing features are tracked with evidence in [gaps.md](gaps.md): ca
 3. **User tables:** how do `users` and `admin` relate? Login reads `users`; the profile and interviewer names read `admin` (`LoginDaoImpl.java`, `MarksDaoImpl.java`). If a `users` row can exist without an `admin` row, login fails with an HTTP 500 error (G26).
 4. **Environment:** which servlet container is the target, and where are the DB schema and the `jdbc/springrms` JNDI setup defined? None are in the repo (`WebConfig.java`). The build JDK was 1.8 (WAR `MANIFEST.MF`), but the intended runtime JDK isn't confirmed.
 5. **Deletes:** should they be soft deletes (`isactive = 0`)? What happens to `candidate` rows that point at a deleted position or language? (`*DaoImpl.delete*`)
-6. **Build output:** is committing `target/` (and having no `.gitignore`) intentional? (`git ls-files target`)
+6. **Build output:** *Resolved 2026-09-26:* `target/` is now git-ignored (`.gitignore`) and untracked on `dev` (Phase 0, G29). Kept here as a numbering placeholder.
 7. **Dependabot upgrades:** should the three unmerged branches (MySQL 8.0.28, spring-web 6.0.0, spring-webmvc 5.2.20) be closed? GitHub's push message reported 26 known security issues on `master` (2 critical, 9 high, 12 moderate, 3 low as of 2026-09-26); this is an external figure that can't be verified from the code. Both Spring branches change the shared `spring.version` (`pom.xml:13`), so the 6.0.0 branch would move every Spring module to 6.0, and it can't compile here (`javax.servlet`, `WebMvcConfigurerAdapter`, JDK 17). The [modernization-plan.md](modernization-plan.md) Phase 1 proposes closing all three and upgrading through the Spring BOM instead (G24).
 8. **Scoring rules:** what is the score scale for each of the 10 criteria? Can several interviewers score the same candidate? Should the total be weighted? (`MarksInfo.java`, `viewmarks.jsp:29-35`; blocks G5–G7)
 9. **Job vs Position:** how is "Job" different from "Position"? Is it an opening with vacancies and dates? (`main.jsp:53,65`; blocks G4)
@@ -30,4 +30,5 @@ Partial and missing features are tracked with evidence in [gaps.md](gaps.md): ca
     - Is the MySQL driver jar in the container's `lib/` for the JNDI pool (`WebConfig.java:31-37`)?
     - Who can act as domain testers?
     - Is downtime acceptable for the Phase 1 and Phase 3 cutovers?
-18. **Docker availability:** is Docker available on dev machines and in CI? The planned DAO tests use Testcontainers MySQL ([modernization-plan.md](modernization-plan.md) Phase 0; G23).
+18. **Docker availability:** is Docker available on dev machines and in CI? The DAO tests (`src/test/java/rms/dao/`) use Testcontainers MySQL and are skipped without Docker ([modernization-plan.md](modernization-plan.md) Phase 0; G23).
+19. **Inferred schema:** `db/schema.sql` was reverse-engineered from the DAO SQL. Do the real types, keys, NULL rules and the `marks` column order match? A DDL-only export (`mysqldump --no-data`, no data, no credentials) would settle it (G22, [data-model.md](data-model.md)). Docker is not installed on the machine used on 2026-09-26, so the DAO tests were skipped there.
