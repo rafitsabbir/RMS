@@ -1,7 +1,7 @@
 # Gaps — Partial & Missing Features
 
 Purpose: Every partially implemented or missing piece of RMS, with evidence, impact, effort and a proposed order of work.
-Last updated: 2026-09-27 (G23: DAO tests first run). 2026-09-26 (G39 added; Phase 1 on `dev`: G24 code done, not released. Phase 0: G29 and G35 fixed, G22 and G23 partial). 2026-09-25: re-verified against `dev`; G26–G31 from the gap check; G32–G38 and the Critical ratings from a full code review.
+Last updated: 2026-09-27 (G23: DAO tests first run; G31 and G34 confirmed in a browser; G40 added). 2026-09-26 (G39 added; Phase 1 on `dev`: G24 code done, not released. Phase 0: G29 and G35 fixed, G22 and G23 partial). 2026-09-25: re-verified against `dev`; G26–G31 from the gap check; G32–G38 and the Critical ratings from a full code review.
 Read this when: you're building an unfinished feature, fixing a known defect, or planning work. Find the gap ID first, then open the relevant business-flows file.
 
 - **Scope:** RMS was last worked on on 2020-01-17. Features came in over four commits:
@@ -46,28 +46,29 @@ Read this when: you're building an unfinished feature, fixing a known defect, or
 | G28 | Position / Language | Master data | Partial flow | Partial | No `@Valid` or `BindingResult` (`PositionController.java:33-45`, `LanguageController.java:42-54`); blank names are uppercased and saved (`PositionDaoImpl.java:66-77`, `LanguageDaoImpl.java:66-77`); a null name causes a NullPointerException (`LanguageDaoImpl.java:66,95`, `PositionDaoImpl.java:55,66`) | Low | S | Confirmed |
 | G29 | Build | Deployment | Dead code | Fixed 2026-09-26 | Was: `target/` tracked in git with a stale WAR that predates `e5705c0`. Now `.gitignore` lists `target/` and it is untracked on `dev`; a fresh `mvnw verify` WAR contains the Position classes and JSPs (`jar tf`) | Low | S | Confirmed |
 | G30 | Login | Navigation / session | Partial flow | Partial | The menu is only the response to `POST /welcome` (`LoginController.java:32`): there's no GET home route, and refreshing resubmits the credentials. The not-logged-in fallback at `main.jsp:170-174` only uses `System.out` and redirects to `/login` without the app's context path. The session isn't renewed at login (`LoginController.java:45`) | Low | S | Confirmed (the redirect problem is Likely) |
-| G31 | UI | Front-end assets | Partial flow | Partial | `login.jsp:15-18` loads Bootstrap 4 JS before jQuery. `viewlanguage.jsp`, `viewposition.jsp` and `viewmarks.jsp` (head, lines 9-21) load jQuery twice and mix Bootstrap 3 CSS with the Bootstrap 4 DataTables add-on. Everything comes from external CDNs (Phase 1 bumped the versions and added SRI hashes but kept this load order) | Low | S | Likely: not run in a browser |
+| G31 | UI | Front-end assets | Partial flow | Partial | `login.jsp:15-18` loads Bootstrap 4 JS before jQuery. `viewlanguage.jsp`, `viewposition.jsp` and `viewmarks.jsp` (head, lines 9-21) load jQuery twice and mix Bootstrap 3 CSS with the Bootstrap 4 DataTables add-on. Everything comes from external CDNs (Phase 1 bumped the versions and added SRI hashes but kept this load order). In Chromium (2026-09-27, both phases):<br>• the login page throws a JS error at load (Bootstrap 4 JS before jQuery)<br>• the second jQuery on the list and results pages drops the Bootstrap plugins<br>• the DataTables length and search controls wrap under Bootstrap 3 CSS<br>Nothing visible breaks ([acceptance/README.md](acceptance/README.md)) | Low | S | Confirmed |
 | G32 | All controllers | Security (CSRF) | Missing link | Not implemented | No CSRF token anywhere (`grep -ri csrf` finds nothing). POST forms have no token: `createposition.jsp:20`, `createlanguage.jsp:21`, `login.jsp:30`. Deletes are GET links (`viewposition.jsp:53-54`, `viewlanguage.jsp:53-54` → `PositionController.java:68`, `LanguageController.java:68`), and so is logout (`main.jsp:71` → `LoginController.java:24`). Another site can make a logged-in user's browser delete or save data. This becomes the main exposure once G11 is fixed | Med | M | Confirmed |
 | G33 | Position / Language | Master data | Partial flow | Partial | The duplicate check uses `queryForObject(ifexist, …, String.class)` (`PositionDaoImpl.java:70-71`, `LanguageDaoImpl.java:70-71`). Updates can create duplicate names (G18), and after that every add of the name throws `IncorrectResultSizeDataAccessException` (HTTP 500), which isn't caught. The check-then-insert is also racy, because no unique constraint is known (G22). Fix with `select count(*)` plus a `UNIQUE` index | Med | S | Confirmed |
-| G34 | UI | Internationalisation | Missing link | Not implemented | All 7 JSPs declare `ISO-8859-1` (`WEB-INF/jsp/*.jsp`, lines 1-2). There's no `CharacterEncodingFilter` or `getServletFilters()` in `WebInitializer.java`, so non-Latin input (e.g. Bengali names) is garbled | Low | S | Confirmed |
+| G34 | UI | Internationalisation | Missing link | Not implemented | All 7 JSPs declare `ISO-8859-1` (`WEB-INF/jsp/*.jsp`, lines 1-2). There's no `CharacterEncodingFilter` or `getServletFilters()` in `WebInitializer.java`, so non-Latin input (e.g. Bengali names) doesn't round-trip. In Chromium (2026-09-27), the browser submits characters outside ISO-8859-1 as HTML numeric entities, and they're stored that way: "инженер" becomes `&#1080;&#1085;…`, 49 bytes. The list only looks right because output isn't escaped (G27), and `toUpperCase()` skips them. Latin-1 text is stored correctly. Identical in Phase 0 and Phase 1 ([acceptance/README.md](acceptance/README.md)) | Low | S | Confirmed |
 | G35 | Build | Build portability | Missing link | Fixed 2026-09-26 | Was: no compiler level, so Maven defaulted to Java 1.5 (the old `master` WAR has class version 49). Now `pom.xml:16-17` sets 1.8 and `pom.xml:125-148` pins the compiler, surefire and war plugins | Low | S | Confirmed |
 | G36 | Login | Session | Partial flow | Partial | `UserInfo.java:3` isn't `Serializable`, but it's stored in the session (`LoginController.java:45`, `main.jsp:34`). Persisting or replicating sessions fails, and users are logged out silently | Low | S | Confirmed |
 | G37 | Config | Web descriptor | Partial flow | Partial | `web.xml:1-3` uses the Servlet 2.3 DTD, under which EL is ignored by default. Each JSP only works by opting in (`isELIgnored="false"`); `viewmarks.jsp:1-2` doesn't opt in, so any EL added there would print as literal text | Low | S | Confirmed |
 | G38 | UI / Marks | Security (XSS, IDOR) | Partial flow | Partial | `main.jsp:152,155` write `userinfo.getUserid()` unescaped into a JavaScript string, and pass it as the client-side `user` parameter to the planned score-entry URL. That's an XSS sink not covered by G27, and G5 might trust the parameter instead of the session (IDOR: acting on another user's data) | Low | S | Confirmed |
 | G39 | UI | Menu shell | Dead code | Unused | `src/main/webapp/resources/js/main.js` (24 lines, added in `4b727b0`) holds the same dropdown-toggle code as the inline script in `main.jsp:100-113`, but no JSP loads it (`grep -rn ".js" WEB-INF/jsp` finds only CDN links) | Low | S | Confirmed |
+| G40 | UI | Candidate results | Partial flow | Partial | Opened from the menu, the results table (1327 px wide) is wider than its `<object>` (1139 px at a 1366 px window; `main.jsp` `#container`, height 500 px). *Total Score* and *Status* are only visible after scrolling inside the embedded area. Same in Phase 0 and Phase 1 (Chromium 2026-09-27, [acceptance/README.md](acceptance/README.md); `viewmarks.jsp`) | Low | S | Confirmed |
 
 **Not found:** stored procedures, feature flags, `printStackTrace`, empty catch blocks, commented-out Java logic (only the `main.css:80` rule, G20), and WIP commits. The messages of `4b727b0` and `e5705c0` don't describe their contents.
 
 ## Counts
-- **By type (39 total):** Partial flow 18 · Missing link 11 · Dead code 6 · Stub 2 · Silent failure 1 · No tests 1
-- **By impact:** Critical 2 · High 8 · Med 12 · Low 17
-- **By confidence:** Confirmed 32 · Likely 7
+- **By type (40 total):** Partial flow 19 · Missing link 11 · Dead code 6 · Stub 2 · Silent failure 1 · No tests 1
+- **By impact:** Critical 2 · High 8 · Med 12 · Low 18
+- **By confidence:** Confirmed 34 · Likely 6
 
 ## By business capability
 - **Recruitment pipeline:** G1, G2, G3, G4, G5–G7, G8, G9, G10
 - **Access & security:** G11, G12, G13, G24, G26, G27, G30, G32, G36, G38
 - **Master data (Position/Language):** G14, G15, G17, G18, G28, G33
-- **Platform / UI:** G16, G19, G20, G21, G22, G23, G25, G29, G31, G34, G35, G37, G39
+- **Platform / UI:** G16, G19, G20, G21, G22, G23, G25, G29, G31, G34, G35, G37, G39, G40
 
 ## Critical & high-impact items
 | ID | Missing | Needed to complete | Depends on | Risk | Effort |
@@ -90,7 +91,7 @@ Read this when: you're building an unfinished feature, fixing a known defect, or
    - G11 (Critical), G27, G38
    - G12, G14, G33, G15, G16, G18
    - G26, G28, G30, G36, G34, G37, G39
-   - G20/G21, G25, G31
+   - G20/G21, G25, G31, G40
 2. **Critical path:** G32 CSRF with POST-only state changes (build it on the G11 interceptor) → G24 dependency upgrade (phases and gates in [modernization-plan.md](modernization-plan.md)) → G13 password hashing (Critical) → G10 map columns by name.
 3. **Core features:** G1 Candidate → G2 Interviewer → G5–G7 Score entry → G9 Status decision.
 4. **Secondary:** G4 Job, G3 Schedule, G17 soft delete with POST deletes, G19 transactions, and broader tests (G23).

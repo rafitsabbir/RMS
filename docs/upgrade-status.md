@@ -8,7 +8,7 @@ Read this when: you're resuming upgrade work, or asking "where are we / what's n
 - **Branch:** all upgrade work is on `dev`, and nothing is merged to `master`. `master` still ships the old stack: Spring 4.3.0 and Connector/J 5.1.36 ([gaps.md](gaps.md) G24).
 - **Alerts:** GitHub reported 26 alerts on `master` before Phase 1: 2 critical, 9 high, 12 moderate and 3 low (an external figure; [open-questions.md](open-questions.md) #7).
 - **Last build:** on 2026-09-27, `RMS_REQUIRE_DOCKER=true ./mvnw -B verify` gave BUILD SUCCESS on JDK 8u504 and on JDK 21. 34 of 36 tests passed, including all 18 DAO tests. The 2 smoke tests then passed separately against Tomcat 9.0.122 ([build-run.md](build-run.md)).
-- **Current phase:** Phase 1 is coded but **not releasable** until the Phase 0 sign-off steps below pass.
+- **Current phase:** Phase 1 is coded, and its acceptance checklist matches the Phase 0 baseline ([acceptance/README.md](acceptance/README.md)). It's still **not releasable**: the owner must confirm the DDL, and ops must make the container changes (below).
 
 ## Status by work item
 States:
@@ -33,8 +33,8 @@ Owners:
 | Local DB setup scripts (`rms_local`: script or Docker Compose) | Done. `setup-local-db.sh` and `docker-compose.yml` executed 2026-09-27 ([build-run.md](build-run.md)); `.ps1` **not yet executed** | dev | `db/local/README.md` |
 | Run the DAO tests with Docker (`RMS_REQUIRE_DOCKER=true`) | Done: 18/18 on 2026-09-27 (JDK 8u504 and 21, Docker Engine 29.3.1) | dev | [build-run.md](build-run.md); #18 |
 | Confirm or replace the inferred DDL with a DDL-only export | **Open** | owner | [open-questions.md](open-questions.md) #19, G22 |
-| Deploy to local Tomcat 9; run `SmokeTest` and the acceptance checklist | **Open**: deploy and `SmokeTest` done 2026-09-27 (Tomcat 9.0.122, 2/2); acceptance checklist still open | dev | [plan §6](modernization-plan.md#acceptance-checklist-for-domain-users-after-phases-1-2-and-3) |
-| Baseline screenshot of the admin results page with the seed data | **Open** | dev | [plan §4](modernization-plan.md) Phase 0 scope 6 |
+| Deploy to local Tomcat 9; run `SmokeTest` and the acceptance checklist | Done 2026-09-27: `SmokeTest` 2/2 and the checklist in Chromium on Tomcat 9.0.122. Everything passes except item 5 (G34), same as Phase 0 ([acceptance/README.md](acceptance/README.md)) | dev | [plan §6](modernization-plan.md#acceptance-checklist-for-domain-users-after-phases-1-2-and-3) |
+| Baseline screenshot of the admin results page with the seed data | Done 2026-09-27 (`acceptance/phase0/`) | dev | [plan §4](modernization-plan.md) Phase 0 scope 6 |
 
 ### Phase 1: dependency and security upgrades on Java 8 ([plan §4](modernization-plan.md#phase-1--dependency-and-security-upgrades-on-java-8-with-javax-m))
 | Item | State | Owner | Evidence |
@@ -47,8 +47,8 @@ Owners:
 | Three stale Dependabot branches deleted | Done | owner | #7 |
 | The Phase 0 open items above | **Open** | dev / owner | Phase 0 table |
 | Container: `driverClassName` → `com.mysql.cj.jdbc.Driver`; no old MySQL or logging jars in `lib/`; review SSL | **Open** | ops | [build-run.md](build-run.md) |
-| Browser check of every page after the front-end bumps | **Open** | dev | G31 |
-| Non-ASCII round-trip test | **Open** | dev | G34 |
+| Browser check of every page after the front-end bumps | Done 2026-09-27: pixel-identical to Phase 0, no SRI errors; the pre-existing G31 login-page error is unchanged | dev | [acceptance/README.md](acceptance/README.md), G31 |
+| Non-ASCII round-trip test | Done 2026-09-27: Latin-1 round-trips; other scripts are stored as HTML entities, the same as Phase 0 (not a Phase 1 regression) | dev | G34 |
 | Merge `dev` → `master`, then confirm which alerts close (some Spring ones may stay open [A]) | **Open** | owner | G24 |
 | `.github/dependabot.yml` | Deferred | owner | [plan §9](modernization-plan.md#9-before-phase-0-starts) |
 
@@ -69,8 +69,8 @@ Owners:
 
 ## Next actions, in order
 1. ~~Run the DAO tests with Docker~~ done 2026-09-27 (18/18).
-2. ~~Deploy to a local Tomcat 9 and run `SmokeTest`~~ done 2026-09-27 (2/2). Still to do, in a browser with CDN access: work through the acceptance checklist and take the baseline screenshot.
-3. Do the browser check of every page and the non-ASCII test (G34).
+2. ~~Deploy to a local Tomcat 9, run `SmokeTest`, the acceptance checklist and the baseline screenshot~~ done 2026-09-27 ([acceptance/README.md](acceptance/README.md)). Optional: have a domain user repeat the checklist on a desktop browser with real CDN access.
+3. ~~Do the browser check of every page and the non-ASCII test (G34)~~ done 2026-09-27.
 4. Hand the container changes to ops (driver class name, `lib/`, SSL), then merge to `master` and release Phase 1.
 5. Once Phase 1 is in production, start Phase 2.
 
