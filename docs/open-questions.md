@@ -1,7 +1,7 @@
 # Open Questions
 
 Purpose: Unresolved items and partial flows that need confirmation from the owner or a database.
-Last updated: 2026-09-26
+Last updated: 2026-09-27
 Read this when: your task touches one of the areas below, or before you assume something that isn't documented elsewhere.
 
 ## Partial flows
@@ -30,5 +30,5 @@ Partial and missing features are tracked with evidence in [gaps.md](gaps.md): ca
     - Is the MySQL driver jar in the container's `lib/` for the JNDI pool (`WebConfig.java:31-37`)?
     - Who can act as domain testers?
     - Is downtime acceptable for the Phase 1 and Phase 3 cutovers?
-18. **Docker availability:** is Docker available on dev machines and in CI? The DAO tests (`src/test/java/rms/dao/`) use Testcontainers MySQL and are skipped without Docker ([modernization-plan.md](modernization-plan.md) Phase 0; G23). Docker is not installed on the machine used on 2026-09-26, so the DAO tests were skipped there. *Unverified:* the code reviewer recalled that Testcontainers before 1.21.4 can't connect to Docker Engine 29+ (raised minimum API version); the pom uses 1.21.4 for that reason. Confirm on the first run with a current Docker.
+18. **Docker availability:** is Docker available on dev machines and in CI? The DAO tests (`src/test/java/rms/dao/`) use Testcontainers MySQL and are skipped without Docker ([modernization-plan.md](modernization-plan.md) Phase 0; G23). Docker is not installed on the machine used on 2026-09-26, so the DAO tests were skipped there. The code reviewer recalled that Testcontainers before 1.21.4 can't connect to Docker Engine 29+ (raised minimum API version); the pom uses 1.21.4 for that reason. *Checked 2026-09-27:* Testcontainers 1.21.4 works with Docker Engine 29.3.1, and all 18 DAO tests ran (older Testcontainers versions weren't tried). Still open: whether dev machines and CI will have Docker.
 19. **Inferred schema:** `db/schema.sql` was reverse-engineered from the DAO SQL. Do the real types, keys, NULL rules and the `marks` column order match? A DDL-only export (`mysqldump --no-data`, no data, no credentials) would settle it (G22, [data-model.md](data-model.md)).
