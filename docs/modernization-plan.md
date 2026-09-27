@@ -311,6 +311,8 @@ Move one axis at a time. Pass through Spring 5.3 so the security fixes ship befo
 - **No exposure:** there are no date columns [C], no stored procedures and no schema changes.
 
 ### Acceptance checklist for domain users (after Phases 1, 2 and 3)
+Results and the Phase 0 baseline screenshots: [acceptance/README.md](acceptance/README.md).
+
 1. **Login:** log in as an admin and as an interviewer, and check the menu, name, role and email. A wrong password shows "Invalid login!". Logout works.
 2. **Position:**
    - create one

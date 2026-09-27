@@ -44,7 +44,7 @@ Tests are characterization tests: they pin current behaviour, including known de
 - **Smoke run (2026-09-27):**
   - **Setup:** Tomcat 9.0.122 on JDK 8u504 with the Connector/J 8.2.0 jar in Tomcat's `lib/`. The JNDI `jdbc/springrms` used `com.mysql.cj.jdbc.Driver` and `sslMode=REQUIRED`, and pointed at the `db/local/docker-compose.yml` database. The config stayed outside the repo.
   - **Result:** both `SmokeTest` tests passed. The admin results page, the position and language lists and the create form returned 200 with the seed data and no unrendered EL. A position saved through `/saveposition` appeared in the list, and Tomcat logged no errors.
-  - **Not covered:** a real browser (the CDN hosts weren't reachable there, so pages were checked as HTML only), the acceptance checklist and the baseline screenshot.
+  - **Later the same day:** the acceptance checklist, the browser check and the baseline screenshots ran in Chromium against this setup and a Phase 0 build ([acceptance/README.md](acceptance/README.md)).
 - Why `mysql:8.0`: the production server version is unknown (open question #16); 8.0 is an assumption. Phase 0 used `mysql:5.7` because Connector/J 5.1.36 can't connect to MySQL 8.0 at all. It fails in the handshake (`NullPointerException` on `serverVariables`) even when both the account and the server default use `mysql_native_password`, while 8.x drivers connect (tested 2026-09-26 on MySQL 8.0.46). Phase 1 moved the driver and the image together.
 
 ## Repo notes
