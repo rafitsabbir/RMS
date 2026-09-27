@@ -4,10 +4,10 @@ Purpose: The live tracker for the tech upgrade: what is done, in progress and pe
 Last updated: 2026-09-27
 Read this when: you're resuming upgrade work, or asking "where are we / what's next".
 
-## Snapshot (2026-09-26)
+## Snapshot (2026-09-27)
 - **Branch:** all upgrade work is on `dev`, and nothing is merged to `master`. `master` still ships the old stack: Spring 4.3.0 and Connector/J 5.1.36 ([gaps.md](gaps.md) G24).
 - **Alerts:** GitHub reported 26 alerts on `master` before Phase 1: 2 critical, 9 high, 12 moderate and 3 low (an external figure; [open-questions.md](open-questions.md) #7).
-- **Last build:** `./mvnw -B verify` on JDK 8 gave BUILD SUCCESS. Of 36 tests, 16 passed and 20 were skipped: the DAO tests need Docker, and the smoke test needs a deployed WAR ([build-run.md](build-run.md)).
+- **Last build:** on 2026-09-27, `RMS_REQUIRE_DOCKER=true ./mvnw -B verify` gave BUILD SUCCESS on JDK 8u504 and on JDK 21. 34 of 36 tests passed, including all 18 DAO tests. The 2 smoke tests then passed separately against Tomcat 9.0.122 ([build-run.md](build-run.md)).
 - **Current phase:** Phase 1 is coded but **not releasable** until the Phase 0 sign-off steps below pass.
 
 ## Status by work item
@@ -30,10 +30,10 @@ Owners:
 | `target/` untracked, `.gitignore` (G29) | Done | dev | `.gitignore` |
 | Inferred `db/schema.sql` and synthetic `db/test-seed.sql` | Done | dev | `db/` |
 | Characterization tests: controller 16, DAO 18, smoke 2 | Done | dev | `src/test/java/rms/` |
-| Local DB setup scripts (`rms_local`: script or Docker Compose) | Done. `setup-local-db.sh` executed 2026-09-27 on a throwaway MySQL 8.0.46 ([build-run.md](build-run.md)); `.ps1` and Docker Compose **not yet executed** | dev | `db/local/README.md` |
-| Run the DAO tests with Docker (`RMS_REQUIRE_DOCKER=true`) | **Open** | dev | [build-run.md](build-run.md); no Docker on the first machine (#18) |
+| Local DB setup scripts (`rms_local`: script or Docker Compose) | Done. `setup-local-db.sh` and `docker-compose.yml` executed 2026-09-27 ([build-run.md](build-run.md)); `.ps1` **not yet executed** | dev | `db/local/README.md` |
+| Run the DAO tests with Docker (`RMS_REQUIRE_DOCKER=true`) | Done: 18/18 on 2026-09-27 (JDK 8u504 and 21, Docker Engine 29.3.1) | dev | [build-run.md](build-run.md); #18 |
 | Confirm or replace the inferred DDL with a DDL-only export | **Open** | owner | [open-questions.md](open-questions.md) #19, G22 |
-| Deploy to local Tomcat 9; run `SmokeTest` and the acceptance checklist | **Open** | dev | [plan §6](modernization-plan.md#acceptance-checklist-for-domain-users-after-phases-1-2-and-3) |
+| Deploy to local Tomcat 9; run `SmokeTest` and the acceptance checklist | **Open**: deploy and `SmokeTest` done 2026-09-27 (Tomcat 9.0.122, 2/2); acceptance checklist still open | dev | [plan §6](modernization-plan.md#acceptance-checklist-for-domain-users-after-phases-1-2-and-3) |
 | Baseline screenshot of the admin results page with the seed data | **Open** | dev | [plan §4](modernization-plan.md) Phase 0 scope 6 |
 
 ### Phase 1: dependency and security upgrades on Java 8 ([plan §4](modernization-plan.md#phase-1--dependency-and-security-upgrades-on-java-8-with-javax-m))
@@ -68,8 +68,8 @@ Owners:
 - Confirm there is no Oracle database and no plan to move to one.
 
 ## Next actions, in order
-1. On a machine with Docker, run `RMS_REQUIRE_DOCKER=true ./mvnw -B verify`. All 18 DAO tests must run and pass. If they fail, suspect the inferred schema first (#19).
-2. Deploy `target/rmsv2-1.0.1-SNAPSHOT.war` to a local Tomcat 9 that has a local test MySQL loaded with `db/local/` (see its README). Never use production. Then run `SmokeTest` with `RMS_BASE_URL` and the seed users, work through the acceptance checklist, and take the baseline screenshot.
+1. ~~Run the DAO tests with Docker~~ done 2026-09-27 (18/18).
+2. ~~Deploy to a local Tomcat 9 and run `SmokeTest`~~ done 2026-09-27 (2/2). Still to do, in a browser with CDN access: work through the acceptance checklist and take the baseline screenshot.
 3. Do the browser check of every page and the non-ASCII test (G34).
 4. Hand the container changes to ops (driver class name, `lib/`, SSL), then merge to `master` and release Phase 1.
 5. Once Phase 1 is in production, start Phase 2.
