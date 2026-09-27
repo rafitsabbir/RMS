@@ -1,7 +1,7 @@
 # Build & Run
 
 Purpose: How RMS is built, packaged, deployed and tested.
-Last updated: 2026-09-26 (Phase 1 on `dev`)
+Last updated: 2026-09-27 (`db/local` bash script executed; Connector/J 5.1.36 on MySQL 8 corrected)
 Read this when: you're building, deploying, setting up an environment, or fixing a build or startup failure.
 
 ## Build
@@ -19,11 +19,15 @@ Read this when: you're building, deploying, setting up an environment, or fixing
 - **Driver change for Phase 1 (ops, outside the repo):**
   - The WAR now bundles Connector/J 8.2.0, the newest release that still supports MySQL 5.7 servers (8.3.0 and later need 8.0+; Connector/J release notes).
   - The container's JNDI resource should use `driverClassName` `com.mysql.cj.jdbc.Driver`. The old name `com.mysql.jdbc.Driver` still exists in the jar as a deprecated shim that logs a warning (`jar tf`).
-  - Check the container's `lib/` for old `mysql-connector-java-5.1.x`, `slf4j` or `logback` jars. An old driver there keeps the pool on 5.1 silently; duplicate logging jars can clash with the WAR's.
+  - Check the container's `lib/` for old `mysql-connector-java-5.1.x`, `slf4j` or `logback` jars. An old driver there keeps the pool on 5.1 silently, and against MySQL 8.0 a 5.1.36 driver can't connect at all (see *Why `mysql:8.0`* below). Duplicate logging jars can clash with the WAR's.
   - Connector/J 8 defaults to `sslMode=PREFERRED` and no longer offers TLS 1.0/1.1 (Connector/J documentation; not tested against the production server). Prefer `sslMode=REQUIRED` (or `VERIFY_CA`) in production. Don't copy the tests' `allowPublicKeyRetrieval=true` into production without the owner's sign-off: it lets a man-in-the-middle swap the server key.
   - Character sets: Connector/J 8 negotiates character sets differently from 5.1.36 [assumption]. Run the non-ASCII round-trip test (G34).
   - Keep the old driver jar and settings until sign-off, so the Phase 0 WAR can be redeployed ([modernization-plan.md](modernization-plan.md) Phase 1).
-- **Local database:** `db/local/` builds a local `rms_local` database from `db/schema.sql` and `db/test-seed.sql`. It offers either a script for an existing local MySQL (`setup-local-db.ps1` or `.sh`) or a throwaway `mysql:8.0` through `docker-compose.yml`. The scripts refuse non-loopback hosts by default and commit no passwords. See `db/local/README.md`. Written on 2026-09-26; not yet executed, because this machine has no MySQL or Docker (#18).
+- **Local database:** `db/local/` builds a local `rms_local` database from `db/schema.sql` and `db/test-seed.sql`. It offers either a script for an existing local MySQL (`setup-local-db.ps1` or `.sh`) or a throwaway `mysql:8.0` through `docker-compose.yml`. The scripts refuse non-loopback hosts by default and commit no passwords. See `db/local/README.md`. Written on 2026-09-26. On 2026-09-27, `setup-local-db.sh` was run against a throwaway MySQL 8.0.46 (not a shared server):
+  - Every run printed the expected row counts, and a rerun reset data changed in between.
+  - A non-loopback host was refused.
+  - The app's DAOs from a `dev` build (Connector/J 8.2.0, default SSL) logged in as `test.admin`, added a position, and read both seeded score rows correctly from `rms_local`.
+  - `setup-local-db.ps1` and `docker-compose.yml` weren't executed: that machine had no PowerShell or Docker daemon.
 - **Entry URLs:** `GET /login` shows the login page (`LoginController.loginPage`). `index.jsp` is a "Hello World!" placeholder (`src/main/webapp/index.jsp`).
 
 ## Test
@@ -36,7 +40,7 @@ Tests are characterization tests: they pin current behaviour, including known de
 | HTTP smoke | `rms/SmokeTest` | a deployed WAR; the environment variable `RMS_BASE_URL`. The login check also needs `RMS_SMOKE_USER` and `RMS_SMOKE_PASSWORD` set to seed test values | skipped (not set) |
 
 - The DAO tests never touch a real database. `db/schema.sql` is inferred, not the production DDL (see [data-model.md](data-model.md)).
-- Why `mysql:8.0`: the production server version is unknown (open question #16); 8.0 is an assumption. Phase 0 used `mysql:5.7` because Connector/J 5.1.36 can't authenticate to MySQL 8's default `caching_sha2_password`; Phase 1 moved the driver and the image together.
+- Why `mysql:8.0`: the production server version is unknown (open question #16); 8.0 is an assumption. Phase 0 used `mysql:5.7` because Connector/J 5.1.36 can't connect to MySQL 8.0 at all. It fails in the handshake (`NullPointerException` on `serverVariables`) even when both the account and the server default use `mysql_native_password`, while 8.x drivers connect (tested 2026-09-26 on MySQL 8.0.46). Phase 1 moved the driver and the image together.
 
 ## Repo notes
 - **`.gitattributes`** keeps `mvnw` at LF and `*.cmd` at CRLF line endings, so the wrapper runs on Linux CI as well as Windows.

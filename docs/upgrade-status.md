@@ -1,7 +1,7 @@
 # Upgrade Status
 
 Purpose: The live tracker for the tech upgrade: what is done, in progress and pending, what to do next, and how to resume on another machine. Details stay in the linked owning docs.
-Last updated: 2026-09-26
+Last updated: 2026-09-27
 Read this when: you're resuming upgrade work, or asking "where are we / what's next".
 
 ## Snapshot (2026-09-26)
@@ -30,7 +30,7 @@ Owners:
 | `target/` untracked, `.gitignore` (G29) | Done | dev | `.gitignore` |
 | Inferred `db/schema.sql` and synthetic `db/test-seed.sql` | Done | dev | `db/` |
 | Characterization tests: controller 16, DAO 18, smoke 2 | Done | dev | `src/test/java/rms/` |
-| Local DB setup scripts (`rms_local`: script or Docker Compose) | Done (written; **not yet executed**, no MySQL or Docker here) | dev | `db/local/README.md` |
+| Local DB setup scripts (`rms_local`: script or Docker Compose) | Done. `setup-local-db.sh` executed 2026-09-27 on a throwaway MySQL 8.0.46 ([build-run.md](build-run.md)); `.ps1` and Docker Compose **not yet executed** | dev | `db/local/README.md` |
 | Run the DAO tests with Docker (`RMS_REQUIRE_DOCKER=true`) | **Open** | dev | [build-run.md](build-run.md); no Docker on the first machine (#18) |
 | Confirm or replace the inferred DDL with a DDL-only export | **Open** | owner | [open-questions.md](open-questions.md) #19, G22 |
 | Deploy to local Tomcat 9; run `SmokeTest` and the acceptance checklist | **Open** | dev | [plan §6](modernization-plan.md#acceptance-checklist-for-domain-users-after-phases-1-2-and-3) |
