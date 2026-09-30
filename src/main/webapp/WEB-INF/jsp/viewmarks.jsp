@@ -1,5 +1,6 @@
 <%@ page language="java" contentType="text/html; charset=ISO-8859-1"
-	pageEncoding="ISO-8859-1"%>
+	pageEncoding="ISO-8859-1" isELIgnored="false"%>
+<%@ taglib uri="http://www.springframework.org/tags" prefix="spring" %>
 <%@ page import="java.util.*"%>
 <%@ page import="rms.model.*"%>
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
@@ -8,6 +9,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet"
 	href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css" integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
+<spring:url value="/resources/css/viewmarks.css" var="viewmarkscss" />
+<link rel="stylesheet" type="text/css" href="${viewmarkscss}"/>
 <script
 	src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha384-1H217gwSVyLSIfaLxHbE7dRb3v4mYCKbpQvzx0cegeju1MVsGrX5xXxAvs/HgeFs" crossorigin="anonymous"></script>
 <script
@@ -43,7 +46,7 @@ public int getFullmarks(MarksInfo marksinfo) {
 		});
 	</script>
 
-	<table id="markstable" class="table table-striped table-bordered"
+	<table id="markstable" class="table table-striped table-bordered table-condensed results-table"
 		style="width: 100%">
 		<thead>
 			<tr>				
@@ -87,11 +90,11 @@ public int getFullmarks(MarksInfo marksinfo) {
 				<td><%=getFullmarks(marksinfo)%></td>
 				<td>
 				<%if(marksinfo.getCandidateStatus().equalsIgnoreCase("S")){%>
-				<img alt="" src="resources/happy.jpg" style="width:100px; height100px;"  align="center">
+				<img alt="" src="resources/happy.jpg" class="status-icon" align="center">
 				<%}else if(marksinfo.getCandidateStatus().equalsIgnoreCase("R")){ %>
-				<img alt="" src="resources/sad.jpg" style="width:100px; height100px;"  align="center">
+				<img alt="" src="resources/sad.jpg" class="status-icon" align="center">
 				<%}else{ %>
-				<img alt="" src="resources/new.jpg" style="width:100px; height100px;"  align="center">
+				<img alt="" src="resources/new.jpg" class="status-icon" align="center">
 				<%} %>
 				</td>
 			</tr>

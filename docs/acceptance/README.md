@@ -1,7 +1,7 @@
 # Acceptance Results
 
 Purpose: Results of the acceptance checklist ([modernization-plan.md](../modernization-plan.md), section 6) and the browser check per upgrade phase, with the Phase 0 baseline screenshots that later phases are compared against.
-Last updated: 2026-09-27
+Last updated: 2026-09-30
 Read this when: you're signing off a phase, re-running the checklist after an upgrade, or comparing screens with the baseline.
 
 ## Run of 2026-09-27: Phase 0 baseline vs Phase 1
@@ -24,7 +24,7 @@ Read this when: you're signing off a phase, re-running the checklist after an up
 | 1 | **Login:** admin and interviewer menus, name, role and e-mail; wrong password; logout | Pass | Pass | Admin menu: *Candidate Status*, *Create*, *View*. Interviewer menu: *Evaluation*, *Show Evaluation*. The header shows the seed profile. A wrong password shows "Invalid login!". *Logout* returns to the login form |
 | 2 | **Position:** create, duplicate, edit, delete, search, sort | Pass | Pass | "  data analyst " is stored as `DATA ANALYST`. A duplicate is silently skipped: still one row, no message. Edit pre-fills the form, delete removes the row, and DataTables search filters while the name column sorts both ways |
 | 3 | **Language:** the same steps | Pass | Pass | As for Position (`rust` → `kotlin`) |
-| 4 | **Candidate Status:** names, position, language, 10 scores, total, label | Pass | Pass | Carla Candidate: total 79, Selected (`happy.jpg`). Cody Candidate: total 33, Rejected (`sad.jpg`). Each total is the sum of the 10 scores. The page is pixel-identical between phases (`phase0/09-results-full-width.png`). In the menu view, *Total Score* and *Status* need horizontal scrolling (G40) |
+| 4 | **Candidate Status:** names, position, language, 10 scores, total, label | Pass | Pass | Carla Candidate: total 79, Selected (`happy.jpg`). Cody Candidate: total 33, Rejected (`sad.jpg`). Each total is the sum of the 10 scores. The page is pixel-identical between phases (`phase0/09-results-full-width.png`). In this run, the menu view needed horizontal scrolling to reach *Total Score* and *Status* (G40, fixed 2026-09-30; see below) |
 | 5 | **Non-Latin characters** | Fails, same as Phase 0 | Fails, same as Phase 0 | Latin-1 works: "café señor" → `CAFÉ SEÑOR`. Characters outside ISO-8859-1 are stored as HTML entities: "инженер" becomes `&#1080;&#1085;…`, 49 bytes. They only *look* right because the list prints them unescaped (G27), and they aren't uppercased. Same bytes in both phases, so the driver change didn't alter it (G34) |
 | 6 | **Unfinished menu items** behave as before | Pass | Pass | All 10 (*Create*/*View* > Candidate, Interviewer, Interview Schedule, Job; *Evaluation*, *Show Evaluation*) return 404, so the embedded area stays blank. Identical in both phases |
 
@@ -42,3 +42,25 @@ Read this when: you're signing off a phase, re-running the checklist after an up
 - **Unfinished item:** `10-unfinished-item` (a blank area).
 
 **Not done:** checks by a domain user, and browsers other than Chromium.
+
+## G40 fix (2026-09-30): Candidate Status fits the menu area
+- **Change:** `viewmarks.jsp` now links `resources/css/viewmarks.css`.
+  - Text is 12 px, side padding 4 px, and the table uses `table-condensed`.
+  - Status icons are 40 px, and rows are 52 px instead of about 116.
+  - DataTables' grid rows no longer stick out 15 px, which had also caused a horizontal scrollbar.
+  - Columns, headers, data and the icons themselves are unchanged.
+- **Measured** in Chromium from the menu, with the same setup as above on `dev` plus the fix:
+
+  | Window | Available width | Table width | Horizontal scroll |
+  |---|---|---|---|
+  | 1024 px | 800 px | 1008 px (its minimum) | yes, still out of scope |
+  | 1280 px | 1053 px | 1053 px | no |
+  | 1366 px | 1139 px | 1139 px | no |
+  | 1920 px | 1687 px | 1687 px | no |
+
+  Before the fix, the minimum was 1327 px. It now fits from about a 1235 px window.
+- **Re-run of the whole checklist:**
+  - All 52 checks give the same results and details as the Phase 1 run above, including item 4's scores, totals and labels. Only item 5 fails (G34).
+  - No new console errors.
+  - Every screenshot except the Candidate Status page is pixel-identical to that run.
+- **New reference:** `phase0/08-results-in-menu` and `09-results-full-width` no longer match pixel for pixel, by design. For later phases, compare the Candidate Status page with `after-g40/results-in-menu-1366.png` and `after-g40/results-in-menu-1280.png`.
