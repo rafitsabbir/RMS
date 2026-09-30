@@ -1,7 +1,7 @@
 # Architecture
 
 Purpose: How RMS is layered and how a request moves through it.
-Last updated: 2026-09-30 (G11 login check)
+Last updated: 2026-09-30 (G11 login check; G27 output escaping)
 Read this when: you need the overall picture before changing code, or you're deciding which layer a change belongs in.
 
 ## Overall diagram
@@ -40,7 +40,7 @@ Evidence: `src/main/java/rms/config/WebInitializer.java`, `rms/config/WebConfig.
 ## Cross-cutting concerns
 - **Transactions:** none. There's no `@Transactional` or transaction manager, although `spring-tx` is a dependency (`pom.xml`, `src/main/java`).
 - **Error handling:** no `@ExceptionHandler` or `@ControllerAdvice`. Only `EmptyResultDataAccessException` is caught, in `LoginDaoImpl.checkUser` and `*DaoImpl.add*`. `findPositionById` and `findLanguageById` fail with an error when the key doesn't exist (`PositionDaoImpl`, `LanguageDaoImpl`).
-- **Logging:** SLF4J with Logback, console only (`src/main/resources/logback.xml`; `rms` at INFO, `org.springframework` at WARN). The duplicate-name messages are `log.warn` (`PositionDaoImpl.java:73`, `LanguageDaoImpl.java:73`). One `System.out.println` remains: the not-logged-in fallback (`main.jsp:172`, G30).
-- **Security:** since 2026-09-30, `AuthInterceptor` (registered in `WebConfig.addInterceptors`) checks every DispatcherServlet request except `/login`, `/welcome` and `/resources/**`. Without a `user` session attribute it redirects to `/login`; a user whose `isinterviewer` isn't `N` gets HTTP 403, so every page behind the login is admin-only (G11). The controllers themselves still don't read the session. There's no CSRF protection (G32), and the password is compared as plain text in SQL (`LoginDaoImpl`, G13).
+- **Logging:** SLF4J with Logback, console only (`src/main/resources/logback.xml`; `rms` at INFO, `org.springframework` at WARN). The duplicate-name messages are `log.warn` (`PositionDaoImpl.java:73`, `LanguageDaoImpl.java:73`). One `System.out.println` remains: the not-logged-in fallback (`main.jsp:173`, G30).
+- **Security:** since 2026-09-30, `AuthInterceptor` (registered in `WebConfig.addInterceptors`) checks every DispatcherServlet request except `/login`, `/welcome` and `/resources/**`. Without a `user` session attribute it redirects to `/login`; a user whose `isinterviewer` isn't `N` gets HTTP 403, so every page behind the login is admin-only (G11). The controllers themselves still don't read the session. The JSPs print user and database text through `<c:out>` (G27, since 2026-09-30). There's no CSRF protection (G32), and the password is compared as plain text in SQL (`LoginDaoImpl`, G13).
 - **Validation:** none (no `@Valid` or `BindingResult`). The only checks are uppercase/trim and the duplicate-name check in `*DaoImpl.add*`.
 - **Deletes:** sent as GET requests and remove the row (`*Controller.delete`, `*DaoImpl.delete*`).

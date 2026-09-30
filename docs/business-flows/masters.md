@@ -1,7 +1,7 @@
 # Flow: Position & Language Masters
 
 Purpose: Traces create, list, update and delete for the job-position and language/skill lists.
-Last updated: 2026-09-26
+Last updated: 2026-09-30 (G27 fixed)
 Read this when: you're fixing or extending position or language management, or adding a new list screen that follows the same pattern.
 
 Evidence:
@@ -56,5 +56,5 @@ sequenceDiagram
   - G15: missing key.
   - G17: hard delete via GET.
   - G18: update doesn't check for duplicates.
-  - G27: names shown unescaped (XSS).
+  - G27: fixed 2026-09-30. The list pages escape names with `<c:out>`, and the edit form's `form:input` escapes by default. Non-Latin names stored as `&#…;` codes (G34) now show as codes.
   - G28: no validation, so blank names are saved.

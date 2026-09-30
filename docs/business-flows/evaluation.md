@@ -1,7 +1,7 @@
 # Flow: Candidate Evaluation Results
 
 Purpose: Traces the admin's read-only view of candidate scores and status.
-Last updated: 2026-09-25
+Last updated: 2026-09-30 (names escaped, G27; no userid in the score-entry URL, G38)
 Read this when: you're working on scores, candidate status, the results page, or the unfinished interviewer score entry.
 
 Evidence: `rms/controller/MarksController.java`, `rms/service/MarksServiceImpl.java`, `rms/dao/MarksDaoImpl.java` (`getAllMarksByAdmin`, `MarksMapper`), `WEB-INF/jsp/viewmarks.jsp`, `main.jsp`.
@@ -24,6 +24,7 @@ flowchart LR
 
 ## Not implemented (partial)
 - **Interviewer score entry:** `MarksDaoImpl.saveMarks` is empty, `getAllMarksByInterviewer` returns `null`, and `getFullmarks` returns 0.
-- **Menu link:** the interviewer menu calls `MarksController?user=…`, which no mapping matches (`main.jsp`).
+- **Menu link:** the interviewer menu calls `MarksController` and `MarksController?param=VIEW`, which no mapping matches (`main.jsp`). Until 2026-09-30 it also passed the userid as `?user=…` (G38). Score entry (G5) must take the interviewer from the session, not from a parameter.
+- **Output:** candidate, position and language names are escaped with `<c:out>` (`viewmarks.jsp`, G27).
 
 Known gaps: G5–G7 (score entry), G8 (dead `getFullmarks`), G9 (status never written) and G10 (column mapping), in [gaps.md](../gaps.md).

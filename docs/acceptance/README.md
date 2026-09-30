@@ -88,7 +88,7 @@ Read this when: you're signing off a phase, re-running the checklist after an up
   | Admin | the admin pages, directly and from the menu | 200, as before |
   | Admin, after Logout | `/adminviewmarks` | redirect to `/login` |
   | Admin, session cookie gone | a menu item | the content area shows the login form (`after-g11/session-expired-in-menu.png`) |
-| Admin, session cookie gone | logging in from that form | the whole window loads the menu page (`target="_top"`), with nothing nested in the content area |
+  | Admin, session cookie gone | logging in from that form | the whole window loads the menu page (`target="_top"`), with nothing nested in the content area |
   | Interviewer | the interviewer menu | unchanged: Evaluation, Show Evaluation, Logout |
   | Interviewer | `/viewpositionlist`, `/viewlanguagelist`, `/createposition`, `/adminviewmarks`, `/deleteposition/1`, `POST /saveposition` | 403 each (`after-g11/interviewer-403.png`), and no row changed or deleted |
 
@@ -98,3 +98,38 @@ Read this when: you're signing off a phase, re-running the checklist after an up
   - `GET /` still shows `index.jsp` ("Hello World!", G25). Tomcat serves it directly, not through Spring, so there's nothing to protect there.
 - **Observations, not changed:**
   - The 403 is Tomcat's default error page, and it names the Tomcat version (`after-g11/interviewer-403.png`). Hiding that is container configuration (ops).
+
+## G27/G38 fix (2026-09-30): user data is shown as text
+- **Change:**
+  - The position and language lists, the Candidate Status page and the menu header print names through `<c:out>`.
+  - The interviewer menu no longer puts the userid into the score-entry URL.
+  - Details in [gaps.md](../gaps.md) G27 and G38.
+- **Setup:** the same as the G11 run.
+- **Re-run of the whole checklist** on a freshly seeded database, compared with the final G11 run. Results and details are the same except:
+  - **Item 5:** "инженер" and "প্রকৌশলী" now show as their stored codes (`&#1080;&#1085;…`, `&#2474;&#2509;…`).
+    - The Bengali check now fails too. It passed before only because the unescaped codes rendered as letters, and upper-casing leaves Bengali unchanged.
+    - Item 5 fails as before (G34), and "café señor" → "CAFÉ SEÑOR" still passes.
+    - This was accepted as the cost of escaping. Open question #21 asks whether production has such names.
+  - **Interviewer menu:** *Evaluation* and *Show Evaluation* load `/MarksController` and `/MarksController?param=VIEW` instead of `…?user=U2…`. Both still end in 404.
+  - **Errors:** console errors are unchanged, and HTTP errors differ only in those two URLs.
+  - **Screenshots:** 21 of the 22 are byte-identical. The exception is `19-non-latin`.
+- **New escaping checks** (20):
+  - **Payloads entered through the forms:** `<IMG SRC=X ONERROR=ALERT(1)>`, which stays valid after the DAO upper-cases it, and `R&D "Q" 'A'`.
+  - **Payloads written straight into the throwaway database:**
+    - `<img src=x onerror="window.__xss='…'">` as a position, a language, a candidate's first name and the interviewer's first name;
+    - a `<script>` in the interviewer's e-mail;
+    - `R&D <i>lead</i>` as the designation;
+    - a NULL last name.
+  - **Results:** all 20 checks fail on `dev` without the fix (after G11) and pass on the fix:
+
+  | Page | Without the fix | With the fix |
+  |---|---|---|
+  | Position and language lists | the payload images render and their `onerror` scripts run | every name shows as its exact text, and no element is injected (`after-g27/position-list-escaped.png`) |
+  | Edit forms | the payload row can't be found as text | the input shows the payload as text (Spring's `form:input` already escaped it) |
+  | Candidate Status | the candidate, position and language payloads run | shown as text; the status icons are unchanged |
+  | Interviewer header | the image and the `<script>` run, and the NULL last name prints "null" | shown as text; the NULL last name is blank |
+  | Interviewer menu | `?user=U2` in both score-entry URLs | no userid; both still 404 |
+
+  No dialog opened, and no payload caused a script error.
+- **Also checked:** `SmokeTest` passes 3 of 3, and Tomcat logged no errors.
+- **Observation, not changed:** long profile values run past the right edge of the header box. That's the header's fixed layout; escaped markup is just longer text.

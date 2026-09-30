@@ -44,7 +44,7 @@
 		<c:forEach items="${languagelist}" var="languagelist"> 
 			<tr>
 				<td>${languagelist.languagekey } </td>
-				<td>${languagelist.languagename } </td>
+				<td><c:out value="${languagelist.languagename }"/> </td>
 				<td>
 					<spring:url value="/updatelanguage/${languagelist.languagekey }" var="updateURL" />
 					<a href="${updateURL}">Update</a>			

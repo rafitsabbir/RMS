@@ -44,7 +44,7 @@
 		<c:forEach items="${positionlist}" var="positionlist"> 
 			<tr>
 				<td>${positionlist.positionkey } </td>
-				<td>${positionlist.positionname } </td>
+				<td><c:out value="${positionlist.positionname }"/> </td>
 				<td>
 					<spring:url value="/updateposition/${positionlist.positionkey }" var="updateURL" />
 					<a href="${updateURL}">Update</a>			

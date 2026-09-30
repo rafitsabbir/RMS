@@ -2,6 +2,7 @@
 	pageEncoding="ISO-8859-1" isELIgnored="false"%>
 <%@ taglib uri="http://www.springframework.org/tags/form" prefix="form" %>
 <%@ taglib uri="http://www.springframework.org/tags" prefix="spring" %>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <!------ Include the above in your HEAD tag ---------->
 <%@ page import="rms.model.*"%>
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
@@ -78,13 +79,13 @@
 		<table width="100%" height="100%">
 			<tbody>
 				<tr>
-					<td>Name : <%=userinfo.getFirstname()%> <%=userinfo.getLastname()%></td>
+					<td>Name : <c:out value="<%=userinfo.getFirstname()%>"/> <c:out value="<%=userinfo.getLastname()%>"/></td>
 				</tr>
 				<tr>
-					<td>Role : <%=userinfo.getDesignation()%></td>
+					<td>Role : <c:out value="<%=userinfo.getDesignation()%>"/></td>
 				</tr>
 				<tr>
-					<td>E-mail : <%=userinfo.getEmail()%>
+					<td>E-mail : <c:out value="<%=userinfo.getEmail()%>"/>
 					</td>
 				</tr>
 			</tbody>
@@ -149,10 +150,10 @@
 			document.getElementById("container").innerHTML = '<object type="text/html" data="ScheduleController?param=VIEW" ></object>';
 		}
 		function load_marks() {
-			document.getElementById("container").innerHTML = '<object type="text/html" data="MarksController?user=<%=userinfo.getUserid()%>" ></object>';
+			document.getElementById("container").innerHTML = '<object type="text/html" data="MarksController" ></object>';
 		}
 		function load_view_marks() {
-			document.getElementById("container").innerHTML = '<object type="text/html" data="MarksController?user=<%=userinfo.getUserid()%>&param=VIEW" ></object>';
+			document.getElementById("container").innerHTML = '<object type="text/html" data="MarksController?param=VIEW" ></object>';
 		}
 		function load_view_admin_marks() {
 			document.getElementById("container").innerHTML = '<object type="text/html" data="${adminviewmarks}" ></object>';
