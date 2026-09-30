@@ -24,15 +24,17 @@ public class AuthInterceptor implements HandlerInterceptor {
 	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
 			throws IOException {
 		HttpSession session = request.getSession(false);
-		UserInfo userinfo = session == null ? null : (UserInfo) session.getAttribute("user");
+		Object user = session == null ? null : session.getAttribute("user");
 
-		if (userinfo == null) {
+		if (!(user instanceof UserInfo)) {
 			response.sendRedirect(request.getContextPath() + "/login");
 			return false;
 		}
 
+		UserInfo userinfo = (UserInfo) user;
 		if (!"N".equalsIgnoreCase(userinfo.getIsinterviewer())) {
-			log.warn("User {} is not an admin; {} refused", userinfo.getUserid(), request.getRequestURI());
+			// servlet path, not the request URI: a rewritten URL carries ;jsessionid=...
+			log.warn("User {} is not an admin; {} refused", userinfo.getUserid(), request.getServletPath());
 			response.sendError(HttpServletResponse.SC_FORBIDDEN);
 			return false;
 		}

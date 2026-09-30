@@ -27,7 +27,7 @@
 					<p>Please enter your User Name and Password</p>
 				</div>
 				<spring:url value="/welcome" var="loginUrl" />
-				<form:form id="Login" action="${loginUrl}" method="POST">
+				<form:form id="Login" action="${loginUrl}" method="POST" target="_top">
 
 					<div class="form-group">
 

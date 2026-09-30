@@ -3,6 +3,7 @@ package rms.config;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.head;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -68,6 +69,7 @@ class AuthInterceptorTest {
 	void loggedOutRequestsRedirectToLogin() throws Exception {
 		mockMvc.perform(get("/viewpositionlist")).andExpect(redirectedUrl("/login"));
 		mockMvc.perform(post("/saveposition").param("positionname", "dev ops")).andExpect(redirectedUrl("/login"));
+		// characterizes G17: delete is a GET
 		mockMvc.perform(get("/deleteposition/1")).andExpect(redirectedUrl("/login"));
 		mockMvc.perform(get("/adminviewmarks")).andExpect(redirectedUrl("/login"));
 
@@ -87,6 +89,7 @@ class AuthInterceptorTest {
 	@Test
 	void interviewerIsRefusedAdminPages() throws Exception {
 		mockMvc.perform(get("/viewpositionlist").session(sessionFor("Y"))).andExpect(status().isForbidden());
+		// characterizes G17: delete is a GET
 		mockMvc.perform(get("/deleteposition/1").session(sessionFor("Y"))).andExpect(status().isForbidden());
 		mockMvc.perform(get("/adminviewmarks").session(sessionFor("Y"))).andExpect(status().isForbidden());
 
@@ -96,6 +99,28 @@ class AuthInterceptorTest {
 	@Test
 	void userWithoutRoleIsRefusedWithoutError() throws Exception {
 		mockMvc.perform(get("/viewpositionlist").session(sessionFor(null))).andExpect(status().isForbidden());
+
+		verifyNoInteractions(positionservice);
+	}
+
+	@Test
+	void sessionAttributeOfAnotherTypeCountsAsLoggedOut() throws Exception {
+		MockHttpSession session = new MockHttpSession();
+		session.setAttribute("user", "U1");
+
+		mockMvc.perform(get("/viewpositionlist").session(session)).andExpect(redirectedUrl("/login"));
+
+		verifyNoInteractions(positionservice);
+	}
+
+	@Test
+	void pathVariantsGetTheSameCheck() throws Exception {
+		mockMvc.perform(get("/login;jsessionid=X"))
+				.andExpect(status().isOk())
+				.andExpect(view().name("login"));
+		mockMvc.perform(get("/viewpositionlist;jsessionid=X")).andExpect(redirectedUrl("/login"));
+		mockMvc.perform(head("/viewpositionlist")).andExpect(redirectedUrl("/login"));
+		mockMvc.perform(head("/viewpositionlist").session(sessionFor("Y"))).andExpect(status().isForbidden());
 
 		verifyNoInteractions(positionservice);
 	}
@@ -140,6 +165,7 @@ class AuthInterceptorTest {
 		return session;
 	}
 
+	/** parseAndCache makes matches() use PathPattern, as Spring 6+ does; the MockMvc tests use Spring 5.3's own matcher. */
 	private static MockHttpServletRequest request(String path) {
 		MockHttpServletRequest request = new MockHttpServletRequest("GET", path);
 		ServletRequestPathUtils.parseAndCache(request);

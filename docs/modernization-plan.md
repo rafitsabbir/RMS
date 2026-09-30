@@ -66,13 +66,14 @@ This is an external figure: which alert belongs to which dependency can't be ver
 | B3 | No toolchain on the dev machine; no container or JNDI definition in the repo | [build-run.md](build-run.md) [C]; [open-questions.md](open-questions.md) #4 | Phase 0 (toolchain); ops (container) |
 | B4 | The build fails on JDK 9+: no compiler level (G35), and war plugin 2.3 | `pom.xml:74-88` [C]; plugin failure [A] | Phase 0 |
 | B5 | `WebMvcConfigurerAdapter` is used; it's deprecated in Spring 5 and removed in 6 | `WebConfig.java:14,21` [C]; removal [A] | Phase 1 (resolved on `dev` 2026-09-26) |
-| B6 | `javax.*` Jakarta EE usage, in exactly 4 places (see below) | Import grep [C] | Phase 3 |
+| B6 | `javax.*` Jakarta EE usage, in exactly 5 places (see below) | Import grep [C] | Phase 3 |
 | B7 | Coupling to the app server: the JNDI name `java:comp/env/jdbc/springrms` is standard and portable. The resource definition, and probably the driver jar, live in the container | `WebConfig.java:31-37` [C]; driver location [A] | Phases 1 and 3 (ops) |
 | B8 | Both Spring Dependabot branches change the **shared** `spring.version`. The 6.0.0 branch moves every Spring module to 6.0 and can't compile (Jakarta namespace, removed adapter, JDK 17). The 5.2.20 branch compiles, but 5.2 is EOL | `git diff master...origin/dependabot/*` → `pom.xml:13` [C]; EOL [A] | Close them in Phase 1 |
 | B9 | MySQL-specific SQL: 3-argument `concat()`, comma joins, and `m.*` columns mapped by position (G10). Matters only for a DB change; tests pin it | `MarksDaoImpl.java:19-25,40-55` [C] | Phase 0 tests |
 
 **B6 locations:**
 - `LoginController.java:3-5`
+- `AuthInterceptor.java:5-7` (added 2026-09-30, G11)
 - `pom.xml:52-64`
 - the JSTL URI at `viewposition.jsp:3` and `viewlanguage.jsp:3`
 - the `web.xml:1-3` DTD

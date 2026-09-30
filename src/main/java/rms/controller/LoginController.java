@@ -18,8 +18,7 @@ import rms.service.LoginService;
 public class LoginController {
 
 	@Autowired
-	LoginService loginservice;	
-	UserInfo userinfo;
+	LoginService loginservice;
 
 	@RequestMapping(value = "/login", method = RequestMethod.GET)
 	public ModelAndView loginPage(HttpSession session) {
@@ -40,7 +39,7 @@ public class LoginController {
 
 		if (userid != null) {
 			mv = new ModelAndView("main");
-			userinfo = loginservice.getUserInfo(userid);
+			UserInfo userinfo = loginservice.getUserInfo(userid);
 			mv.addObject("userinfo", userinfo);
 			session.setAttribute("user", userinfo);
 			return mv;

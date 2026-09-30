@@ -29,7 +29,7 @@ Owners:
 | `pom.xml` build fixes: compiler 1.8, UTF-8, pinned plugins (G35) | Done | dev | `pom.xml` |
 | `target/` untracked, `.gitignore` (G29) | Done | dev | `.gitignore` |
 | Inferred `db/schema.sql` and synthetic `db/test-seed.sql` | Done | dev | `db/` |
-| Characterization tests: controller 16, DAO 18, smoke 2 (3 since G11, plus 6 access-control tests) | Done | dev | `src/test/java/rms/` |
+| Characterization tests: controller 16, DAO 18, smoke 2 (3 since G11, plus 8 access-control tests) | Done | dev | `src/test/java/rms/` |
 | Local DB setup scripts (`rms_local`: script or Docker Compose) | Done. `setup-local-db.sh` and `docker-compose.yml` executed 2026-09-27 ([build-run.md](build-run.md)); `.ps1` **not yet executed** | dev | `db/local/README.md` |
 | Run the DAO tests with Docker (`RMS_REQUIRE_DOCKER=true`) | Done: 18/18 on 2026-09-27 (JDK 8u504 and 21, Docker Engine 29.3.1) | dev | [build-run.md](build-run.md); #18 |
 | Confirm or replace the inferred DDL with a DDL-only export | **Open** | owner | [open-questions.md](open-questions.md) #19, G22 |
