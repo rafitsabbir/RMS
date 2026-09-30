@@ -133,3 +133,16 @@ Read this when: you're signing off a phase, re-running the checklist after an up
   No dialog opened, and no payload caused a script error.
 - **Also checked:** `SmokeTest` passes 3 of 3, and Tomcat logged no errors.
 - **Observation, not changed:** long profile values run past the right edge of the header box. That's the header's fixed layout; escaped markup is just longer text.
+- **Code review follow-ups** (same day, all Low):
+  - **Changes:**
+    - The menu's `spring:url` values that go into JavaScript strings are HTML- and JavaScript-escaped. The page source now has `\/rms\/viewlanguagelist…`, which JavaScript reads as `/rms/viewlanguagelist…`.
+    - The login error prints through `<c:out>`, and still reads "Invalid login!".
+    - `SmokeTest` checks that the menu page has no `?user=`.
+  - **Results:**
+    - `SmokeTest` passes 3 of 3 on the fix. Against the build without the fix, the new check fails.
+    - The whole checklist on a fresh seed is identical to the G27 run: all 52 checks, and all 22 screenshots byte-identical, including the menu navigation through the escaped URLs.
+    - The 20 escaping checks pass again.
+  - **Crafted context path:** a login POST to `/rms;'-x-'/welcome` (and to `/rms;x/welcome`) gets 404. Spring logs "No mapping", so no page renders with such a context path on this stack.
+  - **Encoding probe** (G34, open question #21): the stored bytes were checked in the database.
+    - "łódź" and "čeština" store ł, ź and č as `&#322;`, `&#378;` and `&#269;`.
+    - "š", "€", "–", curly quotes, "Š" and "œ" are stored as control characters U+0080–U+009F. The list sends them back as windows-1252 bytes, so they still look right.

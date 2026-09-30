@@ -30,6 +30,7 @@ Read this when: you're adding or reviewing code, or creating a new screen or mod
     - EL: `<c:out value="${x.name}"/>` (`viewposition.jsp:47`).
     - Scriptlet: `<c:out value="<%=x.getName()%>"/>` (`viewmarks.jsp:78-80`, `main.jsp:82,85,88`).
     - Spring `form:` tags already escape by default. Never write user data into a JavaScript string or URL; take the user from the session instead (G38).
+    - A `<spring:url>` value that goes into a JavaScript string gets `htmlEscape="true" javaScriptEscape="true"` (`main.jsp:12-21`).
   - **EL opt-in:** all 7 JSPs declare `isELIgnored="false"` (lines 1-2), because `web.xml` uses the Servlet 2.3 DTD, where EL is off by default. `viewmarks.jsp` joined on 2026-09-30 for its stylesheet link. Keep the attribute on new JSPs (`WEB-INF/jsp/*.jsp`, `web.xml:1-3`, G37).
   - List pages use DataTables with Update/Delete links (`viewposition.jsp`, `viewlanguage.jsp`).
 - **Logging:** use SLF4J, with `private static final Logger log = LoggerFactory.getLogger(X.class);` as the first class field and `{}` placeholders (`PositionDaoImpl.java:22,73`). No new `System.out`. Never log passwords or other personal data. `logback.xml` replaces CR/LF in messages, so logged user input can't forge log lines.

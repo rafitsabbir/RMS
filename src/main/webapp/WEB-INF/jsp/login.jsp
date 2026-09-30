@@ -2,6 +2,7 @@
 	pageEncoding="ISO-8859-1" isELIgnored="false"%>
 <%@ taglib uri="http://www.springframework.org/tags/form" prefix="form" %>
 <%@ taglib uri="http://www.springframework.org/tags" prefix="spring" %>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <!------ Include the above in your HEAD tag ---------->
 
 
@@ -54,9 +55,7 @@
 
 			<div class="form-group">
 				<div class="alert alert-danger">
-					<%
-						out.println(request.getAttribute("errorMessage"));
-					%>
+					<c:out value="${errorMessage}"/>
 				</div>
 			</div>
 			<%
