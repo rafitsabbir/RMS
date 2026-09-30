@@ -1,7 +1,7 @@
 # Modernization Plan
 
 Purpose: The agreed plan for bringing RMS up to a supported stack: current state, target stack with reasons, phases, risks and gates.
-Last updated: 2026-09-26 (Phase 1 code on `dev`, not released; Phase 0 owner steps still open)
+Last updated: 2026-09-30 (all 7 JSPs opt into EL after the G40 fix). 2026-09-26 (Phase 1 code on `dev`, not released; Phase 0 owner steps still open)
 Read this when: you're upgrading libraries, the JDK, the framework, the servlet container or the DB driver, or planning a security fix to the stack.
 
 **Status and rules:**
@@ -249,7 +249,7 @@ Move one axis at a time. Pass through Spring 5.3 so the security fixes ship befo
   3. **JSTL URIs:** `http://java.sun.com/jsp/jstl/core` → `jakarta.tags.core` in `viewposition.jsp:3` and `viewlanguage.jsp:3`.
   4. **`web.xml`:** replace the 2.3 DTD with the Servlet 6.1 schema, or delete the file (`failOnMissingWebXml=false`, `pom.xml:83`).
      - EL becomes enabled by default.
-     - That's safe: the 6 EL-using JSPs already opt in with `isELIgnored="false"`, and `viewmarks.jsp` contains no `${` [C].
+     - That's safe: all 7 JSPs already opt in with `isELIgnored="false"` (`viewmarks.jsp` since the G40 fix, 2026-09-30) [C].
      - It closes G37.
   5. **Container:** Tomcat 11 on JDK 21, with the JNDI `jdbc/springrms` resource re-created (ops; no secrets in the repo).
 - **Files:** `pom.xml`, `LoginController.java`, `viewposition.jsp`, `viewlanguage.jsp`, `web.xml`, and the container (ops).

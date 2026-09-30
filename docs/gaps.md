@@ -1,7 +1,7 @@
 # Gaps — Partial & Missing Features
 
 Purpose: Every partially implemented or missing piece of RMS, with evidence, impact, effort and a proposed order of work.
-Last updated: 2026-09-27 (G23: DAO tests first run; G31 and G34 confirmed in a browser; G40 added). 2026-09-26 (G39 added; Phase 1 on `dev`: G24 code done, not released. Phase 0: G29 and G35 fixed, G22 and G23 partial). 2026-09-25: re-verified against `dev`; G26–G31 from the gap check; G32–G38 and the Critical ratings from a full code review.
+Last updated: 2026-09-30 (G40 fixed). 2026-09-27 (G23: DAO tests first run; G31 and G34 confirmed in a browser; G40 added). 2026-09-26 (G39 added; Phase 1 on `dev`: G24 code done, not released. Phase 0: G29 and G35 fixed, G22 and G23 partial). 2026-09-25: re-verified against `dev`; G26–G31 from the gap check; G32–G38 and the Critical ratings from a full code review.
 Read this when: you're building an unfinished feature, fixing a known defect, or planning work. Find the gap ID first, then open the relevant business-flows file.
 
 - **Scope:** RMS was last worked on on 2020-01-17. Features came in over four commits:
@@ -52,10 +52,10 @@ Read this when: you're building an unfinished feature, fixing a known defect, or
 | G34 | UI | Internationalisation | Missing link | Not implemented | All 7 JSPs declare `ISO-8859-1` (`WEB-INF/jsp/*.jsp`, lines 1-2). There's no `CharacterEncodingFilter` or `getServletFilters()` in `WebInitializer.java`, so non-Latin input (e.g. Bengali names) doesn't round-trip. In Chromium (2026-09-27), the browser submits characters outside ISO-8859-1 as HTML numeric entities, and they're stored that way: "инженер" becomes `&#1080;&#1085;…`, 49 bytes. The list only looks right because output isn't escaped (G27), and `toUpperCase()` skips them. Latin-1 text is stored correctly. Identical in Phase 0 and Phase 1 ([acceptance/README.md](acceptance/README.md)) | Low | S | Confirmed |
 | G35 | Build | Build portability | Missing link | Fixed 2026-09-26 | Was: no compiler level, so Maven defaulted to Java 1.5 (the old `master` WAR has class version 49). Now `pom.xml:16-17` sets 1.8 and `pom.xml:125-148` pins the compiler, surefire and war plugins | Low | S | Confirmed |
 | G36 | Login | Session | Partial flow | Partial | `UserInfo.java:3` isn't `Serializable`, but it's stored in the session (`LoginController.java:45`, `main.jsp:34`). Persisting or replicating sessions fails, and users are logged out silently | Low | S | Confirmed |
-| G37 | Config | Web descriptor | Partial flow | Partial | `web.xml:1-3` uses the Servlet 2.3 DTD, under which EL is ignored by default. Each JSP only works by opting in (`isELIgnored="false"`); `viewmarks.jsp:1-2` doesn't opt in, so any EL added there would print as literal text | Low | S | Confirmed |
+| G37 | Config | Web descriptor | Partial flow | Partial | `web.xml:1-3` uses the Servlet 2.3 DTD, under which EL is ignored by default. Each JSP only works by opting in (`isELIgnored="false"`). Since 2026-09-30 all 7 JSPs opt in: `viewmarks.jsp:1-2` did so for the G40 stylesheet link. A new JSP without the attribute would still print EL as literal text | Low | S | Confirmed |
 | G38 | UI / Marks | Security (XSS, IDOR) | Partial flow | Partial | `main.jsp:152,155` write `userinfo.getUserid()` unescaped into a JavaScript string, and pass it as the client-side `user` parameter to the planned score-entry URL. That's an XSS sink not covered by G27, and G5 might trust the parameter instead of the session (IDOR: acting on another user's data) | Low | S | Confirmed |
 | G39 | UI | Menu shell | Dead code | Unused | `src/main/webapp/resources/js/main.js` (24 lines, added in `4b727b0`) holds the same dropdown-toggle code as the inline script in `main.jsp:100-113`, but no JSP loads it (`grep -rn ".js" WEB-INF/jsp` finds only CDN links) | Low | S | Confirmed |
-| G40 | UI | Candidate results | Partial flow | Partial | Opened from the menu, the results table (1327 px wide) is wider than its `<object>` (1139 px at a 1366 px window; `main.jsp` `#container`, height 500 px). *Total Score* and *Status* are only visible after scrolling inside the embedded area. Same in Phase 0 and Phase 1 (Chromium 2026-09-27, [acceptance/README.md](acceptance/README.md); `viewmarks.jsp`) | Low | S | Confirmed |
+| G40 | UI | Candidate results | Partial flow | Fixed 2026-09-30 | Was: opened from the menu, the results table (1327 px minimum) was wider than its `<object>` (1139 px at a 1366 px window; `main.jsp` `#container`), so *Total Score* and *Status* needed horizontal scrolling. Now `viewmarks.jsp` links `resources/css/viewmarks.css`, which sets:<br>• 12 px text, 4 px side padding and `table-condensed`<br>• 40 px status icons (the old inline style had a `height100px` typo)<br>• no 15 px overhang from DataTables' grid rows<br>The table's minimum is now 1008 px, so it fits from about a 1235 px window: measured at 1280, 1366 and 1920 px in Chromium. At 1024 px it still scrolls ([acceptance/README.md](acceptance/README.md)) | Low | S | Confirmed |
 
 **Not found:** stored procedures, feature flags, `printStackTrace`, empty catch blocks, commented-out Java logic (only the `main.css:80` rule, G20), and WIP commits. The messages of `4b727b0` and `e5705c0` don't describe their contents.
 
@@ -91,7 +91,7 @@ Read this when: you're building an unfinished feature, fixing a known defect, or
    - G11 (Critical), G27, G38
    - G12, G14, G33, G15, G16, G18
    - G26, G28, G30, G36, G34, G37, G39
-   - G20/G21, G25, G31, G40
+   - G20/G21, G25, G31
 2. **Critical path:** G32 CSRF with POST-only state changes (build it on the G11 interceptor) → G24 dependency upgrade (phases and gates in [modernization-plan.md](modernization-plan.md)) → G13 password hashing (Critical) → G10 map columns by name.
 3. **Core features:** G1 Candidate → G2 Interviewer → G5–G7 Score entry → G9 Status decision.
 4. **Secondary:** G4 Job, G3 Schedule, G17 soft delete with POST deletes, G19 transactions, and broader tests (G23).

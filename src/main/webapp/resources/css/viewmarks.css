@@ -1,0 +1,28 @@
+/* Candidate Status table: compact enough to fit the embedded area in main.jsp (G40).
+   Classes, not #markstable: DataTables measures column widths on a copy without the id. */
+.results-table {
+	font-size: 12px;
+}
+
+.results-table > thead > tr > th,
+.results-table > tbody > tr > td {
+	padding-left: 4px;
+	padding-right: 4px;
+}
+
+.results-table .status-icon {
+	width: 40px;
+	height: 40px;
+}
+
+/* DataTables' Bootstrap 4 layout wraps its controls and the table in grid rows (-15px margins)
+   with no container around them, so they stuck out 15px and caused a horizontal scrollbar. */
+.dataTables_wrapper .row {
+	margin-left: 0;
+	margin-right: 0;
+}
+
+.dataTables_wrapper .row > [class*="col-"] {
+	padding-left: 0;
+	padding-right: 0;
+}
