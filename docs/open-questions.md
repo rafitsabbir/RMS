@@ -1,7 +1,7 @@
 # Open Questions
 
 Purpose: Unresolved items and partial flows that need confirmation from the owner or a database.
-Last updated: 2026-09-27
+Last updated: 2026-09-30 (#12 extended; #20 added after the G11 fix)
 Read this when: your task touches one of the areas below, or before you assume something that isn't documented elsewhere.
 
 ## Partial flows
@@ -19,7 +19,7 @@ Partial and missing features are tracked with evidence in [gaps.md](gaps.md): ca
 9. **Job vs Position:** how is "Job" different from "Position"? Is it an opening with vacancies and dates? (`main.jsp:53,65`; blocks G4)
 10. **Interview schedule:** what should a schedule hold (candidate, interviewer, date/time, location/link), and are notifications needed? (`main.jsp:52,64`; blocks G3)
 11. **Password migration:** can existing plain-text passwords be migrated to hashes, and how should current users be switched over? (`LoginDaoImpl.java:19`; blocks G13)
-12. **Nullable columns:** can `admin.isinterviewer` or `candidate.candidatestatus` be NULL? If so, `main.jsp:42,67` and `viewmarks.jsp:89,91` crash with a NullPointerException (G16).
+12. **Nullable columns:** can `admin.isinterviewer` or `candidate.candidatestatus` be NULL? If so, `main.jsp:42,67` and `viewmarks.jsp:89,91` crash with a NullPointerException (G16). Since the G11 fix (2026-09-30), such a user also gets HTTP 403 on every page (`AuthInterceptor`).
 13. **Unique users:** can two `users` rows share the same username and password? If so, `LoginDaoImpl.java:53` throws `IncorrectResultSizeDataAccessException` (HTTP 500). The same applies if `admin.userid` or `candidate.candidateid` aren't unique, which the subqueries at `MarksDaoImpl.java:19-21` rely on. This depends on the schema (G22).
 14. **HTTPS:** is TLS enforced in front of the app? `web.xml` has no `<security-constraint>`, and the login form POSTs the password in plain text (G13).
 15. **Old web.xml format:** does the target Tomcat handle the Servlet 2.3 `web.xml` correctly alongside `SpringServletContainerInitializer`? It evidently ran in 2020, but this hasn't been tested (G37). Since Phase 1 two container initializers are involved: Spring's and Logback's `LogbackServletContainerInitializer` (from `logback-classic-1.3.16.jar`). If the old `web.xml` format stopped them running, Spring wouldn't start at all, while Logback would only lose its clean shutdown.
@@ -32,3 +32,4 @@ Partial and missing features are tracked with evidence in [gaps.md](gaps.md): ca
     - Is downtime acceptable for the Phase 1 and Phase 3 cutovers?
 18. **Docker availability:** is Docker available on dev machines and in CI? The DAO tests (`src/test/java/rms/dao/`) use Testcontainers MySQL and are skipped without Docker ([modernization-plan.md](modernization-plan.md) Phase 0; G23). Docker is not installed on the machine used on 2026-09-26, so the DAO tests were skipped there. The code reviewer recalled that Testcontainers before 1.21.4 can't connect to Docker Engine 29+ (raised minimum API version); the pom uses 1.21.4 for that reason. *Checked 2026-09-27:* Testcontainers 1.21.4 works with Docker Engine 29.3.1, and all 18 DAO tests ran (older Testcontainers versions weren't tried). Still open: whether dev machines and CI will have Docker.
 19. **Inferred schema:** `db/schema.sql` was reverse-engineered from the DAO SQL. Do the real types, keys, NULL rules and the `marks` column order match? A DDL-only export (`mysqldump --no-data`, no data, no credentials) would settle it (G22, [data-model.md](data-model.md)).
+20. **Inactive admins and user IDs:** the login doesn't check `admin.isactive` (G21), so a deactivated admin can still log in and passes the G11 check (`AuthInterceptor`). Is that intended? And what do production `userid` values look like? A refused request logs the userid at WARN, which would put personal data in the log if it's an email address or an employee number.

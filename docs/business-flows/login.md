@@ -33,13 +33,13 @@ sequenceDiagram
 - **Role-based menu:** `main.jsp` shows the admin menu when `isinterviewer` is `N` and the interviewer menu when it is `Y`, and displays the name, role and email (`main.jsp`).
 - **Password check:** the password is compared as plain text in SQL (`LoginDaoImpl.listallusers`).
 - **Session use:** the `user` session attribute is checked before every page except `/login`, `/welcome` and `/resources/**` (`AuthInterceptor`, since 2026-09-30):
-  - **Logged out** (no session, a logged-out one, or an expired one): redirect to `/login`. A page opened from the menu then shows the login form inside the content area (`acceptance/after-g11/session-expired-in-menu.png`).
+  - **Logged out** (no session, a logged-out one, or an expired one): redirect to `/login`. A page opened from the menu then shows the login form inside the content area (`acceptance/after-g11/session-expired-in-menu.png`). The form posts with `target="_top"` (`login.jsp:30`), so logging in there reloads the whole window.
   - **Interviewer, or `isinterviewer` NULL:** HTTP 403 on every page, because all current pages are admin pages. The interviewer menu still shows; its links lead to unbuilt modules (G5).
   - The controllers themselves still don't read the session (`rms/controller/*`).
-- **Shared field:** `LoginController` keeps `userinfo` in an instance field, which is shared across requests because the controller is a singleton (`LoginController.java`).
+- **User object:** `doLogin` keeps the `UserInfo` in a local variable (`LoginController.java`). Until 2026-09-30 it was an instance field shared across requests, because the controller is a singleton (G12).
 - **Known gaps** (details in [gaps.md](../gaps.md)):
   - G11: fixed 2026-09-30 with an interim interceptor; Spring Security 7 later.
-  - G12: shared field.
+  - G12: shared field, fixed 2026-09-30.
   - G13: plain-text password.
   - G26: HTTP 500 if a user has no `admin` row.
   - G27: unescaped profile output in `main.jsp`.

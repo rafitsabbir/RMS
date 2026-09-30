@@ -1,7 +1,7 @@
 # Build & Run
 
 Purpose: How RMS is built, packaged, deployed and tested.
-Last updated: 2026-09-30 (G11 tests: 43 tests, smoke 3/3). 2026-09-27 (full test run with Docker; Tomcat 9 smoke run; `db/local` script and Compose file executed; `mvnw` made executable)
+Last updated: 2026-09-30 (G11 tests: 45 tests, smoke 3/3). 2026-09-27 (full test run with Docker; Tomcat 9 smoke run; `db/local` script and Compose file executed; `mvnw` made executable)
 Read this when: you're building, deploying, setting up an environment, or fixing a build or startup failure.
 
 ## Build
@@ -32,12 +32,12 @@ Read this when: you're building, deploying, setting up an environment, or fixing
 - **Entry URLs:** `GET /login` shows the login page (`LoginController.loginPage`). `index.jsp` is a "Hello World!" placeholder (`src/main/webapp/index.jsp`).
 
 ## Test
-Tests are characterization tests: they pin current behaviour, including known defects, so upgrades can be checked against it (`src/test/java/rms/`). `mvnw verify` runs 43 tests. On 2026-09-30, with Docker available and `RMS_REQUIRE_DOCKER=true`, 40 passed on JDK 8, and only the 3 smoke tests were skipped. Those 3 then passed against a deployed WAR (see *Smoke run* below). On 2026-09-27, before the G11 tests, 34 of 36 passed on both JDK 8u504 and JDK 21.
+Tests are characterization tests: they pin current behaviour, including known defects, so upgrades can be checked against it (`src/test/java/rms/`). `mvnw verify` runs 45 tests. On 2026-09-30, with Docker available and `RMS_REQUIRE_DOCKER=true`, 42 passed on JDK 8, and only the 3 smoke tests were skipped. Those 3 then passed against a deployed WAR (see *Smoke run* below). On 2026-09-27, before the G11 tests, 34 of 36 passed on both JDK 8u504 and JDK 21.
 
 | Kind | Classes | Needs | Last result |
 |---|---|---|---|
 | Controller | `rms/controller/*ControllerTest` (standalone MockMvc, mocked services, no interceptor) | nothing | 16 pass |
-| Access control | `rms/config/AuthInterceptorTest` (standalone MockMvc with the interceptor exactly as `WebConfig` registers it) | nothing | 6 pass (2026-09-30) |
+| Access control | `rms/config/AuthInterceptorTest` (standalone MockMvc with the interceptor exactly as `WebConfig` registers it) | nothing | 8 pass (2026-09-30) |
 | DAO | `rms/dao/*DaoImplTest`, base `MySqlContainerSupport` | Docker. Testcontainers starts one throwaway `mysql:8.0` shared by all DAO classes, and each test reloads `db/schema.sql` and `db/test-seed.sql`. Without Docker each test is reported as skipped; set `RMS_REQUIRE_DOCKER=true` (e.g. in CI) to make them fail instead | 18 pass on `mysql:8.0` (2026-09-27, Docker Engine 29.3.1, Testcontainers 1.21.4). Skipped where there's no Docker; the `RMS_REQUIRE_DOCKER=true` gate was checked and fails as intended |
 | HTTP smoke | `rms/SmokeTest` | a deployed WAR; the environment variable `RMS_BASE_URL`. The login check also needs `RMS_SMOKE_USER` and `RMS_SMOKE_PASSWORD` set to seed test values | 3 pass against Tomcat 9.0.122 on JDK 8 (2026-09-30), including the logged-out redirect; skipped when `RMS_BASE_URL` isn't set |
 
