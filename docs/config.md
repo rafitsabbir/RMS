@@ -1,7 +1,7 @@
 # Configuration
 
 Purpose: Where RMS's configuration lives and what it controls. No secrets are recorded here.
-Last updated: 2026-09-26
+Last updated: 2026-09-30 (access-control interceptor)
 Read this when: you're changing configuration, the DB connection, static resources, view resolution, or anything that talks to an outside system.
 
 ## Configuration sources
@@ -12,6 +12,7 @@ Read this when: you're changing configuration, the DB connection, static resourc
 | DataSource | JNDI lookup `java:comp/env/jdbc/springrms` (defined in the container) | `NamedParameterJdbcTemplate` bean built on it. Since Phase 1 the container resource should use `com.mysql.cj.jdbc.Driver` (the old class name is a deprecated shim) ([build-run.md](build-run.md)) | `WebConfig.getDataSource`, `getNamedParameterJdbcTemplate` |
 | View resolver | `InternalResourceViewResolver` + `JstlView` | prefix `/WEB-INF/jsp/`, suffix `.jsp` | `WebConfig.viewResolver` |
 | Static resources | `/resources/**` → `/resources/` | CSS, JS, images | `WebConfig.addResourceHandlers`, `src/main/webapp/resources/` |
+| Access control | `rms.config.AuthInterceptor` on all paths except `/login`, `/welcome` and `/resources/**` | Logged out → redirect to `/login`; not an admin (`isinterviewer` ≠ `N`) → 403 (G11). The public paths are the only settings | `WebConfig.addInterceptors`, `AuthInterceptor.java` |
 | `web.xml` | `src/main/webapp/WEB-INF/web.xml` | Empty archetype stub (DTD 2.3), only `display-name` | `web.xml` |
 | Logging | `src/main/resources/logback.xml` | Console appender; `rms` at INFO, `org.springframework` at WARN, root INFO | `logback.xml` |
 

@@ -38,14 +38,14 @@ Evidence: `pom.xml`, `.mvn/wrapper/maven-wrapper.properties`, `rms/config/WebCon
 ```
 pom.xml                       Maven build (WAR)
 src/main/java/rms/
-  config/                     WebInitializer (bootstrap), WebConfig (MVC, DataSource)
+  config/                     WebInitializer (bootstrap), WebConfig (MVC, DataSource), AuthInterceptor (login check)
   controller/                 Login, Position, Language, Marks
   service/  dao/  model/      *Service(+Impl), *Dao(+Impl), *Info
 src/main/webapp/
   WEB-INF/jsp/                7 JSP views (main.jsp = menu shell)
   WEB-INF/web.xml             empty stub
   resources/                  css, js, images
-src/test/java/rms/            controller, DAO (Testcontainers) and smoke tests
+src/test/java/rms/            controller, access-control, DAO (Testcontainers) and smoke tests
 db/                           schema.sql (inferred), test-seed.sql (synthetic)
   local/                      local MySQL setup: create DB + load schema and seed (README.md)
 mvnw, .mvn/wrapper/           Maven Wrapper

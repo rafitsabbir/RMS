@@ -1,10 +1,10 @@
 # Flow: Login / Session
 
 Purpose: Traces the login, role-based menu and logout.
-Last updated: 2026-09-25
+Last updated: 2026-09-30 (G11 login check)
 Read this when: you're fixing login or logout, the role-based menu, or session handling.
 
-Evidence: `rms/controller/LoginController.java`, `rms/service/LoginServiceImpl.java`, `rms/dao/LoginDaoImpl.java`, `WEB-INF/jsp/login.jsp`, `main.jsp`.
+Evidence: `rms/controller/LoginController.java`, `rms/config/AuthInterceptor.java`, `rms/service/LoginServiceImpl.java`, `rms/dao/LoginDaoImpl.java`, `WEB-INF/jsp/login.jsp`, `main.jsp`.
 
 ```mermaid
 sequenceDiagram
@@ -32,10 +32,13 @@ sequenceDiagram
 - **Login page and logout:** `GET /login` invalidates the session and shows `login.jsp`. The Logout link in `main.jsp` points to `login` (`LoginController.loginPage`).
 - **Role-based menu:** `main.jsp` shows the admin menu when `isinterviewer` is `N` and the interviewer menu when it is `Y`, and displays the name, role and email (`main.jsp`).
 - **Password check:** the password is compared as plain text in SQL (`LoginDaoImpl.listallusers`).
-- **Session use:** the `user` session attribute is set but never checked by other controllers (`rms/controller/*`).
+- **Session use:** the `user` session attribute is checked before every page except `/login`, `/welcome` and `/resources/**` (`AuthInterceptor`, since 2026-09-30):
+  - **Logged out** (no session, a logged-out one, or an expired one): redirect to `/login`. A page opened from the menu then shows the login form inside the content area (`acceptance/after-g11/session-expired-in-menu.png`).
+  - **Interviewer, or `isinterviewer` NULL:** HTTP 403 on every page, because all current pages are admin pages. The interviewer menu still shows; its links lead to unbuilt modules (G5).
+  - The controllers themselves still don't read the session (`rms/controller/*`).
 - **Shared field:** `LoginController` keeps `userinfo` in an instance field, which is shared across requests because the controller is a singleton (`LoginController.java`).
 - **Known gaps** (details in [gaps.md](../gaps.md)):
-  - G11: no auth checks.
+  - G11: fixed 2026-09-30 with an interim interceptor; Spring Security 7 later.
   - G12: shared field.
   - G13: plain-text password.
   - G26: HTTP 500 if a user has no `admin` row.

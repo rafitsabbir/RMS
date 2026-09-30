@@ -1,7 +1,7 @@
 # Build & Run
 
 Purpose: How RMS is built, packaged, deployed and tested.
-Last updated: 2026-09-27 (full test run with Docker; Tomcat 9 smoke run; `db/local` script and Compose file executed; `mvnw` made executable)
+Last updated: 2026-09-30 (G11 tests: 43 tests, smoke 3/3). 2026-09-27 (full test run with Docker; Tomcat 9 smoke run; `db/local` script and Compose file executed; `mvnw` made executable)
 Read this when: you're building, deploying, setting up an environment, or fixing a build or startup failure.
 
 ## Build
@@ -32,18 +32,20 @@ Read this when: you're building, deploying, setting up an environment, or fixing
 - **Entry URLs:** `GET /login` shows the login page (`LoginController.loginPage`). `index.jsp` is a "Hello World!" placeholder (`src/main/webapp/index.jsp`).
 
 ## Test
-Tests are characterization tests: they pin current behaviour, including known defects, so upgrades can be checked against it (`src/test/java/rms/`). `mvnw verify` runs 36 tests. On 2026-09-27, with Docker available and `RMS_REQUIRE_DOCKER=true`, 34 passed on both JDK 8u504 and JDK 21, and only the 2 smoke tests were skipped. Those 2 then passed against a deployed WAR (see *Smoke run* below).
+Tests are characterization tests: they pin current behaviour, including known defects, so upgrades can be checked against it (`src/test/java/rms/`). `mvnw verify` runs 43 tests. On 2026-09-30, with Docker available and `RMS_REQUIRE_DOCKER=true`, 40 passed on JDK 8, and only the 3 smoke tests were skipped. Those 3 then passed against a deployed WAR (see *Smoke run* below). On 2026-09-27, before the G11 tests, 34 of 36 passed on both JDK 8u504 and JDK 21.
 
 | Kind | Classes | Needs | Last result |
 |---|---|---|---|
-| Controller | `rms/controller/*ControllerTest` (standalone MockMvc, mocked services) | nothing | 16 pass |
+| Controller | `rms/controller/*ControllerTest` (standalone MockMvc, mocked services, no interceptor) | nothing | 16 pass |
+| Access control | `rms/config/AuthInterceptorTest` (standalone MockMvc with the interceptor exactly as `WebConfig` registers it) | nothing | 6 pass (2026-09-30) |
 | DAO | `rms/dao/*DaoImplTest`, base `MySqlContainerSupport` | Docker. Testcontainers starts one throwaway `mysql:8.0` shared by all DAO classes, and each test reloads `db/schema.sql` and `db/test-seed.sql`. Without Docker each test is reported as skipped; set `RMS_REQUIRE_DOCKER=true` (e.g. in CI) to make them fail instead | 18 pass on `mysql:8.0` (2026-09-27, Docker Engine 29.3.1, Testcontainers 1.21.4). Skipped where there's no Docker; the `RMS_REQUIRE_DOCKER=true` gate was checked and fails as intended |
-| HTTP smoke | `rms/SmokeTest` | a deployed WAR; the environment variable `RMS_BASE_URL`. The login check also needs `RMS_SMOKE_USER` and `RMS_SMOKE_PASSWORD` set to seed test values | 2 pass against Tomcat 9.0.122 on JDK 8u504 (2026-09-27); skipped when `RMS_BASE_URL` isn't set |
+| HTTP smoke | `rms/SmokeTest` | a deployed WAR; the environment variable `RMS_BASE_URL`. The login check also needs `RMS_SMOKE_USER` and `RMS_SMOKE_PASSWORD` set to seed test values | 3 pass against Tomcat 9.0.122 on JDK 8 (2026-09-30), including the logged-out redirect; skipped when `RMS_BASE_URL` isn't set |
 
 - The DAO tests never touch a real database. `db/schema.sql` is inferred, not the production DDL (see [data-model.md](data-model.md)).
 - **Smoke run (2026-09-27):**
   - **Setup:** Tomcat 9.0.122 on JDK 8u504 with the Connector/J 8.2.0 jar in Tomcat's `lib/`. The JNDI `jdbc/springrms` used `com.mysql.cj.jdbc.Driver` and `sslMode=REQUIRED`, and pointed at the `db/local/docker-compose.yml` database. The config stayed outside the repo.
   - **Result:** both `SmokeTest` tests passed. The admin results page, the position and language lists and the create form returned 200 with the seed data and no unrendered EL. A position saved through `/saveposition` appeared in the list, and Tomcat logged no errors.
+  - **Since G11 (2026-09-30):** those pages need an admin login. Logged out, they redirect to `/login`, so a plain `curl` now gets a 302.
   - **Later the same day:** the acceptance checklist, the browser check and the baseline screenshots ran in Chromium against this setup and a Phase 0 build ([acceptance/README.md](acceptance/README.md)).
 - Why `mysql:8.0`: the production server version is unknown (open question #16); 8.0 is an assumption. Phase 0 used `mysql:5.7` because Connector/J 5.1.36 can't connect to MySQL 8.0 at all. It fails in the handshake (`NullPointerException` on `serverVariables`) even when both the account and the server default use `mysql_native_password`, while 8.x drivers connect (tested 2026-09-26 on MySQL 8.0.46). Phase 1 moved the driver and the image together.
 

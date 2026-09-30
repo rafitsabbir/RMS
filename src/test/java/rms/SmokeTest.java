@@ -35,6 +35,15 @@ class SmokeTest {
 	}
 
 	@Test
+	void loggedOutRequestRedirectsToLogin() throws IOException {
+		HttpURLConnection connection = (HttpURLConnection) new URL(baseUrl() + "/viewpositionlist").openConnection();
+		connection.setInstanceFollowRedirects(false);
+
+		assertThat(connection.getResponseCode()).isEqualTo(302);
+		assertThat(connection.getHeaderField("Location")).endsWith("/login");
+	}
+
+	@Test
 	@EnabledIfEnvironmentVariable(named = "RMS_SMOKE_USER", matches = ".+")
 	@EnabledIfEnvironmentVariable(named = "RMS_SMOKE_PASSWORD", matches = ".+")
 	void loginShowsMenu() throws IOException {

@@ -1,7 +1,7 @@
 # Upgrade Status
 
 Purpose: The live tracker for the tech upgrade: what is done, in progress and pending, what to do next, and how to resume on another machine. Details stay in the linked owning docs.
-Last updated: 2026-09-27
+Last updated: 2026-09-30 (G11 interim login check on `dev`)
 Read this when: you're resuming upgrade work, or asking "where are we / what's next".
 
 ## Snapshot (2026-09-27)
@@ -29,7 +29,7 @@ Owners:
 | `pom.xml` build fixes: compiler 1.8, UTF-8, pinned plugins (G35) | Done | dev | `pom.xml` |
 | `target/` untracked, `.gitignore` (G29) | Done | dev | `.gitignore` |
 | Inferred `db/schema.sql` and synthetic `db/test-seed.sql` | Done | dev | `db/` |
-| Characterization tests: controller 16, DAO 18, smoke 2 | Done | dev | `src/test/java/rms/` |
+| Characterization tests: controller 16, DAO 18, smoke 2 (3 since G11, plus 6 access-control tests) | Done | dev | `src/test/java/rms/` |
 | Local DB setup scripts (`rms_local`: script or Docker Compose) | Done. `setup-local-db.sh` and `docker-compose.yml` executed 2026-09-27 ([build-run.md](build-run.md)); `.ps1` **not yet executed** | dev | `db/local/README.md` |
 | Run the DAO tests with Docker (`RMS_REQUIRE_DOCKER=true`) | Done: 18/18 on 2026-09-27 (JDK 8u504 and 21, Docker Engine 29.3.1) | dev | [build-run.md](build-run.md); #18 |
 | Confirm or replace the inferred DDL with a DDL-only export | **Open** | owner | [open-questions.md](open-questions.md) #19, G22 |
@@ -58,7 +58,7 @@ Owners:
 | **Phase 2:** JDK 8 → 21, Mockito 5, Logback 1.5, regenerate `.settings` | Pending | Phase 1 must be **in production** first (Spring4Shell) | [plan §4–5](modernization-plan.md#phase-2--jdk-8--21-s) |
 | **Phase 3:** Spring 7.0, Jakarta namespace, Tomcat 11, `web.xml` (G37) | Pending | In production before **2027-03-31** (end of Tomcat 9 support) | [plan §4](modernization-plan.md#phase-3--spring-70-jakarta-namespace-and-tomcat-11-m) |
 | **Phase 4:** GitHub Actions CI, JNDI context template, optional image | Pending | After Phase 3 | [plan §4](modernization-plan.md#phase-4--packaging-and-deployment-m) |
-| **Follow-ups:** JDK 25; Spring Security 7 (G11, G13, G32); replacing the JSPs | Pending | After Phase 4 | [gaps.md](gaps.md) |
+| **Follow-ups:** JDK 25; Spring Security 7 (G11 has an interim interceptor since 2026-09-30; G13, G32); replacing the JSPs | Pending | After Phase 4 | [gaps.md](gaps.md) |
 
 ## Owner decisions still open
 - The MySQL server version in production (#16). It decides whether the driver can move past 8.2.0.
