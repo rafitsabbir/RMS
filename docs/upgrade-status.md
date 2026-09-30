@@ -1,7 +1,7 @@
 # Upgrade Status
 
 Purpose: The live tracker for the tech upgrade: what is done, in progress and pending, what to do next, and how to resume on another machine. Details stay in the linked owning docs.
-Last updated: 2026-09-30 (G11 interim login check on `dev`)
+Last updated: 2026-09-30 (G11 interim login check merged to `dev`; G27/G38 output escaping)
 Read this when: you're resuming upgrade work, or asking "where are we / what's next".
 
 ## Snapshot (2026-09-27)
@@ -40,7 +40,7 @@ Owners:
 | Item | State | Owner | Evidence |
 |---|---|---|---|
 | Spring BOM 5.3.39, no per-module versions | Done | dev | `pom.xml:13,32-39` |
-| `WebConfig implements WebMvcConfigurer` (B5) | Done | dev | `WebConfig.java:21` |
+| `WebConfig implements WebMvcConfigurer` (B5) | Done | dev | `WebConfig.java:22` |
 | `com.mysql:mysql-connector-j` 8.2.0 (supports MySQL 5.7+), `protobuf-java` excluded | Done | dev | `pom.xml:93-104`; [plan §6](modernization-plan.md#mysql-compatibility) |
 | SLF4J 2.0.20 and Logback 1.3.16; DAO `System.out` → `log.warn` | Done | dev | `logback.xml`, `PositionDaoImpl.java:73` |
 | CDN bumps with SRI: jQuery 3.7.1, Bootstrap 3.4.1/4.6.2, DataTables 1.13.11, Font Awesome 4.7.0 | Done | dev | the 7 JSP heads; [tech-stack.md](tech-stack.md) |

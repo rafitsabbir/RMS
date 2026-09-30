@@ -1,7 +1,7 @@
 # Modernization Plan
 
 Purpose: The agreed plan for bringing RMS up to a supported stack: current state, target stack with reasons, phases, risks and gates.
-Last updated: 2026-09-30 (G11 interceptor adds a second `javax.servlet` user; all 7 JSPs opt into EL after the G40 fix). 2026-09-26 (Phase 1 code on `dev`, not released; Phase 0 owner steps still open)
+Last updated: 2026-09-30 (G11 interceptor adds a second `javax.servlet` user; all 7 JSPs opt into EL after the G40 fix; G27/G38 fixed). 2026-09-26 (Phase 1 code on `dev`, not released; Phase 0 owner steps still open)
 Read this when: you're upgrading libraries, the JDK, the framework, the servlet container or the DB driver, or planning a security fix to the stack.
 
 **Status and rules:**
@@ -51,10 +51,10 @@ This is an external figure: which alert belongs to which dependency can't be ver
 | JDBC driver | `mysql:mysql-connector-java` 5.1.36 | The 5.1 line is legacy; its coordinates were replaced by `com.mysql:mysql-connector-j`. Current series: 8.4.0, 9.7.0 and 26.7.0; the newest supports **MySQL 8.4+** only [A] | 5.1.x has several later-fixed CVEs [A] | **Med**: driver class and URL properties change; the container probably loads the driver [A] | `pom.xml:66-70` [C] |
 | MySQL server | Version unknown | 5.7 and 8.0 are EOL; 8.4 and 9.7 are the supported LTS lines [A] | Out of scope (no DB migration), but it decides the driver series | — | Not in the repo (G22) [C] |
 | Servlet / JSTL APIs | `javax.servlet-api` 3.1.0, `javax.servlet:jstl` 1.2 | Replaced by the Jakarta versions [A] | Only the core JSTL tags are used [C] | **Low** now, **Med** at the Jakarta switch | `pom.xml:52-64`, `viewposition.jsp:3`, `viewlanguage.jsp:3` [C] |
-| Views | 7 JSPs with scriptlets, Spring form/url tags, ISO-8859-1 | Supported in Spring 7 MVC [A] | XSS (G27, G38) is a code issue, not a version issue | **Low** (kept as-is) | `WEB-INF/jsp/*.jsp:1-6` [C] |
+| Views | 7 JSPs with scriptlets, Spring form/url tags, ISO-8859-1 | Supported in Spring 7 MVC [A] | XSS (G27, G38) was a code issue, not a version issue; fixed 2026-09-30 with `<c:out>` | **Low** (kept as-is) | `WEB-INF/jsp/*.jsp:1-6` [C] |
 | Web descriptor | Servlet 2.3 DTD | Obsolete format | — | **Low** | `web.xml:1-3` [C], G37 |
-| Front-end (CDN) | Bootstrap 3.3.7 and 4.1.1, jQuery 3.2.1 and 3.3.1, DataTables 1.10.19, Font Awesome 4.7 | Out of date; Bootstrap 3 and 4 are EOL [A] | XSS and prototype-pollution CVEs, fixed in jQuery 3.5+, Bootstrap 3.4.1 and 4.3.1+ [A] | **Low** for in-major bumps; **High** for merging on one Bootstrap version (out of scope) | `login.jsp:13-18`, `create*.jsp:10-14`, `view*.jsp:12-21`, `main.jsp:26` [C] |
-| Logging | None: 3 `System.out` calls; `commons-logging` 1.2 comes in through Spring | — | No audit trail of logins or failures | **Low** | `PositionDaoImpl.java:69`, `LanguageDaoImpl.java:69`, `main.jsp:172` [C] |
+| Front-end (CDN) | Bootstrap 3.3.7 and 4.1.1, jQuery 3.2.1 and 3.3.1, DataTables 1.10.19, Font Awesome 4.7 | Out of date; Bootstrap 3 and 4 are EOL [A] | XSS and prototype-pollution CVEs, fixed in jQuery 3.5+, Bootstrap 3.4.1 and 4.3.1+ [A] | **Low** for in-major bumps; **High** for merging on one Bootstrap version (out of scope) | `login.jsp:13-18`, `create*.jsp:10-14`, `view*.jsp:12-21`, `main.jsp:27` [C] |
+| Logging | None: 3 `System.out` calls; `commons-logging` 1.2 comes in through Spring | — | No audit trail of logins or failures | **Low** | `PositionDaoImpl.java:69`, `LanguageDaoImpl.java:69`, `main.jsp:173` [C] |
 | Testing | None | — | No regression detection | **Blocker** | No `src/test/` (G23) [C] |
 | Packaging | WAR; `target/` was committed with a stale WAR (untracked in Phase 0, 2026-09-26) | — | Deploying the committed WAR ships old code | **Low** | G29 [C] |
 
@@ -67,7 +67,7 @@ This is an external figure: which alert belongs to which dependency can't be ver
 | B4 | The build fails on JDK 9+: no compiler level (G35), and war plugin 2.3 | `pom.xml:74-88` [C]; plugin failure [A] | Phase 0 |
 | B5 | `WebMvcConfigurerAdapter` is used; it's deprecated in Spring 5 and removed in 6 | `WebConfig.java:14,21` [C]; removal [A] | Phase 1 (resolved on `dev` 2026-09-26) |
 | B6 | `javax.*` Jakarta EE usage, in exactly 5 places (see below) | Import grep [C] | Phase 3 |
-| B7 | Coupling to the app server: the JNDI name `java:comp/env/jdbc/springrms` is standard and portable. The resource definition, and probably the driver jar, live in the container | `WebConfig.java:31-37` [C]; driver location [A] | Phases 1 and 3 (ops) |
+| B7 | Coupling to the app server: the JNDI name `java:comp/env/jdbc/springrms` is standard and portable. The resource definition, and probably the driver jar, live in the container | `WebConfig.java:32-38` [C]; driver location [A] | Phases 1 and 3 (ops) |
 | B8 | Both Spring Dependabot branches change the **shared** `spring.version`. The 6.0.0 branch moves every Spring module to 6.0 and can't compile (Jakarta namespace, removed adapter, JDK 17). The 5.2.20 branch compiles, but 5.2 is EOL | `git diff master...origin/dependabot/*` → `pom.xml:13` [C]; EOL [A] | Close them in Phase 1 |
 | B9 | MySQL-specific SQL: 3-argument `concat()`, comma joins, and `m.*` columns mapped by position (G10). Matters only for a DB change; tests pin it | `MarksDaoImpl.java:19-25,40-55` [C] | Phase 0 tests |
 
@@ -191,7 +191,7 @@ Move one axis at a time. Pass through Spring 5.3 so the security fixes ship befo
   4. **Logging:**
      - Add `slf4j-api` 2.0.x and `logback-classic` 1.3.x, plus `src/main/resources/logback.xml`.
      - Replace `System.out` at `PositionDaoImpl.java:69` and `LanguageDaoImpl.java:69`.
-     - `main.jsp:172` is left for G30.
+     - `main.jsp:173` is left for G30.
   5. **Front end, drop-in versions within the same major:**
      - jQuery → 3.7.x
      - Bootstrap 3.3.7 → 3.4.1 and 4.1.1 → 4.6.x
@@ -209,7 +209,7 @@ Move one axis at a time. Pass through Spring 5.3 so the security fixes ship befo
 - **Risks:**
   - **Spring 4→5:** suffix-pattern URL matching is off by default [A]. RMS URLs have no extensions [C].
   - **Driver:** SSL, time-zone and character-set defaults change [A]. There are no date columns [C]. Non-ASCII text needs testing (G34).
-  - **Front-end bumps:** the visual appearance may shift. The JavaScript API risk is low [C]: the only inline scripts are `$(document).ready(...)` with `$('#…').DataTable()` (`viewposition.jsp:29`, `viewlanguage.jsp:29`, `viewmarks.jsp:42`) and the plain-DOM dropdown toggle in `main.jsp:100-113`. No Bootstrap JS plugin (modal, tooltip, dropdown…) is called.
+  - **Front-end bumps:** the visual appearance may shift. The JavaScript API risk is low [C]: the only inline scripts are `$(document).ready(...)` with `$('#…').DataTable()` (`viewposition.jsp:29`, `viewlanguage.jsp:29`, `viewmarks.jsp:44`) and the plain-DOM dropdown toggle in `main.jsp:101-114`. No Bootstrap JS plugin (modal, tooltip, dropdown…) is called.
 - **Rollback:**
   - Redeploy the Phase 0 WAR.
   - Keep the old driver jar and `driverClassName` until sign-off.

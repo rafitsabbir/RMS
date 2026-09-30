@@ -1,7 +1,7 @@
 # Flow: Login / Session
 
 Purpose: Traces the login, role-based menu and logout.
-Last updated: 2026-09-30 (G11 login check)
+Last updated: 2026-09-30 (G11 login check; G27 profile escaping)
 Read this when: you're fixing login or logout, the role-based menu, or session handling.
 
 Evidence: `rms/controller/LoginController.java`, `rms/config/AuthInterceptor.java`, `rms/service/LoginServiceImpl.java`, `rms/dao/LoginDaoImpl.java`, `WEB-INF/jsp/login.jsp`, `main.jsp`.
@@ -42,5 +42,5 @@ sequenceDiagram
   - G12: shared field, fixed 2026-09-30.
   - G13: plain-text password.
   - G26: HTTP 500 if a user has no `admin` row.
-  - G27: unescaped profile output in `main.jsp`.
+  - G27: fixed 2026-09-30. The profile header in `main.jsp` is escaped with `<c:out>`, and a NULL column shows blank instead of "null".
   - G30: the menu is only reached via POST; the fallback redirect ignores the app's context path; the session isn't renewed at login.
