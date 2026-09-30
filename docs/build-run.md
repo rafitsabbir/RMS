@@ -1,7 +1,7 @@
 # Build & Run
 
 Purpose: How RMS is built, packaged, deployed and tested.
-Last updated: 2026-09-30 (G11 tests: 45 tests, smoke 3/3). 2026-09-27 (full test run with Docker; Tomcat 9 smoke run; `db/local` script and Compose file executed; `mvnw` made executable)
+Last updated: 2026-09-30 (G11 tests: 45 tests, smoke 3/3; smoke checks G38). 2026-09-27 (full test run with Docker; Tomcat 9 smoke run; `db/local` script and Compose file executed; `mvnw` made executable)
 Read this when: you're building, deploying, setting up an environment, or fixing a build or startup failure.
 
 ## Build
@@ -39,7 +39,7 @@ Tests are characterization tests: they pin current behaviour, including known de
 | Controller | `rms/controller/*ControllerTest` (standalone MockMvc, mocked services, no interceptor) | nothing | 16 pass |
 | Access control | `rms/config/AuthInterceptorTest` (standalone MockMvc with the interceptor exactly as `WebConfig` registers it) | nothing | 8 pass (2026-09-30) |
 | DAO | `rms/dao/*DaoImplTest`, base `MySqlContainerSupport` | Docker. Testcontainers starts one throwaway `mysql:8.0` shared by all DAO classes, and each test reloads `db/schema.sql` and `db/test-seed.sql`. Without Docker each test is reported as skipped; set `RMS_REQUIRE_DOCKER=true` (e.g. in CI) to make them fail instead | 18 pass on `mysql:8.0` (2026-09-27, Docker Engine 29.3.1, Testcontainers 1.21.4). Skipped where there's no Docker; the `RMS_REQUIRE_DOCKER=true` gate was checked and fails as intended |
-| HTTP smoke | `rms/SmokeTest` | a deployed WAR; the environment variable `RMS_BASE_URL`. The login check also needs `RMS_SMOKE_USER` and `RMS_SMOKE_PASSWORD` set to seed test values | 3 pass against Tomcat 9.0.122 on JDK 8 (2026-09-30), including the logged-out redirect; skipped when `RMS_BASE_URL` isn't set |
+| HTTP smoke | `rms/SmokeTest` | a deployed WAR; the environment variable `RMS_BASE_URL`. The login check also needs `RMS_SMOKE_USER` and `RMS_SMOKE_PASSWORD` set to seed test values | 3 pass against Tomcat 9.0.122 on JDK 8 (2026-09-30), including the logged-out redirect and a check that the menu page carries no `?user=` (G38); skipped when `RMS_BASE_URL` isn't set |
 
 - The DAO tests never touch a real database. `db/schema.sql` is inferred, not the production DDL (see [data-model.md](data-model.md)).
 - **Smoke run (2026-09-27):**

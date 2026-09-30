@@ -61,7 +61,10 @@ class SmokeTest {
 		}
 
 		assertThat(connection.getResponseCode()).isEqualTo(200);
-		assertThat(read(connection)).contains("sidenav");
+		String body = read(connection);
+		assertThat(body).contains("sidenav");
+		// G38: the score-entry URLs carry no userid
+		assertThat(body).doesNotContain("?user=");
 	}
 
 	private static String read(HttpURLConnection connection) throws IOException {

@@ -25,6 +25,6 @@ flowchart LR
 ## Not implemented (partial)
 - **Interviewer score entry:** `MarksDaoImpl.saveMarks` is empty, `getAllMarksByInterviewer` returns `null`, and `getFullmarks` returns 0.
 - **Menu link:** the interviewer menu calls `MarksController` and `MarksController?param=VIEW`, which no mapping matches (`main.jsp`). Until 2026-09-30 it also passed the userid as `?user=…` (G38). Score entry (G5) must take the interviewer from the session, not from a parameter.
-- **Output:** candidate, position and language names are escaped with `<c:out>` (`viewmarks.jsp`, G27).
+- **Output:** candidate, position and language names are escaped with `<c:out>` (`viewmarks.jsp`, G27). A candidate with a NULL first or last name shows a blank name, because `concat` returns NULL; until 2026-09-30 it showed "null".
 
 Known gaps: G5–G7 (score entry), G8 (dead `getFullmarks`), G9 (status never written) and G10 (column mapping), in [gaps.md](../gaps.md).

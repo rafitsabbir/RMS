@@ -9,16 +9,16 @@
 <html>
 <head>
 <spring:url value="/resources/css/main.css" var="maincss" />
-<spring:url value="/adminviewmarks" var="adminviewmarks" />
+<spring:url value="/adminviewmarks" var="adminviewmarks" htmlEscape="true" javaScriptEscape="true" />
 
-<spring:url value="/createlanguage" var="createlanguage" />
-<spring:url value="/viewlanguagelist" var="viewlanguagelist" />
+<spring:url value="/createlanguage" var="createlanguage" htmlEscape="true" javaScriptEscape="true" />
+<spring:url value="/viewlanguagelist" var="viewlanguagelist" htmlEscape="true" javaScriptEscape="true" />
 
-<spring:url value="/createposition" var="createposition" />
-<spring:url value="/viewpositionlist" var="viewpositionlist" />
+<spring:url value="/createposition" var="createposition" htmlEscape="true" javaScriptEscape="true" />
+<spring:url value="/viewpositionlist" var="viewpositionlist" htmlEscape="true" javaScriptEscape="true" />
 
-<spring:url value="/createcandidate" var="createcandidate" />
-<spring:url value="/viewcandidatelist" var="viewcandidatelist" />
+<spring:url value="/createcandidate" var="createcandidate" htmlEscape="true" javaScriptEscape="true" />
+<spring:url value="/viewcandidatelist" var="viewcandidatelist" htmlEscape="true" javaScriptEscape="true" />
 
 <link rel="stylesheet" type="text/css" href="${maincss }">
 <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
