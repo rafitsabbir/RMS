@@ -64,3 +64,34 @@ Read this when: you're signing off a phase, re-running the checklist after an up
   - No new console errors.
   - Every screenshot except the Candidate Status page is pixel-identical to that run.
 - **New reference:** `phase0/08-results-in-menu` and `09-results-full-width` no longer match pixel for pixel, by design. For later phases, compare the Candidate Status page with `after-g40/results-in-menu-1366.png` and `after-g40/results-in-menu-1280.png`.
+
+## G11 fix (2026-09-30): pages need a login, admin pages need the admin role
+- **Change:** `AuthInterceptor`, registered in `WebConfig.addInterceptors`, checks every page except `/login`, `/welcome` and `/resources/**`.
+  - Logged out, it redirects to `/login`.
+  - A user whose `isinterviewer` isn't `N` gets HTTP 403.
+  - Details in [gaps.md](../gaps.md) G11.
+- **Setup:** the same as the G40 run: Tomcat 9.0.122 on JDK 8, MySQL 8.0 from `db/local/docker-compose.yml` with the seed data, and Chromium with the npm CDN stand-in.
+- **Re-run of the whole checklist:**
+  - All 52 checks give the same results and details as the G40 run. Only item 5 fails (G34).
+  - Console and HTTP errors are unchanged.
+  - All 22 screenshots are byte-identical.
+  - The unfinished menu items still end in 404: they have no handler, so the check never runs for them.
+- **New access checks** (14, all pass):
+
+  | Who | Request | Result |
+  |---|---|---|
+  | Logged out | `/viewpositionlist`, `/adminviewmarks`, `/deleteposition/1` | redirect to `/login`; in the browser the login page shows, and position 1 isn't deleted |
+  | Logged out | `/login`, `/resources/css/login.css` | 200, and the login page is styled |
+  | Logged out | `POST /saveposition` | redirect to `/login`, and no row written |
+  | Admin | the admin pages, directly and from the menu | 200, as before |
+  | Admin, after Logout | `/adminviewmarks` | redirect to `/login` |
+  | Admin, session cookie gone | a menu item | the content area shows the login form (`after-g11/session-expired-in-menu.png`) |
+  | Interviewer | the interviewer menu | unchanged: Evaluation, Show Evaluation, Logout |
+  | Interviewer | `/viewpositionlist`, `/viewlanguagelist`, `/createposition`, `/adminviewmarks`, `/deleteposition/1`, `POST /saveposition` | 403 each (`after-g11/interviewer-403.png`), and no row changed or deleted |
+
+- **Also checked:**
+  - `SmokeTest` passes 3 of 3, including the new logged-out redirect.
+  - Tomcat logged no errors; each refused request logged one WARN line.
+  - `GET /` still shows `index.jsp` ("Hello World!", G25). Tomcat serves it directly, not through Spring, so there's nothing to protect there.
+- **Observations, not changed:**
+  - The 403 is Tomcat's default error page, and it names the Tomcat version (`after-g11/interviewer-403.png`). Hiding that is container configuration (ops).

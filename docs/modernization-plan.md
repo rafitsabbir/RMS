@@ -1,7 +1,7 @@
 # Modernization Plan
 
 Purpose: The agreed plan for bringing RMS up to a supported stack: current state, target stack with reasons, phases, risks and gates.
-Last updated: 2026-09-30 (all 7 JSPs opt into EL after the G40 fix). 2026-09-26 (Phase 1 code on `dev`, not released; Phase 0 owner steps still open)
+Last updated: 2026-09-30 (G11 interceptor adds a second `javax.servlet` user; all 7 JSPs opt into EL after the G40 fix). 2026-09-26 (Phase 1 code on `dev`, not released; Phase 0 owner steps still open)
 Read this when: you're upgrading libraries, the JDK, the framework, the servlet container or the DB driver, or planning a security fix to the stack.
 
 **Status and rules:**
@@ -99,7 +99,7 @@ Move one axis at a time. Pass through Spring 5.3 so the security fixes ship befo
 | **Logging** | SLF4J 2 + Logback (1.3.x on Java 8, 1.5.x on 21) | Spring 5.3+ routes its logging to SLF4J. Replaces the 3 `System.out` calls | **Log4j2:** heavier configuration.<br>**java.util.logging:** weak configuration.<br>No existing config to keep | S | [A] routing; [C] call sites |
 | **Testing** | JUnit Jupiter 5.x, Mockito, AssertJ, spring-test `MockMvc` (standalone), **Testcontainers MySQL**, and a manual acceptance checklist | Standalone MockMvc needs no Spring test runner, so the same tests work from 4.3 to 7.0. A real MySQL matches the MySQL-specific SQL | **H2 in MySQL mode:** doesn't prove driver or `concat()` behaviour.<br>**JUnit 4:** a dead end.<br>JUnit 6 and Mockito 5 need newer Java, so switch in Phase 2 | M | [A] compatibility; [C] SQL |
 | **Packaging** | WAR on external Tomcat 11 with the JNDI name kept; CI builds the WAR; `target/` no longer committed; optional container image | Keeps today's model. JSP and `src/main/webapp` need a WAR | **Executable JAR:** `src/main/webapp` is ignored in a JAR [A: Boot docs] | S–M | [C] `pom.xml:6`, G29 |
-| **Security framework** | Not part of this plan | G11, G13 and G32 are functional fixes. Spring Security 7 is the follow-up after Phase 3 | — | — | [C] [gaps.md](gaps.md) |
+| **Security framework** | Not part of this plan | G11, G13 and G32 are functional fixes. G11 has an interim `HandlerInterceptor` since 2026-09-30. Spring Security 7 is the follow-up after Phase 3 | — | — | [C] [gaps.md](gaps.md) |
 
 ## 4. Phases
 **Rules:**
@@ -245,7 +245,7 @@ Move one axis at a time. Pass through Spring 5.3 so the security fixes ship befo
      - `jakarta.servlet-api` 6.1 as `provided`
      - Jakarta Tags 3.0 API and implementation (Tomcat doesn't bundle JSTL [A])
      - remove every `javax.servlet` artifact
-  2. **`LoginController.java:3-5`:** `javax.servlet.http.*` → `jakarta.servlet.http.*`. It's the only Java file affected [C].
+  2. **`LoginController.java:3-5` and `AuthInterceptor.java:5-7`:** `javax.servlet.http.*` → `jakarta.servlet.http.*`. They're the only Java files affected [C].
   3. **JSTL URIs:** `http://java.sun.com/jsp/jstl/core` → `jakarta.tags.core` in `viewposition.jsp:3` and `viewlanguage.jsp:3`.
   4. **`web.xml`:** replace the 2.3 DTD with the Servlet 6.1 schema, or delete the file (`failOnMissingWebXml=false`, `pom.xml:83`).
      - EL becomes enabled by default.
@@ -299,7 +299,7 @@ Move one axis at a time. Pass through Spring 5.3 so the security fixes ship befo
 | 0 | — | — | — | Tests only; bytecode level 1.8 on the same JDK |
 | 1 | **Med** | **Med** | **High** | The driver swap touches every query. Results depend on `concat()` and column positions (G10). The list pages use the jQuery and DataTables bumps |
 | 2 | Low | Low | Low | Runtime JDK change only |
-| 3 | **High** | Med | Med | Login is the only `javax.servlet` user; the list pages have the JSTL URI; the menu shell loads through EL and `<object>` |
+| 3 | **High** | Med | Med | Login and `AuthInterceptor` are the only `javax.servlet` users; the list pages have the JSTL URI; the menu shell loads through EL and `<object>` |
 | 4 | Med | Med | Med | DB connectivity comes from a new config template |
 
 ### MySQL compatibility

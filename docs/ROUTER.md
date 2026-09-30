@@ -1,7 +1,7 @@
 # Docs Router
 
 Purpose: Points each kind of task to the minimum set of docs and code to read.
-Last updated: 2026-09-27
+Last updated: 2026-09-30
 Read this when: you're starting any task. Start here, not with every doc.
 
 **Rule:** read only the files listed for your task. Open other docs only if those files point you there, or the task clearly spans categories.
@@ -14,11 +14,11 @@ Read this when: you're starting any task. Start here, not with every doc.
 | Build, deploy or environment issue | [build-run.md](build-run.md), [tech-stack.md](tech-stack.md) | `pom.xml`, `mvnw`, `.mvn/wrapper/`, `rms/config/WebInitializer.java`, `WebConfig.getDataSource` |
 | Config or integration change | [config.md](config.md) | `rms/config/WebConfig.java`, `src/main/webapp/WEB-INF/web.xml` |
 | Resuming upgrade work / "what's next?" | [upgrade-status.md](upgrade-status.md) first, then the phase in [modernization-plan.md](modernization-plan.md); [acceptance/README.md](acceptance/README.md) to sign off a phase | `pom.xml`, `src/test/java/rms/`, `db/`, `db/local/README.md` |
-| Upgrading libraries/JDK/framework | [upgrade-status.md](upgrade-status.md), [modernization-plan.md](modernization-plan.md), [tech-stack.md](tech-stack.md), [conventions.md](conventions.md) | `pom.xml`, `WebConfig.java`, `LoginController.java` (the only `javax.servlet` user), `WEB-INF/web.xml`, JSP `<head>` CDN links |
+| Upgrading libraries/JDK/framework | [upgrade-status.md](upgrade-status.md), [modernization-plan.md](modernization-plan.md), [tech-stack.md](tech-stack.md), [conventions.md](conventions.md) | `pom.xml`, `WebConfig.java`, `LoginController.java` and `AuthInterceptor.java` (the only `javax.servlet` users), `WEB-INF/web.xml`, JSP `<head>` CDN links |
 | Dependency upgrade / security fix | [upgrade-status.md](upgrade-status.md), [modernization-plan.md](modernization-plan.md) (phase and gates first), then [tech-stack.md](tech-stack.md), [build-run.md](build-run.md) | `pom.xml`, `src/test/java/rms/` (the characterization tests must stay green) |
 | Understanding the overall system | [architecture.md](architecture.md), [business-flows/README.md](business-flows/README.md) | `WebConfig.java`, `rms/controller/` |
 | Code review / following conventions | [conventions.md](conventions.md), plus the "Cross-cutting concerns" section of [architecture.md](architecture.md) | the changed files, and their tests in `src/test/java/rms/` |
-| Auth / security change | [business-flows/login.md](business-flows/login.md), plus the "Cross-cutting concerns" section of [architecture.md](architecture.md) | `LoginController.java`, `LoginDaoImpl.java`, `main.jsp` |
+| Auth / security change | [business-flows/login.md](business-flows/login.md), plus the "Cross-cutting concerns" section of [architecture.md](architecture.md) | `LoginController.java`, `AuthInterceptor.java` + `WebConfig.addInterceptors`, `LoginDaoImpl.java`, `main.jsp` |
 | Working on incomplete/missing features | [gaps.md](gaps.md), then the relevant [business-flows/](business-flows/README.md) file | `main.jsp` (menu links to unbuilt modules), `MarksDaoImpl.java` (stubs) |
 | Writing or running tests | [build-run.md](build-run.md) (Test section), [conventions.md](conventions.md) (Tests section) | `src/test/java/rms/`, `rms/dao/MySqlContainerSupport.java`, `db/schema.sql`, `db/test-seed.sql` |
 | Unclear behaviour or missing module | [open-questions.md](open-questions.md) | `main.jsp` (menu links to unbuilt modules) |
