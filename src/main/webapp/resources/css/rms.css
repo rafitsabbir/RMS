@@ -351,6 +351,7 @@ body {
 /* List tables: a narrow id column and actions sized to their buttons */
 .table > thead > tr > th.rms-col-id {
 	width: 8rem;
+	white-space: nowrap;
 }
 
 /* Wide tables scroll inside their card, never the page */
