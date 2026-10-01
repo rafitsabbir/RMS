@@ -10,4 +10,8 @@
 		rejects such posts with HTTP 400 (e.g. "café"; SmokeTest checks this). Moving everything to UTF-8
 		is G34 (docs/gaps.md). -->
 	<request-character-encoding>ISO-8859-1</request-character-encoding>
+	<!-- Sessions by cookie only, so no ;jsessionid in URLs, history or logs (G41) -->
+	<session-config>
+		<tracking-mode>COOKIE</tracking-mode>
+	</session-config>
 </web-app>

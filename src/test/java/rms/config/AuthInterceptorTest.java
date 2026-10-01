@@ -34,7 +34,7 @@ import rms.service.LoginService;
 import rms.service.MarksService;
 import rms.service.PositionService;
 
-/** G11: pages need a login, and admin pages need isinterviewer = N. Uses the registration in WebConfig. */
+/** G11: pages need a login, and all but the menu page need isinterviewer = N. Uses the registrations in WebConfig. */
 @ExtendWith(MockitoExtension.class)
 class AuthInterceptorTest {
 
@@ -143,18 +143,43 @@ class AuthInterceptorTest {
 	}
 
 	@Test
-	void loginAndResourcePathsAreExcluded() {
-		List<Object> interceptors = registeredInterceptors();
-		assertThat(interceptors).hasSize(1);
-		MappedInterceptor mapped = (MappedInterceptor) interceptors.get(0);
+	void menuPageNeedsOnlyALogin() throws Exception {
+		mockMvc.perform(get("/home").session(sessionFor("Y")))
+				.andExpect(status().isOk())
+				.andExpect(view().name("main"));
+		mockMvc.perform(get("/home").session(sessionFor("N")))
+				.andExpect(status().isOk())
+				.andExpect(view().name("main"));
+		mockMvc.perform(get("/").session(sessionFor("Y"))).andExpect(redirectedUrl("/home"));
+	}
 
-		assertThat(mapped.getInterceptor()).isInstanceOf(AuthInterceptor.class);
-		assertThat(mapped.matches(request("/login"))).isFalse();
-		assertThat(mapped.matches(request("/welcome"))).isFalse();
-		assertThat(mapped.matches(request("/resources/css/login.css"))).isFalse();
-		assertThat(mapped.matches(request("/viewpositionlist"))).isTrue();
-		assertThat(mapped.matches(request("/updatelanguage/1"))).isTrue();
-		assertThat(mapped.matches(request("/createcandidate"))).isTrue();
+	@Test
+	void loggedOutMenuPageRedirectsToLogin() throws Exception {
+		mockMvc.perform(get("/home")).andExpect(redirectedUrl("/login"));
+		mockMvc.perform(get("/")).andExpect(redirectedUrl("/login"));
+	}
+
+	@Test
+	void eachPathHasOneCheck() {
+		List<Object> interceptors = registeredInterceptors();
+		assertThat(interceptors).hasSize(2);
+		MappedInterceptor loginOnly = (MappedInterceptor) interceptors.get(0);
+		MappedInterceptor adminOnly = (MappedInterceptor) interceptors.get(1);
+		assertThat(loginOnly.getInterceptor()).isInstanceOf(AuthInterceptor.class);
+		assertThat(adminOnly.getInterceptor()).isInstanceOf(AuthInterceptor.class);
+
+		for (String path : new String[] { "/", "/home" }) {
+			assertThat(loginOnly.matches(request(path))).as(path).isTrue();
+			assertThat(adminOnly.matches(request(path))).as(path).isFalse();
+		}
+		for (String path : new String[] { "/login", "/welcome", "/resources/css/login.css" }) {
+			assertThat(loginOnly.matches(request(path))).as(path).isFalse();
+			assertThat(adminOnly.matches(request(path))).as(path).isFalse();
+		}
+		for (String path : new String[] { "/viewpositionlist", "/updatelanguage/1", "/createcandidate" }) {
+			assertThat(loginOnly.matches(request(path))).as(path).isFalse();
+			assertThat(adminOnly.matches(request(path))).as(path).isTrue();
+		}
 	}
 
 	private static List<Object> registeredInterceptors() {

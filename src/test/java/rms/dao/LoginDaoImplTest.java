@@ -1,11 +1,9 @@
 package rms.dao;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.dao.EmptyResultDataAccessException;
 
 import rms.model.UserInfo;
 
@@ -47,12 +45,11 @@ class LoginDaoImplTest extends MySqlContainerSupport {
 	}
 
 	@Test
-	void getUserInfoThrowsWhenAdminRowIsMissing() {
-		// characterizes G26: a users row without an admin row is not handled
+	void getUserInfoReturnsNullWhenAdminRowIsMissing() {
 		jdbcTemplate.update("insert into users (userid, username, password) values ('U9', 'orphan', 'test-only-9')");
 
 		assertThat(dao.checkUser("orphan", "test-only-9")).isEqualTo("U9");
-		assertThatThrownBy(() -> dao.getUserInfo("U9")).isInstanceOf(EmptyResultDataAccessException.class);
+		assertThat(dao.getUserInfo("U9")).isNull();
 	}
 
 }

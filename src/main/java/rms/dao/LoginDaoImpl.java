@@ -61,7 +61,11 @@ public class LoginDaoImpl implements LoginDao {
 		// TODO Auto-generated method stub
 		Map<String, String> paramMap = new HashMap<String, String>();
 		paramMap.put("userid", userid);
-		return namedParameterJdbcTemplate.queryForObject(userinfo, paramMap, new UserMapper());
+		try {
+			return namedParameterJdbcTemplate.queryForObject(userinfo, paramMap, new UserMapper());
+		} catch (EmptyResultDataAccessException e) {
+			return null;
+		}
 
 	}
 

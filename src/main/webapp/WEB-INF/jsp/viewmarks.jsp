@@ -90,9 +90,9 @@ public int getFullmarks(MarksInfo marksinfo) {
 				<td><%=marksinfo.getPersonality()%></td>
 				<td><%=getFullmarks(marksinfo)%></td>
 				<td>
-				<%if(marksinfo.getCandidateStatus().equalsIgnoreCase("S")){%>
+				<%if("S".equalsIgnoreCase(marksinfo.getCandidateStatus())){%>
 				<img alt="" src="resources/happy.jpg" class="status-icon" align="center">
-				<%}else if(marksinfo.getCandidateStatus().equalsIgnoreCase("R")){ %>
+				<%}else if("R".equalsIgnoreCase(marksinfo.getCandidateStatus())){ %>
 				<img alt="" src="resources/sad.jpg" class="status-icon" align="center">
 				<%}else{ %>
 				<img alt="" src="resources/new.jpg" class="status-icon" align="center">

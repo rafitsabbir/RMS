@@ -46,8 +46,11 @@ public class WebConfig implements WebMvcConfigurer {
 
 	@Override
 	public void addInterceptors(InterceptorRegistry registry) {
-		registry.addInterceptor(new AuthInterceptor())
-				.excludePathPatterns("/login", "/welcome", "/resources/**");
+		// The menu page: any logged-in user
+		registry.addInterceptor(new AuthInterceptor(false)).addPathPatterns("/", "/home");
+		// Everything else except the login pages and static resources: admins only
+		registry.addInterceptor(new AuthInterceptor(true))
+				.excludePathPatterns("/", "/home", "/login", "/welcome", "/resources/**");
 	}
 
 	@Bean
