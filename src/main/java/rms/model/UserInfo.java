@@ -1,6 +1,11 @@
 package rms.model;
 
-public class UserInfo {
+import java.io.Serializable;
+
+/** Kept in the HTTP session, so it must be serializable (G36). */
+public class UserInfo implements Serializable {
+
+	private static final long serialVersionUID = 1L;
 
 	private int isactive = 0;
 	private String userid = null;

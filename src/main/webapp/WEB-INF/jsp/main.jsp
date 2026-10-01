@@ -32,7 +32,6 @@
 	UserInfo userinfo = null;
 	userinfo = (UserInfo) request.getAttribute("userinfo");
 	if (userinfo != null) {
-		session.setAttribute("user", userinfo);
 %>
 
 
@@ -40,7 +39,7 @@
 
 	<div class="sidenav">
 		
-		 <% if (userinfo.getIsinterviewer().equalsIgnoreCase("N")){ %>
+		 <% if ("N".equalsIgnoreCase(userinfo.getIsinterviewer())){ %>
 		 <a onclick="return load_view_admin_marks();">Candidate Status</a>
 		<button class="dropdown-btn">
 			Create <i class="fa fa-caret-down"></i>
@@ -65,7 +64,7 @@
 			<a onclick="return load_view_schedule();">Interview Schedule</a>
 			<a onclick="return load_view_job();">Job</a>
 		</div>
-		<%} if (userinfo.getIsinterviewer().equalsIgnoreCase("Y")){ %>
+		<%} if ("Y".equalsIgnoreCase(userinfo.getIsinterviewer())){ %>
 		<a onclick="return load_marks();">Evaluation</a>
 		<a onclick="return load_view_marks();">Show Evaluation</a>
 		<%} %>
@@ -170,8 +169,7 @@
 
 <%
 	} else {
-		System.out.println("You are not logged in.");
-		response.sendRedirect("/login");
+		response.sendRedirect(request.getContextPath() + "/login");
 	}
 %>
 </html>

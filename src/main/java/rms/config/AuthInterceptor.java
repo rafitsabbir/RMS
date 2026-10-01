@@ -13,12 +13,19 @@ import org.springframework.web.servlet.HandlerInterceptor;
 import rms.model.UserInfo;
 
 /**
- * Login and role check for every page except those excluded in WebConfig.addInterceptors (G11).
- * Every page behind the login is an admin page today; interviewer pages (G5) must be let through explicitly.
+ * Login and role check (G11), registered twice in WebConfig.addInterceptors: the menu page needs a login,
+ * every other page behind the login also needs the admin role. Interviewer pages (G5) must be added to the
+ * login-only registration.
  */
 public class AuthInterceptor implements HandlerInterceptor {
 
 	private static final Logger log = LoggerFactory.getLogger(AuthInterceptor.class);
+
+	private final boolean adminOnly;
+
+	public AuthInterceptor(boolean adminOnly) {
+		this.adminOnly = adminOnly;
+	}
 
 	@Override
 	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
@@ -32,7 +39,7 @@ public class AuthInterceptor implements HandlerInterceptor {
 		}
 
 		UserInfo userinfo = (UserInfo) user;
-		if (!"N".equalsIgnoreCase(userinfo.getIsinterviewer())) {
+		if (adminOnly && !"N".equalsIgnoreCase(userinfo.getIsinterviewer())) {
 			// servlet path, not the request URI: a rewritten URL carries ;jsessionid=...
 			log.warn("User {} is not an admin; {} refused", userinfo.getUserid(), request.getServletPath());
 			response.sendError(HttpServletResponse.SC_FORBIDDEN);
