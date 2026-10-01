@@ -1,70 +1,55 @@
 <%@ page language="java" contentType="text/html; charset=ISO-8859-1"
-	pageEncoding="ISO-8859-1" isELIgnored="false"%>
+	pageEncoding="ISO-8859-1" isELIgnored="false" trimDirectiveWhitespaces="true"%>
 <%@ taglib uri="http://www.springframework.org/tags/form" prefix="form" %>
 <%@ taglib uri="http://www.springframework.org/tags" prefix="spring" %>
 <%@ taglib uri="jakarta.tags.core" prefix="c" %>
-<!------ Include the above in your HEAD tag ---------->
-
-
-<html>
+<spring:url value="/" var="base" htmlEscape="true" />
+<spring:url value="/welcome" var="loginUrl" />
+<!DOCTYPE html>
+<html lang="en">
 <head>
-<spring:url value="/resources/css/login.css" var="logincss" />
-<link rel="stylesheet" type="text/css" href="${logincss}"/>
-<link
-	href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous"
-	rel="stylesheet" id="bootstrap-css"/>
-<script
-	src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha384-1H217gwSVyLSIfaLxHbE7dRb3v4mYCKbpQvzx0cegeju1MVsGrX5xXxAvs/HgeFs" crossorigin="anonymous"></script>
-<script
-	src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.min.js" integrity="sha384-+sLIOodYLS7CIrQpBjl+C7nPvqq+FbNUBDunl/OZv93DB7Ln/533i8e/mZXLi/P+" crossorigin="anonymous"></script>
-<!------ Include the above in your HEAD tag ---------->
+<meta charset="ISO-8859-1">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in - RMS</title>
+<link rel="icon" type="image/svg+xml" href="${base}resources/img/favicon.svg">
+<link rel="stylesheet"
+	href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+<link rel="stylesheet" href="${base}resources/css/rms.css">
 </head>
-<body id="LoginForm">
-	<div class="container">
-		<div class="login-form">
-			<div class="main-div">
-				<div class="panel">
-					<h2>Login</h2>
-					<p>Please enter your User Name and Password</p>
-				</div>
-				<spring:url value="/welcome" var="loginUrl" />
-				<form:form id="Login" action="${loginUrl}" method="POST" target="_top">
-
-					<div class="form-group">
-
-
-						<input type="text" class="form-control" id="username"
-							name="username" placeholder="User Name">
-
-					</div>
-
-					<div class="form-group">
-
-						<input type="password" class="form-control" id="password"
-							name="password" placeholder="Password">
-
-					</div>
-					<button type="submit" class="btn btn-primary">Login</button>
-
-				</form:form>
-			</div>
-
-			<%
-				if (null != request.getAttribute("errorMessage")) {
-			%>
-
-			<div class="form-group">
-				<div class="alert alert-danger">
-					<c:out value="${errorMessage}"/>
-				</div>
-			</div>
-			<%
-				}
-			%>
-
+<body>
+<div class="rms-login">
+	<header class="rms-login-banner">
+		<div class="rms-login-brand">
+			<img src="${base}resources/img/favicon.svg" width="48" height="48" alt="">
+			<span><span class="rms-brand-name">RMS</span><span class="rms-brand-sub">Recruitment Management</span></span>
 		</div>
-	</div>
-
-
+		<p class="rms-login-tagline">Positions, skills and candidate evaluations in one place.</p>
+	</header>
+	<main class="rms-login-panel">
+		<div class="card rms-card rms-login-card">
+			<h1 class="mb-1">Sign in</h1>
+			<p class="text-body-secondary mb-4">Enter your user name and password.</p>
+			<c:if test="${not empty errorMessage}">
+			<div class="alert alert-danger d-flex align-items-center gap-2" role="alert">
+				<svg class="rms-icon" aria-hidden="true"><use href="${base}resources/img/icons.svg#exclamation-triangle-fill"/></svg>
+				<span><c:out value="${errorMessage}"/></span>
+			</div>
+			</c:if>
+			<form:form id="Login" action="${loginUrl}" method="POST">
+				<div class="mb-3">
+					<label for="username" class="form-label">User name</label>
+					<input type="text" class="form-control form-control-lg" id="username" name="username"
+						autocomplete="username" autocapitalize="none" spellcheck="false" required autofocus>
+				</div>
+				<div class="mb-4">
+					<label for="password" class="form-label">Password</label>
+					<input type="password" class="form-control form-control-lg" id="password" name="password"
+						autocomplete="current-password" required>
+				</div>
+				<button type="submit" class="btn btn-primary btn-lg w-100">Sign in</button>
+			</form:form>
+		</div>
+	</main>
+</div>
 </body>
 </html>

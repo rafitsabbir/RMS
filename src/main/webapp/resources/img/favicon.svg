@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="RMS">
+	<!-- RMS mark: a candidate with a check mark. Colours: docs/conventions.md (UI theme) -->
+	<defs>
+		<linearGradient id="rms-mark-bg" x1="0" y1="0" x2="1" y2="1">
+			<stop offset="0" stop-color="#2b78cf"/>
+			<stop offset="1" stop-color="#174a84"/>
+		</linearGradient>
+	</defs>
+	<rect width="64" height="64" rx="15" fill="url(#rms-mark-bg)"/>
+	<circle cx="27" cy="23" r="8.5" fill="#ffffff"/>
+	<path d="M11.5 48c0-9.4 7-15.5 15.5-15.5S42.5 38.6 42.5 48v1.5h-31z" fill="#ffffff"/>
+	<circle cx="45.5" cy="44.5" r="11" fill="#14a38b" stroke="#1d5799" stroke-width="3"/>
+	<path d="M40.5 44.8l3.4 3.4 6.4-6.8" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
