@@ -1,7 +1,7 @@
 # Conventions
 
 Purpose: The coding patterns RMS actually uses, so new code matches existing code.
-Last updated: 2026-10-01 (Phase 3: EL, Jakarta Tags URI, request encoding, Mockito agent; after the review: keep `web.xml`, parameter names). 2026-09-30 (output escaping rule after G27/G38)
+Last updated: 2026-10-01 (small fixes batch: save handling with `errorMessage`, state changes are POST, interceptor registration rule, line references, the `characterizes` example, the `main.jsp:35` deviation removed). 2026-10-01 (Phase 3: EL, Jakarta Tags URI, request encoding, Mockito agent; after the review: keep `web.xml`, parameter names). 2026-09-30 (output escaping rule after G27/G38)
 Read this when: you're adding or reviewing code, or creating a new screen or module.
 
 ## Package & naming
@@ -12,11 +12,14 @@ Read this when: you're adding or reviewing code, or creating a new screen or mod
 | Models named `*Info` | `UserInfo`, `PositionInfo`, `LanguageInfo`, `MarksInfo` | `rms/model` |
 | Primary keys named `<entity>key` (int) | `positionkey`, `languagekey` | `PositionInfo`, `LanguageInfo` |
 | Lowercase JSP names in the form `create<x>.jsp` / `view<x>.jsp` | `createposition.jsp`, `viewposition.jsp` | `WEB-INF/jsp/` |
-| Lowercase URLs without separators | `/createposition`, `/viewpositionlist`, `/saveposition`, `/updateposition/{positionkey}`, `/deleteposition/{positionkey}` | `PositionController`, `LanguageController` |
+| Lowercase URLs without separators | `/createposition`, `/viewpositionlist`, `/saveposition` (POST), `/updateposition/{positionkey}`, `/deleteposition/{positionkey}` (POST) | `PositionController`, `LanguageController` |
 
 ## Coding patterns
 - **Controllers:** class-level `@RequestMapping("/")`, and `@RequestMapping(value, method = RequestMethod.X)` on methods (no `@GetMapping` or `@PostMapping`). They return `ModelAndView` and inject services with `@Autowired` on a field (`rms/controller/*`).
-- **Save handling:** one `save` endpoint does both create and update. A key greater than 0 means update; otherwise insert. It then redirects to the list page (`PositionController.save`, `LanguageController.save`).
+- **Save handling:** one `save` endpoint does both create and update. A key greater than 0 means update; otherwise insert (`PositionController.java:36-61`, `LanguageController.java:45-70`).
+  - **Refusals show the form again:** a blank name, or a business duplicate, returns the create view with the entered object and an `errorMessage` model attribute, which the create JSP prints through `<c:out>` (`PositionController.form`, `:95-101`; `createposition.jsp:28-34`). Only a successful save redirects to the list.
+  - **DAO `add*`/`update*` return a boolean** for business duplicates (`false` = refused), not an exception. A missing or deleted key is `null` from the finder, which the controller turns into `ResponseStatusException(NOT_FOUND)`.
+  - **State changes are POST.** Saves and deletes use `RequestMethod.POST`; a GET is refused with 405. List pages render Delete as a POST form with a link-style button (`viewposition.jsp:55-60`), not as a link. There's no CSRF token yet (G32).
 - **Services:** DAOs are injected with an `@Autowired` setter. The methods only pass calls through (`rms/service/*Impl.java`).
 - **DAOs:**
   - SQL lives in `String` fields at the top of the class, using named `:params`.
@@ -27,16 +30,18 @@ Read this when: you're adding or reviewing code, or creating a new screen or mod
   - JSPs use scriptlets as well as JSTL.
   - URLs are built with `<spring:url>`.
   - **Output escaping:** print user or database text through `<c:out>`, never as raw `${…}` or `<%= %>` (G27):
-    - EL: `<c:out value="${x.name}"/>` (`viewposition.jsp:47`).
-    - Scriptlet: `<c:out value="<%=x.getName()%>"/>` (`viewmarks.jsp:78-80`, `main.jsp:82,85,88`).
+    - EL: `<c:out value="${x.name}"/>` (`viewposition.jsp:50`).
+    - Scriptlet: `<c:out value="<%=x.getName()%>"/>` (`viewmarks.jsp:81-83`, `main.jsp:81,84,87`).
     - Spring `form:` tags already escape by default. Never write user data into a JavaScript string or URL; take the user from the session instead (G38).
     - A `<spring:url>` value that goes into a JavaScript string gets `htmlEscape="true" javaScriptEscape="true"` (`main.jsp:12-21`).
   - **EL:** since Phase 3, `web.xml` uses the Servlet 6.1 schema, so EL is on by default (G37 fixed). All 7 JSPs still declare `isELIgnored="false"` from the Servlet 2.3 days; it's harmless.
   - **JSTL:** the taglib URI is `jakarta.tags.core` (Jakarta Tags 3.0), not `http://java.sun.com/jsp/jstl/core`.
   - **Request encoding:** `web.xml` pins `request-character-encoding` to ISO-8859-1 to match the JSPs' `pageEncoding`. Change both together (G34). Don't delete `web.xml`: without the pin Tomcat 11 answers Latin-1 form posts with HTTP 400 (`SmokeTest.latin1FormPostIsAccepted`).
-  - List pages use DataTables with Update/Delete links (`viewposition.jsp`, `viewlanguage.jsp`).
-- **Logging:** use SLF4J, with `private static final Logger log = LoggerFactory.getLogger(X.class);` as the first class field and `{}` placeholders (`PositionDaoImpl.java:22,73`). No new `System.out`. Never log passwords or other personal data. `logback.xml` replaces CR/LF in messages, so logged user input can't forge log lines.
-- **Front-end libraries:** load them from a pinned CDN version with an SRI `integrity` hash (sha384) and `crossorigin="anonymous"`, as in every JSP head since Phase 1 (`viewposition.jsp:11-21`). Compute the hash from the exact file, e.g. `curl -s URL | openssl dgst -sha384 -binary | openssl base64 -A`.
+  - List pages use DataTables 1.13.11 with its Bootstrap 3 integration, an Update link and a Delete POST form (`viewposition.jsp`, `viewlanguage.jsp`). Load one jQuery, then Bootstrap JS, then DataTables; `resources/css/datatables.css` goes after the CDN CSS (G31, G34).
+  - **Role checks are null-safe:** write `"N".equalsIgnoreCase(x.getIsinterviewer())`, never `x.getIsinterviewer().equals…` (`main.jsp:42,67`, `viewmarks.jsp:96,98`, G16).
+- **Access control:** `AuthInterceptor` is registered twice in `WebConfig.addInterceptors` (`WebConfig.java:47-54`). A new page is admin-only by default, because the second registration covers every path except `/`, `/home`, `/login`, `/welcome` and `/resources/**`. A page that any logged-in user may open (the interviewer's, G5) must be added to the login-only registration (`WebConfig.java:50`), and `AuthInterceptorTest.eachPathHasOneCheck` extended. New public paths go into the exclusion list on the admin-only registration (`:53`).
+- **Logging:** use SLF4J, with `private static final Logger log = LoggerFactory.getLogger(X.class);` as the first class field and `{}` placeholders (`PositionDaoImpl.java:23,82`). No new `System.out` (none is left in `src`). Never log passwords or other personal data. `logback.xml` replaces CR/LF in messages, so logged user input can't forge log lines.
+- **Front-end libraries:** load them from a pinned CDN version with an SRI `integrity` hash (sha384) and `crossorigin="anonymous"`, as in every JSP head since Phase 1 (`viewposition.jsp:11-24`). Compute the hash from the exact file, e.g. `curl -s URL | openssl dgst -sha384 -binary | openssl base64 -A`.
 - **MVC config:** implement `WebMvcConfigurer`, not the deprecated `WebMvcConfigurerAdapter` (`WebConfig.java:22`).
 - **Style:** tab indentation. Eclipse "Auto-generated method stub" TODO comments are left in place (`rms/service/*Impl.java`, `rms/dao/*Impl.java`).
 - **Git:**
@@ -44,7 +49,7 @@ Read this when: you're adding or reviewing code, or creating a new screen or mod
   - Commit authors are recorded as `rafitsabbir` (`git log`).
 
 ## Tests
-- **Kind:** characterization tests. They pin what the code does today, including known defects, so an upgrade that changes behaviour fails a test. Mark a test that pins a defect with a comment naming the gap, e.g. `// characterizes G14` (`src/test/java/rms/dao/PositionDaoImplTest.java`).
+- **Kind:** characterization tests. They pin what the code does today, including known defects, so an upgrade that changes behaviour fails a test. Mark a test that pins a defect with a comment naming the gap, e.g. `// characterizes G10` (`src/test/java/rms/dao/MarksDaoImplTest.java:31`). Once a defect is fixed, the test pins the new behaviour and the comment goes (the G14 tests in `PositionDaoImplTest` now pin the refusal).
 - **Layout and naming:** `src/test/java/rms/<layer>/<Class>Test.java`, package-private JUnit 5 classes, tab indentation, AssertJ assertions.
 - **Mockito** runs as a `-javaagent` set in the surefire configuration (`pom.xml`), because JDK 21+ warns about, and later JDKs block, Mockito attaching itself at runtime. Keep the agent path quoted in `argLine`. IDE runs need the agent in the run configuration ([build-run.md](build-run.md)).
 - **Controllers:** standalone MockMvc with Mockito `@Mock` services and `@InjectMocks` into the `@Autowired` fields. Pass `new WebConfig().viewResolver()` so view names resolve as in production (`src/test/java/rms/controller/PositionControllerTest.java`).
@@ -57,6 +62,5 @@ Read this when: you're adding or reviewing code, or creating a new screen or mod
 
 ## Known deviations (fix in passing, don't copy)
 - `WebConfig.java:24-25` injects the `DataSource` with `@Autowired` into the same config class that creates it. Prefer a method parameter: `getNamedParameterJdbcTemplate(DataSource ds)`.
-- `main.jsp:35` sets the `user` session attribute again, although `LoginController.java:44` already set it.
-- Parameter-name typos: `fositioninfo` (`PositionDao.java:9,11`) and `irstname` (`UserInfo.java:71`).
+- Parameter-name typos: `fositioninfo` (`PositionDao.java:9,11`) and `irstname` (`UserInfo.java:67`).
 - Security and robustness issues are tracked as gaps in [gaps.md](gaps.md), not here.

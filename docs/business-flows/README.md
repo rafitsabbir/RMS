@@ -1,7 +1,7 @@
 # Business Flows — Index
 
 Purpose: The business capabilities RMS implements, and which code implements each one.
-Last updated: 2026-09-25
+Last updated: 2026-10-01 (entry points `GET /`, `GET /home`; deletes are POST). 2026-09-25
 Read this when: you're working on a feature and need to find its flow file. Open only the module file you need.
 
 - RMS is a recruitment management system (`README.md`).
@@ -12,9 +12,9 @@ Read this when: you're working on a feature and need to find its flow file. Open
 ## Confirmed capabilities
 | Capability | Description | Entry Point | Key Classes | DB Tables | Detail file |
 |---|---|---|---|---|---|
-| Login / session | Checks the username and password, loads the profile, and shows the menu for the user's role | `POST /welcome`, `GET /login` | `LoginController`, `LoginServiceImpl`, `LoginDaoImpl`, `UserInfo` | `users`, `admin` | [login.md](login.md) |
-| Position master | Create, list, rename and delete job positions | `/createposition`, `/saveposition`, `/viewpositionlist`, `/updateposition/{k}`, `/deleteposition/{k}` | `PositionController`, `PositionServiceImpl`, `PositionDaoImpl`, `PositionInfo` | `position` | [masters.md](masters.md) |
-| Language master | Create, list, rename and delete the languages/skills candidates are assessed on | `/createlanguage`, `/savelanguage`, `/viewlanguagelist`, `/updatelanguage/{k}`, `/deletelanguage/{k}` | `LanguageController`, `LanguageServiceImpl`, `LanguageDaoImpl`, `LanguageInfo` | `language` | [masters.md](masters.md) |
+| Login / session | Checks the username and password, loads the profile, and shows the menu for the user's role | `GET /` (→ `/home`), `GET /login`, `POST /welcome` (→ `GET /home`) | `LoginController`, `LoginServiceImpl`, `LoginDaoImpl`, `UserInfo` | `users`, `admin` | [login.md](login.md) |
+| Position master | Create, list, rename and delete (soft, `POST`) job positions | `/createposition`, `/saveposition`, `/viewpositionlist`, `/updateposition/{k}`, `POST /deleteposition/{k}` | `PositionController`, `PositionServiceImpl`, `PositionDaoImpl`, `PositionInfo` | `position` | [masters.md](masters.md) |
+| Language master | Create, list, rename and delete (soft, `POST`) the languages/skills candidates are assessed on | `/createlanguage`, `/savelanguage`, `/viewlanguagelist`, `/updatelanguage/{k}`, `POST /deletelanguage/{k}` | `LanguageController`, `LanguageServiceImpl`, `LanguageDaoImpl`, `LanguageInfo` | `language` | [masters.md](masters.md) |
 | Candidate results (admin, read-only) | Lists every candidate's 10 scores, the total and the S/R status | `GET /adminviewmarks` | `MarksController`, `MarksServiceImpl`, `MarksDaoImpl`, `MarksInfo` | `marks`, `candidate`, `position`, `language`, `admin` | [evaluation.md](evaluation.md) |
 
 ## Business ↔ Tech map

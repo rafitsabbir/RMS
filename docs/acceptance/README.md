@@ -1,8 +1,10 @@
 # Acceptance Results
 
 Purpose: Results of the acceptance checklist ([modernization-plan.md](../modernization-plan.md), section 6) and the browser check per upgrade phase, with the Phase 0 baseline screenshots that later phases are compared against.
-Last updated: 2026-10-01 (Phase 3 on Tomcat 11, rerun after the code review; merged into `dev`). 2026-09-30
+Last updated: 2026-10-01 (small fixes batch: results, intended checklist differences, and notes on behaviour that changed since the older runs). 2026-10-01 (Phase 3 on Tomcat 11, rerun after the code review; merged into `dev`). 2026-09-30
 Read this when: you're signing off a phase, re-running the checklist after an upgrade, or comparing screens with the baseline.
+
+The sections are chronological and keep their results as history. Some behaviour they describe changed on 2026-10-01 (silent duplicate skip, GET delete links, `GET /` showing `index.jsp`, the login-page JavaScript error). The last section, *Small fixes batch*, lists what a checklist run should expect now.
 
 ## Run of 2026-09-27: Phase 0 baseline vs Phase 1
 **What ran:**
@@ -22,7 +24,7 @@ Read this when: you're signing off a phase, re-running the checklist after an up
 | # | Checklist item | Phase 0 | Phase 1 | Notes |
 |---|---|---|---|---|
 | 1 | **Login:** admin and interviewer menus, name, role and e-mail; wrong password; logout | Pass | Pass | Admin menu: *Candidate Status*, *Create*, *View*. Interviewer menu: *Evaluation*, *Show Evaluation*. The header shows the seed profile. A wrong password shows "Invalid login!". *Logout* returns to the login form |
-| 2 | **Position:** create, duplicate, edit, delete, search, sort | Pass | Pass | "  data analyst " is stored as `DATA ANALYST`. A duplicate is silently skipped: still one row, no message. Edit pre-fills the form, delete removes the row, and DataTables search filters while the name column sorts both ways |
+| 2 | **Position:** create, duplicate, edit, delete, search, sort | Pass | Pass | "  data analyst " is stored as `DATA ANALYST`. A duplicate is silently skipped: still one row, no message (before G14, fixed 2026-10-01). Edit pre-fills the form, delete removes the row (a GET link then; since G17 a POST button that soft-deletes it), and DataTables search filters while the name column sorts both ways |
 | 3 | **Language:** the same steps | Pass | Pass | As for Position (`rust` → `kotlin`) |
 | 4 | **Candidate Status:** names, position, language, 10 scores, total, label | Pass | Pass | Carla Candidate: total 79, Selected (`happy.jpg`). Cody Candidate: total 33, Rejected (`sad.jpg`). Each total is the sum of the 10 scores. The page is pixel-identical between phases (`phase0/09-results-full-width.png`). In this run, the menu view needed horizontal scrolling to reach *Total Score* and *Status* (G40, fixed 2026-09-30; see below) |
 | 5 | **Non-Latin characters** | Fails, same as Phase 0 | Fails, same as Phase 0 | Latin-1 works: "café señor" → `CAFÉ SEÑOR`. Characters outside ISO-8859-1 are stored as HTML entities: "инженер" becomes `&#1080;&#1085;…`, 49 bytes. They only *look* right because the list prints them unescaped (G27), and they aren't uppercased. Same bytes in both phases, so the driver change didn't alter it (G34) |
@@ -31,8 +33,8 @@ Read this when: you're signing off a phase, re-running the checklist after an up
 **Browser check (G31):**
 - **Pages:** every page loaded with no failed requests.
 - **Visual comparison:** 21 of the 22 checklist screenshots, and the full-width results page, are pixel-identical between phases. The exception is the non-Latin list, where DataTables 1.13 sets column widths slightly differently.
-- **Errors:** SRI raised no errors in Phase 1. The only JavaScript error is on the login page in both phases, because Bootstrap 4 JS loads before jQuery. Phase 0 reports it as "Cannot read properties of undefined (reading 'fn')", Phase 1 as "Bootstrap's JavaScript requires jQuery". Login still works.
-- **Bootstrap JS:** on the list and results pages, loading jQuery a second time drops the Bootstrap plugins. No page uses them, so nothing visible breaks.
+- **Errors:** SRI raised no errors in Phase 1. The only JavaScript error is on the login page in both phases, because Bootstrap 4 JS loads before jQuery. Phase 0 reports it as "Cannot read properties of undefined (reading 'fn')", Phase 1 as "Bootstrap's JavaScript requires jQuery". Login still works. (Fixed 2026-10-01, G31.)
+- **Bootstrap JS:** on the list and results pages, loading jQuery a second time drops the Bootstrap plugins. No page uses them, so nothing visible breaks. (Fixed 2026-10-01, G31.)
 
 **Baseline screenshots** (Phase 0, which Phase 1 matches) in `phase0/`:
 - **Login:** `01-login`, `02-login-invalid`.
@@ -95,7 +97,7 @@ Read this when: you're signing off a phase, re-running the checklist after an up
 - **Also checked:**
   - `SmokeTest` passes 3 of 3, including the new logged-out redirect.
   - Tomcat logged no errors. Each refused request logged one WARN line with the servlet path, and no `jsessionid` appeared in the log.
-  - `GET /` still shows `index.jsp` ("Hello World!", G25). Tomcat serves it directly, not through Spring, so there's nothing to protect there.
+  - `GET /` still shows `index.jsp` ("Hello World!", G25). Tomcat serves it directly, not through Spring, so there's nothing to protect there. (Changed 2026-10-01: `index.jsp` is deleted and `/` redirects to `/home`.)
 - **Observations, not changed:**
   - The 403 is Tomcat's default error page, and it names the Tomcat version (`after-g11/interviewer-403.png`). Hiding that is container configuration (ops).
 
@@ -168,3 +170,36 @@ Read this when: you're signing off a phase, re-running the checklist after an up
   - The 15 access checks and 20 escaping checks pass, the stored bytes are unchanged, and the logs have no SEVERE or ERROR lines.
   - The same WAR with the `request-character-encoding` element removed failed the new smoke test with HTTP 400, so the test guards the pin.
 - **Not covered:** MySQL 5.7 with Phase 3 (the driver is the same as in the Phase 1 rehearsal), the real container, and a release rehearsal with rollback.
+
+## Small fixes batch (2026-10-01)
+- **What ran:** the four commits of the batch on top of `dev` (branch `claude/tech-stack-review-lq0a2k`). The results below were reported by the batch author; they weren't re-run when this section was written.
+  - Scratch Tomcat 11.0.26 on JDK 21, with the context copied from `deploy/tomcat/rms.xml` and the `db/local` MySQL 8.0 database.
+  - `./mvnw -B verify` with Docker on JDK 21: 85 tests, 79 pass, 6 smoke skipped ([build-run.md](../build-run.md)).
+- **Owner decisions the batch implements:** soft delete for Position and Language (open question #5), and sessions by cookie only (G41).
+
+  | Check | Result |
+  |---|---|
+  | `SmokeTest` against the deployed WAR | 6/6 |
+  | Acceptance checklist in Chromium | 56 checks (52 in the earlier runs); only the 2 known G34 failures (item 5, non-Latin names) |
+  | Access checks (G11) | 15 pass |
+  | Escaping checks (G27/G38) | 20 pass |
+  | Candidate Status table (G40) | 1139 px in its 1139 px area, after the DataTables Bootstrap 3 switch |
+  | Logs | no SEVERE or ERROR lines |
+  | Redirects | logged out, `/rms` → `/rms/` → `/rms/login` (three 302s) |
+  | Session | the id changes at login; no `jsessionid` on the login page, in URLs or in logs; the cookie is `JSESSIONID=…; Path=/rms; HttpOnly; SameSite=Lax` |
+
+- **Intended differences from the earlier runs** (a checklist run should now expect these):
+
+  | Item | Earlier runs | Now |
+  |---|---|---|
+  | 1 Login | the menu is the response to `POST /welcome`; `GET /` shows "Hello World!" | a good login answers 302 to `/home`, and the menu is `GET /home`, so a refresh doesn't re-post. `/` goes to `/home`, or to the login when logged out. A wrong password still renders the login page at `/welcome` with "Invalid login!". A user without an `admin` row gets the same message |
+  | 2 Position | a duplicate is silently skipped; a blank name is saved; Delete is a link that removes the row | a duplicate (or an update onto another active row's name) shows the form again with the typed value and "Position NAME already exists."; a blank name shows "Please enter a position name."; Delete is a button (a POST form) that soft-deletes, so the row leaves the list; adding the deleted name again brings it back; opening or saving a deleted row's form gives 404 |
+  | 3 Language | as Position | as Position, with "Language NAME already exists." and "Please enter a language name." |
+  | 4 Candidate Status | names, scores, total, label | unchanged. Candidates of a deleted position or language still show (pinned by `MarksDaoImplTest`, not by a browser check) |
+  | 5 Non-Latin | fails (G34) | unchanged (G34); the DataTables sort arrows are now ASCII-escaped in `resources/css/datatables.css` |
+  | 6 Unfinished menu items | 404, blank area | unchanged |
+  | Page errors | "Bootstrap's JavaScript requires jQuery" on the login page | gone on every page (G31); Bootstrap JS loads (4.6.2 on login, 3.4.1 on the list pages) |
+  | List and results layout | the DataTables length and search controls wrap | they sit on one line (G31); the results table still fits its area (G40) |
+
+- **Screenshots:** the login, list and create pages differ from the earlier screenshots by design (Delete button, DataTables layout, no page error). A pixel comparison for this batch wasn't reported, so the `phase0/` and `after-g40/` screenshots remain the references for Candidate Status only.
+- **Not covered:** MySQL 5.7 with this batch, the real container, the production collation (open question #22) and a browser other than Chromium. The crafted-context-path login (G27) was reported to get a 302 to `/home`; it wasn't re-run for this section.
