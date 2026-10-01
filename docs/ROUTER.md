@@ -1,7 +1,7 @@
 # Docs Router
 
 Purpose: Points each kind of task to the minimum set of docs and code to read.
-Last updated: 2026-10-01 (Phase 1 release runbook)
+Last updated: 2026-10-01 (Phase 1 release runbook; Phase 3: `jakarta.servlet`)
 Read this when: you're starting any task. Start here, not with every doc.
 
 **Rule:** read only the files listed for your task. Open other docs only if those files point you there, or the task clearly spans categories.
@@ -14,7 +14,7 @@ Read this when: you're starting any task. Start here, not with every doc.
 | Build, deploy or environment issue | [build-run.md](build-run.md), [tech-stack.md](tech-stack.md) | `pom.xml`, `mvnw`, `.mvn/wrapper/`, `rms/config/WebInitializer.java`, `WebConfig.getDataSource` |
 | Config or integration change | [config.md](config.md) | `rms/config/WebConfig.java`, `src/main/webapp/WEB-INF/web.xml` |
 | Resuming upgrade work / "what's next?" | [upgrade-status.md](upgrade-status.md) first, then the phase in [modernization-plan.md](modernization-plan.md); [acceptance/README.md](acceptance/README.md) to sign off a phase | `pom.xml`, `src/test/java/rms/`, `db/`, `db/local/README.md` |
-| Upgrading libraries/JDK/framework | [upgrade-status.md](upgrade-status.md), [modernization-plan.md](modernization-plan.md), [tech-stack.md](tech-stack.md), [conventions.md](conventions.md) | `pom.xml`, `WebConfig.java`, `LoginController.java` and `AuthInterceptor.java` (the only `javax.servlet` users), `WEB-INF/web.xml`, JSP `<head>` CDN links |
+| Upgrading libraries/JDK/framework | [upgrade-status.md](upgrade-status.md), [modernization-plan.md](modernization-plan.md), [tech-stack.md](tech-stack.md), [conventions.md](conventions.md) | `pom.xml`, `WebConfig.java`, `LoginController.java` and `AuthInterceptor.java` (the only `jakarta.servlet` users), `WEB-INF/web.xml`, JSP `<head>` CDN links |
 | Releasing a phase / deploying to production / rollback | [release-phase1.md](release-phase1.md), then [build-run.md](build-run.md) and [acceptance/README.md](acceptance/README.md) | `pom.xml`, the WAR from `./mvnw -B verify`, `src/test/java/rms/SmokeTest.java` |
 | Dependency upgrade / security fix | [upgrade-status.md](upgrade-status.md), [modernization-plan.md](modernization-plan.md) (phase and gates first), then [tech-stack.md](tech-stack.md), [build-run.md](build-run.md) | `pom.xml`, `src/test/java/rms/` (the characterization tests must stay green) |
 | Understanding the overall system | [architecture.md](architecture.md), [business-flows/README.md](business-flows/README.md) | `WebConfig.java`, `rms/controller/` |

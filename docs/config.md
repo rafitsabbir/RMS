@@ -1,7 +1,7 @@
 # Configuration
 
 Purpose: Where RMS's configuration lives and what it controls. No secrets are recorded here.
-Last updated: 2026-09-30 (access-control interceptor)
+Last updated: 2026-10-01 (Phase 3 `web.xml`). 2026-09-30 (access-control interceptor)
 Read this when: you're changing configuration, the DB connection, static resources, view resolution, or anything that talks to an outside system.
 
 ## Configuration sources
@@ -13,7 +13,7 @@ Read this when: you're changing configuration, the DB connection, static resourc
 | View resolver | `InternalResourceViewResolver` + `JstlView` | prefix `/WEB-INF/jsp/`, suffix `.jsp` | `WebConfig.viewResolver` |
 | Static resources | `/resources/**` → `/resources/` | CSS, JS, images | `WebConfig.addResourceHandlers`, `src/main/webapp/resources/` |
 | Access control | `rms.config.AuthInterceptor` on all paths except `/login`, `/welcome` and `/resources/**` | Logged out → redirect to `/login`; not an admin (`isinterviewer` ≠ `N`) → 403 (G11). The public paths are the only settings | `WebConfig.addInterceptors`, `AuthInterceptor.java` |
-| `web.xml` | `src/main/webapp/WEB-INF/web.xml` | Empty archetype stub (DTD 2.3), only `display-name` | `web.xml` |
+| `web.xml` | `src/main/webapp/WEB-INF/web.xml` | Servlet 6.1 descriptor (Phase 3; was an empty 2.3 DTD stub, G37): `display-name`, and `request-character-encoding` ISO-8859-1 to match the JSPs. Tomcat 11's own default is UTF-8, which rejects the JSPs' Latin-1 form posts with HTTP 400 (G34). EL is on by default | `web.xml` |
 | Logging | `src/main/resources/logback.xml` | Console appender; `rms` at INFO, `org.springframework` at WARN, root INFO | `logback.xml` |
 
 - **Not found:** `.properties` or `.yml` application config files, Spring profiles, and environment-variable lookups (`src/main`).

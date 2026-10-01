@@ -7,7 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
-import java.net.URL;
+import java.net.URI;
 import java.net.URLEncoder;
 
 import org.junit.jupiter.api.Test;
@@ -28,7 +28,7 @@ class SmokeTest {
 
 	@Test
 	void loginPageRenders() throws IOException {
-		HttpURLConnection connection = (HttpURLConnection) new URL(baseUrl() + "/login").openConnection();
+		HttpURLConnection connection = (HttpURLConnection) URI.create(baseUrl() + "/login").toURL().openConnection();
 
 		assertThat(connection.getResponseCode()).isEqualTo(200);
 		assertThat(read(connection)).contains("id=\"Login\"");
@@ -36,7 +36,7 @@ class SmokeTest {
 
 	@Test
 	void loggedOutRequestRedirectsToLogin() throws IOException {
-		HttpURLConnection connection = (HttpURLConnection) new URL(baseUrl() + "/viewpositionlist").openConnection();
+		HttpURLConnection connection = (HttpURLConnection) URI.create(baseUrl() + "/viewpositionlist").toURL().openConnection();
 		connection.setInstanceFollowRedirects(false);
 
 		assertThat(connection.getResponseCode()).isEqualTo(302);
@@ -49,7 +49,7 @@ class SmokeTest {
 	void loginShowsMenu() throws IOException {
 		String form = "username=" + URLEncoder.encode(System.getenv("RMS_SMOKE_USER"), "UTF-8")
 				+ "&password=" + URLEncoder.encode(System.getenv("RMS_SMOKE_PASSWORD"), "UTF-8");
-		HttpURLConnection connection = (HttpURLConnection) new URL(baseUrl() + "/welcome").openConnection();
+		HttpURLConnection connection = (HttpURLConnection) URI.create(baseUrl() + "/welcome").toURL().openConnection();
 		connection.setRequestMethod("POST");
 		connection.setDoOutput(true);
 		connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");

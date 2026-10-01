@@ -1,7 +1,7 @@
 # Acceptance Results
 
 Purpose: Results of the acceptance checklist ([modernization-plan.md](../modernization-plan.md), section 6) and the browser check per upgrade phase, with the Phase 0 baseline screenshots that later phases are compared against.
-Last updated: 2026-09-30
+Last updated: 2026-10-01 (Phase 3 on Tomcat 11). 2026-09-30
 Read this when: you're signing off a phase, re-running the checklist after an upgrade, or comparing screens with the baseline.
 
 ## Run of 2026-09-27: Phase 0 baseline vs Phase 1
@@ -146,3 +146,20 @@ Read this when: you're signing off a phase, re-running the checklist after an up
   - **Encoding probe** (G34, open question #21): the stored bytes were checked in the database.
     - "łódź" and "čeština" store ł, ź and č as `&#322;`, `&#378;` and `&#269;`.
     - "š", "€", "–", curly quotes, "Š" and "œ" are stored as control characters U+0080–U+009F. The list sends them back as windows-1252 bytes, so they still look right.
+
+## Phase 3 on a branch (2026-10-01): Spring 7, Jakarta, Tomcat 11, JDK 21
+- **What ran:** the Phase 3 WAR from branch `claude/tech-stack-review-lq0a2k`.
+  - Spring 7.0.9 on Jakarta EE 11, Jakarta Tags 3.0, Java 21 bytecode.
+  - Tomcat 11.0.26 on OpenJDK 21.0.10, with Connector/J 8.2.0 in `lib/` and `com.mysql.cj.jdbc.Driver` with `sslMode=REQUIRED`.
+  - MySQL 8.0 from `db/local/docker-compose.yml`, freshly seeded before each run.
+  - The same Chromium harness and CDN stand-in as before.
+- **First run:** saving "café señor" failed with HTTP 400. Tomcat 11's default `conf/web.xml` decodes requests as UTF-8, and the ISO-8859-1 form's `é` byte is invalid UTF-8. With `request-character-encoding` set to ISO-8859-1 in the app's `web.xml`, everything below passed (G34, G37).
+- **Whole checklist:** the same results and details as the latest Tomcat 9 run (`dev` after G27), and all 22 screenshots byte-identical. Only item 5 fails (G34), as before.
+- **Also checked:**
+  - `SmokeTest` passes 3 of 3.
+  - The 15 access checks (G11) and the 20 escaping checks (G27/G38) pass.
+  - Stored bytes for Latin-1 and windows-1252 test names match Tomcat 9 exactly.
+  - Tomcat and the app logged no SEVERE or ERROR lines.
+  - A login POST to the crafted context path `/rms;'-x-'/welcome` now gets 200 (Spring 5.3 returned 404), but the page contains no trace of the crafted path.
+  - Stopping Tomcat wrote no session file and no warning about the non-`Serializable` `UserInfo` (G36).
+- **Not covered:** MySQL 5.7 with Phase 3 (the driver is the same as in the Phase 1 rehearsal), the real container, and a release rehearsal with rollback.

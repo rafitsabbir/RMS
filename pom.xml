@@ -10,26 +10,26 @@
   
   
   	<properties>
-		<spring.version>5.3.39</spring.version>
-		<jstl.version>1.2</jstl.version>
-		<servletapi.version>3.1.0</servletapi.version>
-		<maven.compiler.source>1.8</maven.compiler.source>
-		<maven.compiler.target>1.8</maven.compiler.target>
+		<spring.version>7.0.9</spring.version>
+		<servletapi.version>6.1.0</servletapi.version>
+		<jstl.api.version>3.0.2</jstl.api.version>
+		<jstl.impl.version>3.0.1</jstl.impl.version>
+		<maven.compiler.release>21</maven.compiler.release>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<junit.version>5.13.4</junit.version>
-		<mockito.version>4.11.0</mockito.version>
+		<mockito.version>5.24.0</mockito.version>
 		<assertj.version>3.27.3</assertj.version>
 		<hamcrest.version>2.2</hamcrest.version>
 		<mysql.version>8.2.0</mysql.version>
 		<slf4j.version>2.0.20</slf4j.version>
-		<logback.version>1.3.16</logback.version>
+		<logback.version>1.5.38</logback.version>
 		<testcontainers.version>1.21.4</testcontainers.version>
 
 	</properties>
 
 	<dependencyManagement>
 		<dependencies>
-			<!-- Keeps every Spring module on one version (Phase 1; see docs/modernization-plan.md) -->
+			<!-- Keeps every Spring module on one version (Phase 3: Spring 7 on Jakarta EE 11; see docs/modernization-plan.md) -->
 			<dependency>
 				<groupId>org.springframework</groupId>
 				<artifactId>spring-framework-bom</artifactId>
@@ -75,18 +75,30 @@
 			<artifactId>spring-context</artifactId>
 		</dependency>
 
-		<!-- JSTL -->
+		<!-- Jakarta Tags (JSTL) 3.0: Tomcat doesn't bundle an implementation, so the WAR carries one -->
 		<dependency>
-			<groupId>javax.servlet</groupId>
-			<artifactId>jstl</artifactId>
-			<version>${jstl.version}</version>
+			<groupId>jakarta.servlet.jsp.jstl</groupId>
+			<artifactId>jakarta.servlet.jsp.jstl-api</artifactId>
+			<version>${jstl.api.version}</version>
+			<exclusions>
+				<!-- Tomcat 11 provides Jakarta EL 6.0 -->
+				<exclusion>
+					<groupId>jakarta.el</groupId>
+					<artifactId>jakarta.el-api</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>org.glassfish.web</groupId>
+			<artifactId>jakarta.servlet.jsp.jstl</artifactId>
+			<version>${jstl.impl.version}</version>
 		</dependency>
 
-		<!-- for compile only, your container should have this -->
+		<!-- for compile only, the container (Tomcat 11) provides Servlet 6.1 -->
 		<dependency>
-			<groupId>javax.servlet</groupId>
-			<artifactId>javax.servlet-api</artifactId>
-			<version>3.1.0</version>
+			<groupId>jakarta.servlet</groupId>
+			<artifactId>jakarta.servlet-api</artifactId>
+			<version>${servletapi.version}</version>
 			<scope>provided</scope>
 		</dependency>
 
@@ -115,7 +127,7 @@
 			<version>${logback.version}</version>
 		</dependency>
 
-		<!-- Tests (Phase 0 safety net); all versions support Java 8 -->
+		<!-- Tests (Phase 0 safety net) -->
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-test</artifactId>
@@ -167,6 +179,11 @@
 				</plugin>
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-dependency-plugin</artifactId>
+					<version>3.9.0</version>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-war-plugin</artifactId>
 					<version>3.4.0</version>
 					<configuration>
@@ -176,6 +193,28 @@
 				</plugin>
 			</plugins>
 		</pluginManagement>
+		<plugins>
+			<!-- Sets ${org.mockito:mockito-core:jar} for the agent below -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<executions>
+					<execution>
+						<goals>
+							<goal>properties</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<!-- Mockito 5 as a Java agent: newer JDKs disallow attaching it at runtime -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<argLine>-javaagent:${org.mockito:mockito-core:jar}</argLine>
+				</configuration>
+			</plugin>
+		</plugins>
 	</build>
 	
 </project>
