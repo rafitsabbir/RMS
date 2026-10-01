@@ -1,7 +1,7 @@
 # Build & Run
 
 Purpose: How RMS is built, packaged, deployed and tested.
-Last updated: 2026-09-30 (G11 tests: 45 tests, smoke 3/3; smoke checks G38). 2026-09-27 (full test run with Docker; Tomcat 9 smoke run; `db/local` script and Compose file executed; `mvnw` made executable)
+Last updated: 2026-10-01 (link to the Phase 1 release runbook). 2026-09-30 (G11 tests: 45 tests, smoke 3/3; smoke checks G38). 2026-09-27 (full test run with Docker; Tomcat 9 smoke run; `db/local` script and Compose file executed; `mvnw` made executable)
 Read this when: you're building, deploying, setting up an environment, or fixing a build or startup failure.
 
 ## Build
@@ -23,6 +23,7 @@ Read this when: you're building, deploying, setting up an environment, or fixing
   - Connector/J 8 defaults to `sslMode=PREFERRED` and no longer offers TLS 1.0/1.1 (Connector/J documentation; not tested against the production server). Prefer `sslMode=REQUIRED` (or `VERIFY_CA`) in production. Don't copy the tests' `allowPublicKeyRetrieval=true` into production without the owner's sign-off: it lets a man-in-the-middle swap the server key.
   - Character sets: Connector/J 8 negotiates character sets differently from 5.1.36 [assumption]. Run the non-ASCII round-trip test (G34).
   - Keep the old driver jar and settings until sign-off, so the Phase 0 WAR can be redeployed ([modernization-plan.md](modernization-plan.md) Phase 1).
+  - Step by step, with the owner checks and the rollback: [release-phase1.md](release-phase1.md), rehearsed on 2026-10-01.
 - **Local database:** `db/local/` builds a local `rms_local` database from `db/schema.sql` and `db/test-seed.sql`. It offers either a script for an existing local MySQL (`setup-local-db.ps1` or `.sh`) or a throwaway `mysql:8.0` through `docker-compose.yml`. The scripts refuse non-loopback hosts by default and commit no passwords. See `db/local/README.md`. Written on 2026-09-26. On 2026-09-27, `setup-local-db.sh` was run against a throwaway MySQL 8.0.46 (not a shared server):
   - Every run printed the expected row counts, and a rerun reset data changed in between.
   - A non-loopback host was refused.

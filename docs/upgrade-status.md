@@ -1,14 +1,14 @@
 # Upgrade Status
 
 Purpose: The live tracker for the tech upgrade: what is done, in progress and pending, what to do next, and how to resume on another machine. Details stay in the linked owning docs.
-Last updated: 2026-09-30 (G11 interim login check merged to `dev`; G27/G38 output escaping)
+Last updated: 2026-10-01 (Phase 1 release runbook, rehearsed on MySQL 5.7). 2026-09-30 (G11 interim login check merged to `dev`; G27/G38 output escaping)
 Read this when: you're resuming upgrade work, or asking "where are we / what's next".
 
 ## Snapshot (2026-09-27)
 - **Branch:** all upgrade work is on `dev`, and nothing is merged to `master`. `master` still ships the old stack: Spring 4.3.0 and Connector/J 5.1.36 ([gaps.md](gaps.md) G24).
 - **Alerts:** GitHub reported 26 alerts on `master` before Phase 1: 2 critical, 9 high, 12 moderate and 3 low (an external figure; [open-questions.md](open-questions.md) #7).
 - **Last build:** on 2026-09-27, `RMS_REQUIRE_DOCKER=true ./mvnw -B verify` gave BUILD SUCCESS on JDK 8u504 and on JDK 21. 34 of 36 tests passed, including all 18 DAO tests. The 2 smoke tests then passed separately against Tomcat 9.0.122 ([build-run.md](build-run.md)).
-- **Current phase:** Phase 1 is coded, and its acceptance checklist matches the Phase 0 baseline ([acceptance/README.md](acceptance/README.md)). It's still **not releasable**: the owner must confirm the DDL, and ops must make the container changes (below).
+- **Current phase:** Phase 1 is coded, and its acceptance checklist matches the Phase 0 baseline ([acceptance/README.md](acceptance/README.md)). It's still **not releasable**: the owner must confirm the DDL, and ops must make the container changes (below). The release steps, owner checks and rollback are in [release-phase1.md](release-phase1.md). They were rehearsed on 2026-10-01 from an old-style container on MySQL 5.7.44, where everything passed, including the rollback.
 
 ## Status by work item
 States:
@@ -46,7 +46,8 @@ Owners:
 | CDN bumps with SRI: jQuery 3.7.1, Bootstrap 3.4.1/4.6.2, DataTables 1.13.11, Font Awesome 4.7.0 | Done | dev | the 7 JSP heads; [tech-stack.md](tech-stack.md) |
 | Three stale Dependabot branches deleted | Done | owner | #7 |
 | The Phase 0 open items above | **Open** | dev / owner | Phase 0 table |
-| Container: `driverClassName` → `com.mysql.cj.jdbc.Driver`; no old MySQL or logging jars in `lib/`; review SSL | **Open** | ops | [build-run.md](build-run.md) |
+| Container: `driverClassName` → `com.mysql.cj.jdbc.Driver`; no old MySQL or logging jars in `lib/`; review SSL | **Open** | ops | [release-phase1.md](release-phase1.md) (steps), [build-run.md](build-run.md) |
+| Release rehearsal: an in-place switch from Connector/J 5.1.36 and the Phase 0 WAR, on MySQL 5.7.44, plus rollback | Done 2026-10-01. `SmokeTest` 3/3; the checklist identical to the MySQL 8.0 run; access and escaping checks pass; TLSv1.2. The old WAR on the new driver matches the Phase 0 baseline | dev | [release-phase1.md](release-phase1.md) |
 | Browser check of every page after the front-end bumps | Done 2026-09-27: pixel-identical to Phase 0, no SRI errors; the pre-existing G31 login-page error is unchanged | dev | [acceptance/README.md](acceptance/README.md), G31 |
 | Non-ASCII round-trip test | Done 2026-09-27: Latin-1 round-trips; other scripts are stored as HTML entities, the same as Phase 0 (not a Phase 1 regression) | dev | G34 |
 | Merge `dev` → `master`, then confirm which alerts close (some Spring ones may stay open [A]) | **Open** | owner | G24 |
@@ -71,7 +72,7 @@ Owners:
 1. ~~Run the DAO tests with Docker~~ done 2026-09-27 (18/18).
 2. ~~Deploy to a local Tomcat 9, run `SmokeTest`, the acceptance checklist and the baseline screenshot~~ done 2026-09-27 ([acceptance/README.md](acceptance/README.md)). Optional: have a domain user repeat the checklist on a desktop browser with real CDN access.
 3. ~~Do the browser check of every page and the non-ASCII test (G34)~~ done 2026-09-27.
-4. Hand the container changes to ops (driver class name, `lib/`, SSL), then merge to `master` and release Phase 1.
+4. Release Phase 1 by following [release-phase1.md](release-phase1.md): the owner checks first (#16, #19, #20, #21, CDN access, sign-off), then the ops steps, then the merge to `master` and the deploy.
 5. Once Phase 1 is in production, start Phase 2.
 
 ## Resume on another machine

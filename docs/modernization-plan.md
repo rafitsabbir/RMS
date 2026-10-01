@@ -1,7 +1,7 @@
 # Modernization Plan
 
 Purpose: The agreed plan for bringing RMS up to a supported stack: current state, target stack with reasons, phases, risks and gates.
-Last updated: 2026-09-30 (G11 interceptor adds a second `javax.servlet` user; all 7 JSPs opt into EL after the G40 fix; G27/G38 fixed). 2026-09-26 (Phase 1 code on `dev`, not released; Phase 0 owner steps still open)
+Last updated: 2026-10-01 (Phase 1 rollback rehearsed; the Phase 3 JSTL list covers five JSPs). 2026-09-30 (G11 interceptor adds a second `javax.servlet` user; all 7 JSPs opt into EL after the G40 fix; G27/G38 fixed). 2026-09-26 (Phase 1 code on `dev`, not released; Phase 0 owner steps still open)
 Read this when: you're upgrading libraries, the JDK, the framework, the servlet container or the DB driver, or planning a security fix to the stack.
 
 **Status and rules:**
@@ -213,6 +213,7 @@ Move one axis at a time. Pass through Spring 5.3 so the security fixes ship befo
 - **Rollback:**
   - Redeploy the Phase 0 WAR.
   - Keep the old driver jar and `driverClassName` until sign-off.
+  - Rehearsed on 2026-10-01 ([release-phase1.md](release-phase1.md)). The Phase 0 WAR also runs on the new driver and settings, matching the Phase 0 baseline, so redeploying the WAR is enough unless the driver itself is suspected.
 - **Verification:**
   - The Phase 0 tests pass unchanged.
   - `mvn dependency:tree` shows one Spring version and no `mysql:mysql-connector-java`.
@@ -247,13 +248,13 @@ Move one axis at a time. Pass through Spring 5.3 so the security fixes ship befo
      - Jakarta Tags 3.0 API and implementation (Tomcat doesn't bundle JSTL [A])
      - remove every `javax.servlet` artifact
   2. **`LoginController.java:3-5` and `AuthInterceptor.java:5-7`:** `javax.servlet.http.*` → `jakarta.servlet.http.*`. They're the only Java files affected [C].
-  3. **JSTL URIs:** `http://java.sun.com/jsp/jstl/core` → `jakarta.tags.core` in `viewposition.jsp:3` and `viewlanguage.jsp:3`.
+  3. **JSTL URIs:** `http://java.sun.com/jsp/jstl/core` → `jakarta.tags.core` in `viewposition.jsp:3`, `viewlanguage.jsp:3`, `viewmarks.jsp:4`, `main.jsp:5` and `login.jsp:5`. The last three use it since the G27 fix.
   4. **`web.xml`:** replace the 2.3 DTD with the Servlet 6.1 schema, or delete the file (`failOnMissingWebXml=false`, `pom.xml:83`).
      - EL becomes enabled by default.
      - That's safe: all 7 JSPs already opt in with `isELIgnored="false"` (`viewmarks.jsp` since the G40 fix, 2026-09-30) [C].
      - It closes G37.
   5. **Container:** Tomcat 11 on JDK 21, with the JNDI `jdbc/springrms` resource re-created (ops; no secrets in the repo).
-- **Files:** `pom.xml`, `LoginController.java`, `viewposition.jsp`, `viewlanguage.jsp`, `web.xml`, and the container (ops).
+- **Files:** `pom.xml`, `LoginController.java`, `AuthInterceptor.java`, the five JSPs that use JSTL, `web.xml`, and the container (ops).
 - **Risks:**
   - Spring 6+ stops matching trailing slashes by default [A]. Links come from `spring:url` without trailing slashes (`viewposition.jsp:49,53`) [C], but bookmarks may break.
   - Spring 7 removals affecting `JstlView` or `JndiTemplate` would show up at compile time [A].
