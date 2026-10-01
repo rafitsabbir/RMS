@@ -1,7 +1,7 @@
 # Open Questions
 
 Purpose: Unresolved items and partial flows that need confirmation from the owner or a database.
-Last updated: 2026-09-30 (#12 extended; #20 added after the G11 fix; #21 added after the G27 fix)
+Last updated: 2026-10-01 (#16: Phase 1 rehearsed on MySQL 5.7). 2026-09-30 (#12 extended; #20 added after the G11 fix; #21 added after the G27 fix)
 Read this when: your task touches one of the areas below, or before you assume something that isn't documented elsewhere.
 
 ## Partial flows
@@ -23,7 +23,7 @@ Partial and missing features are tracked with evidence in [gaps.md](gaps.md): ca
 13. **Unique users:** can two `users` rows share the same username and password? If so, `LoginDaoImpl.java:53` throws `IncorrectResultSizeDataAccessException` (HTTP 500). The same applies if `admin.userid` or `candidate.candidateid` aren't unique, which the subqueries at `MarksDaoImpl.java:19-21` rely on. This depends on the schema (G22).
 14. **HTTPS:** is TLS enforced in front of the app? `web.xml` has no `<security-constraint>`, and the login form POSTs the password in plain text (G13).
 15. **Old web.xml format:** does the target Tomcat handle the Servlet 2.3 `web.xml` correctly alongside `SpringServletContainerInitializer`? It evidently ran in 2020, but this hasn't been tested (G37). Since Phase 1 two container initializers are involved: Spring's and Logback's `LogbackServletContainerInitializer` (from `logback-classic-1.3.16.jar`). If the old `web.xml` format stopped them running, Spring wouldn't start at all, while Logback would only lose its clean shutdown.
-16. **MySQL server version:** which MySQL server version runs in production? Phase 1 uses Connector/J 8.2.0 because it is the newest release that supports MySQL 5.7; 8.3.0 and later support 8.0+ only (Connector/J release notes, `pom.xml:93-104`). Once the server is known to be 8.0 or later, move to the newest series it supports. The DAO tests assume `mysql:8.0` (`MySqlContainerSupport.java`), a line that is itself past end of life; switch the image to the real version once known.
+16. **MySQL server version:** which MySQL server version runs in production? Phase 1 uses Connector/J 8.2.0 because it is the newest release that supports MySQL 5.7; 8.3.0 and later support 8.0+ only (Connector/J release notes, `pom.xml:93-104`). Phase 1 was rehearsed on MySQL 5.7.44 on 2026-10-01 ([release-phase1.md](release-phase1.md)). Once the server is known to be 8.0 or later, move to the newest series it supports. The DAO tests assume `mysql:8.0` (`MySqlContainerSupport.java`), a line that is itself past end of life; switch the image to the real version once known.
 17. **Runtime ownership and usage:**
     - Is RMS in production use? The last commit was 2020-01-17 (`git log`).
     - Who owns the container and runtime JDK?
