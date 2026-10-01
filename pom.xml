@@ -20,12 +20,13 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<junit.version>5.13.4</junit.version>
 		<mockito.version>5.24.0</mockito.version>
-		<assertj.version>3.27.3</assertj.version>
+		<assertj.version>3.27.7</assertj.version>
 		<hamcrest.version>2.2</hamcrest.version>
 		<mysql.version>8.2.0</mysql.version>
 		<slf4j.version>2.0.20</slf4j.version>
 		<logback.version>1.5.38</logback.version>
 		<testcontainers.version>1.21.4</testcontainers.version>
+		<commons-compress.version>1.28.0</commons-compress.version>
 
 	</properties>
 
@@ -46,6 +47,12 @@
 				<version>${junit.version}</version>
 				<type>pom</type>
 				<scope>import</scope>
+			</dependency>
+			<!-- Testcontainers 1.21 pulls commons-compress 1.24.0 (CVE-2024-25710, CVE-2024-26308; OSV-Scanner). Test scope only -->
+			<dependency>
+				<groupId>org.apache.commons</groupId>
+				<artifactId>commons-compress</artifactId>
+				<version>${commons-compress.version}</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
