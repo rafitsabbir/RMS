@@ -1,7 +1,7 @@
 # Modernization Plan
 
 Purpose: The agreed plan for bringing RMS up to a supported stack: current state, target stack with reasons, phases, risks and gates.
-Last updated: 2026-10-01 (Phase 1 rollback rehearsed; the Phase 3 JSTL list covers five JSPs). 2026-09-30 (G11 interceptor adds a second `javax.servlet` user; all 7 JSPs opt into EL after the G40 fix; G27/G38 fixed). 2026-09-26 (Phase 1 code on `dev`, not released; Phase 0 owner steps still open)
+Last updated: 2026-10-01 (Phase 3 coded and verified on a branch, with Phase 2 folded in; Phase 1 rollback rehearsed; the Phase 3 JSTL list covers five JSPs). 2026-09-30 (G11 interceptor adds a second `javax.servlet` user; all 7 JSPs opt into EL after the G40 fix; G27/G38 fixed). 2026-09-26 (Phase 1 code on `dev`, not released; Phase 0 owner steps still open)
 Read this when: you're upgrading libraries, the JDK, the framework, the servlet container or the DB driver, or planning a security fix to the stack.
 
 **Status and rules:**
@@ -222,6 +222,13 @@ Move one axis at a time. Pass through Spring 5.3 so the security fixes ship befo
 
 ### Phase 2 — JDK 8 → 21 (**S**)
 - **Gate:** Phase 1 must be **in production first** (see section 5).
+- **Status (2026-10-01):** coded together with Phase 3 on the Phase 3 branch:
+  - `maven.compiler.release=21`.
+  - Mockito 5.24.0, loaded as a `-javaagent` through the dependency plugin's `properties` goal, because JDK 21 warns about Mockito attaching itself.
+  - Logback 1.5.38. A Logback 1.6 line exists but wasn't evaluated.
+  - JUnit stays 5.13.4; moving to 6 is optional.
+  - `.settings` isn't regenerated yet (open).
+  - The gate still holds: JDK 21 reaches production only together with Spring 7, after Phase 1.
 - **Scope:**
   - Set `maven.compiler.release=21`.
   - Run Tomcat 9 on JDK 21.
@@ -241,6 +248,29 @@ Move one axis at a time. Pass through Spring 5.3 so the security fixes ship befo
 
 ### Phase 3 — Spring 7.0, Jakarta namespace and Tomcat 11 (**M**)
 - **Deadline:** in production before **2027-03-31** (see section 5).
+- **Status (2026-10-01):** coded and verified on branch `claude/tech-stack-review-lq0a2k`, not merged into `dev` until Phase 1 is in production.
+  - **Done:**
+    - Spring BOM 7.0.9.
+    - `jakarta.servlet-api` 6.1.0 (`provided`).
+    - Jakarta Tags API 3.0.2 with the GlassFish implementation 3.0.1. `jakarta.el-api` is excluded because Tomcat provides EL.
+    - The `javax` artifacts are removed.
+    - `LoginController` and `AuthInterceptor` use `jakarta.servlet.http`.
+    - Five JSPs use `jakarta.tags.core`.
+    - `web.xml` uses the Servlet 6.1 schema (G37).
+    - `SmokeTest` no longer uses the deprecated `new URL(String)`.
+  - **Verified:**
+    - `mvnw verify` on JDK 21: 45 tests, 42 pass, 3 smoke skipped, with no warnings.
+    - On Tomcat 11.0.26 with JDK 21 and MySQL 8.0, the following match the Tomcat 9 run ([acceptance/README.md](acceptance/README.md)): `SmokeTest` 3/3, the 52-check checklist with 22 byte-identical screenshots, the 15 access checks and the 20 escaping checks.
+  - **Found while testing:**
+    - Tomcat 11 decodes requests as UTF-8 by default and answers invalid bytes with HTTP 400. The ISO-8859-1 forms failed on "café" until `web.xml` pinned `request-character-encoding` to ISO-8859-1 (G34).
+    - Spring 7 maps a request whose context path carries `;` parameters, which Spring 5.3 answered with 404. The escaped menu URLs keep it harmless (G27).
+    - Spring 7 logs two WARN lines per unmapped URL ("No mapping" and "No endpoint").
+    - Tomcat 11.0.26 wrote no session file on stop, and logged no G36 warning.
+    - Spring 5's `spring-jcl` is replaced by Apache `commons-logging` 1.3.5, which routes to SLF4J.
+  - **Open:**
+    - A Phase 3 release runbook and rehearsal, including the rollback to the Phase 1 container.
+    - The Tomcat 11 + JDK 21 container (ops).
+    - Eclipse `.settings`.
 - **Scope:**
   1. **`pom.xml`:**
      - `spring-framework-bom` 7.0.x

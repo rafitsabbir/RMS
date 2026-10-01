@@ -9,17 +9,17 @@ Use subagents in .claude/agents/ — see ROUTER.md.
 - Candidate, interviewer, job and schedule modules, and interviewer score entry, are menu links only, with no backend (`main.jsp`, `MarksDaoImpl.java`).
 
 **Stack:**
-- Java: 1.8 (source/target in `pom.xml`), built with JDK 8.
+- Java: 21 (`maven.compiler.release` in `pom.xml`), built with JDK 21.
 - Build: Maven 3.9 via the Maven Wrapper (`mvnw`), packaged as a WAR.
-- Framework: Spring MVC 5.3.39 (Spring BOM) with JSP/JSTL and Spring JDBC (`NamedParameterJdbcTemplate`, no ORM).
-- Database: MySQL (Connector/J 8.2.0, `com.mysql.cj.jdbc.Driver`) through JNDI `jdbc/springrms`, in an external Servlet 3.1 container.
-- Logging: SLF4J 2.0 with Logback 1.3 (`src/main/resources/logback.xml`).
+- Framework: Spring MVC 7.0.9 (Spring BOM) on Jakarta EE 11, with JSP/Jakarta Tags (JSTL 3.0) and Spring JDBC (`NamedParameterJdbcTemplate`, no ORM).
+- Database: MySQL (Connector/J 8.2.0, `com.mysql.cj.jdbc.Driver`) through JNDI `jdbc/springrms`, in an external Servlet 6.1 container (Tomcat 11).
+- Logging: SLF4J 2.0 with Logback 1.5 (`src/main/resources/logback.xml`).
 
 Evidence: `pom.xml`, `.mvn/wrapper/maven-wrapper.properties`, `rms/config/WebConfig.java`.
 
 ## Build / run / test
-- **Build:** with `JAVA_HOME` set to a JDK 8, `./mvnw -B verify` (or `mvnw.cmd`) runs the tests and builds `target/rmsv2-1.0.1-SNAPSHOT.war`.
-- **Run:** deploy the WAR to a Servlet 3.1 container that provides the JNDI DataSource `jdbc/springrms`. Open `/login`. See [docs/build-run.md](docs/build-run.md).
+- **Build:** with `JAVA_HOME` set to a JDK 21, `./mvnw -B verify` (or `mvnw.cmd`) runs the tests and builds `target/rmsv2-1.0.1-SNAPSHOT.war`.
+- **Run:** deploy the WAR to a Servlet 6.1 container (Tomcat 11) that provides the JNDI DataSource `jdbc/springrms`. Open `/login`. See [docs/build-run.md](docs/build-run.md).
 - **Test:** characterization tests live in `src/test/java/rms/`. Controller tests always run; DAO tests need Docker (throwaway MySQL via Testcontainers, never a real DB); `SmokeTest` needs `RMS_BASE_URL`. See [docs/build-run.md](docs/build-run.md).
 
 ## Critical rules
