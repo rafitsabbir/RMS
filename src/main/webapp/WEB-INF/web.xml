@@ -2,9 +2,12 @@
 <web-app xmlns="https://jakarta.ee/xml/ns/jakartaee"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_6_1.xsd"
-	version="6.1">
+	version="6.1" metadata-complete="true">
+	<!-- metadata-complete: no annotation scan, as with the old 2.3 descriptor; Spring's and Logback's
+		initializers still run -->
 	<display-name>RMS</display-name>
-	<!-- The JSPs are ISO-8859-1, so forms post ISO-8859-1. Tomcat 11 defaults to UTF-8 and rejects
-		such posts with HTTP 400 (e.g. "café"). Moving everything to UTF-8 is G34 (docs/gaps.md). -->
+	<!-- Keep this file: the JSPs are ISO-8859-1, so forms post ISO-8859-1. Tomcat 11 defaults to UTF-8 and
+		rejects such posts with HTTP 400 (e.g. "café"; SmokeTest checks this). Moving everything to UTF-8
+		is G34 (docs/gaps.md). -->
 	<request-character-encoding>ISO-8859-1</request-character-encoding>
 </web-app>

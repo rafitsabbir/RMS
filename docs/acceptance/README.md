@@ -1,7 +1,7 @@
 # Acceptance Results
 
 Purpose: Results of the acceptance checklist ([modernization-plan.md](../modernization-plan.md), section 6) and the browser check per upgrade phase, with the Phase 0 baseline screenshots that later phases are compared against.
-Last updated: 2026-10-01 (Phase 3 on Tomcat 11). 2026-09-30
+Last updated: 2026-10-01 (Phase 3 on Tomcat 11, rerun after the code review). 2026-09-30
 Read this when: you're signing off a phase, re-running the checklist after an upgrade, or comparing screens with the baseline.
 
 ## Run of 2026-09-27: Phase 0 baseline vs Phase 1
@@ -162,4 +162,9 @@ Read this when: you're signing off a phase, re-running the checklist after an up
   - Tomcat and the app logged no SEVERE or ERROR lines.
   - A login POST to the crafted context path `/rms;'-x-'/welcome` now gets 200 (Spring 5.3 returned 404), but the page contains no trace of the crafted path.
   - Stopping Tomcat wrote no session file and no warning about the non-`Serializable` `UserInfo` (G36).
+- **Rerun after the code review (same day):** the review fixes changed `pom.xml`, `web.xml` (`metadata-complete="true"`) and the tests, so everything ran again on a fresh database.
+  - `SmokeTest` passes 4 of 4, including the new ISO-8859-1 login post of "café".
+  - The checklist again matches the Tomcat 9 run, with all 22 screenshots byte-identical.
+  - The 15 access checks and 20 escaping checks pass, the stored bytes are unchanged, and the logs have no SEVERE or ERROR lines.
+  - The same WAR with the `request-character-encoding` element removed failed the new smoke test with HTTP 400, so the test guards the pin.
 - **Not covered:** MySQL 5.7 with Phase 3 (the driver is the same as in the Phase 1 rehearsal), the real container, and a release rehearsal with rollback.

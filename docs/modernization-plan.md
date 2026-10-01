@@ -1,7 +1,7 @@
 # Modernization Plan
 
 Purpose: The agreed plan for bringing RMS up to a supported stack: current state, target stack with reasons, phases, risks and gates.
-Last updated: 2026-10-01 (Phase 3 coded and verified on a branch, with Phase 2 folded in; Phase 1 rollback rehearsed; the Phase 3 JSTL list covers five JSPs). 2026-09-30 (G11 interceptor adds a second `javax.servlet` user; all 7 JSPs opt into EL after the G40 fix; G27/G38 fixed). 2026-09-26 (Phase 1 code on `dev`, not released; Phase 0 owner steps still open)
+Last updated: 2026-10-01 (Phase 3 coded and verified on a branch, with Phase 2 folded in, then reviewed and re-verified; Phase 3 rollback target corrected; Phase 1 rollback rehearsed; the Phase 3 JSTL list covers five JSPs). 2026-09-30 (G11 interceptor adds a second `javax.servlet` user; all 7 JSPs opt into EL after the G40 fix; G27/G38 fixed). 2026-09-26 (Phase 1 code on `dev`, not released; Phase 0 owner steps still open)
 Read this when: you're upgrading libraries, the JDK, the framework, the servlet container or the DB driver, or planning a security fix to the stack.
 
 **Status and rules:**
@@ -165,7 +165,7 @@ Move one axis at a time. Pass through Spring 5.3 so the security fixes ship befo
 ### Phase 1 — Dependency and security upgrades on Java 8 with `javax` (**M**)
 - **Status (2026-09-26):**
   - **Done on `dev`:**
-    - Spring BOM 5.3.39, with no per-module versions (`pom.xml:13,32-39`). The `spring.version` property stays; it now only sets the BOM version.
+    - Spring BOM 5.3.39, with no per-module versions (`pom.xml:13,34-41`). The `spring.version` property stays; it now only sets the BOM version.
     - `WebConfig implements WebMvcConfigurer` (B5).
     - `com.mysql:mysql-connector-j` 8.2.0, excluding `protobuf-java` (only for the X DevAPI). 8.2.0 is the newest release that still supports MySQL 5.7; 8.3.0+ need 8.0+ (release notes). It was chosen because the server version is unknown (open question #16). 8.4.0 was tried first and replaced after the code review found that it doesn't support 5.7.
     - SLF4J 2.0.20 and Logback 1.3.16, with `logback.xml`; the two DAO `System.out` calls are now `log.warn`. CR/LF in log messages are replaced with `_` (checked with a scratch run).
@@ -258,18 +258,28 @@ Move one axis at a time. Pass through Spring 5.3 so the security fixes ship befo
     - Five JSPs use `jakarta.tags.core`.
     - `web.xml` uses the Servlet 6.1 schema (G37).
     - `SmokeTest` no longer uses the deprecated `new URL(String)`.
-  - **Verified:**
-    - `mvnw verify` on JDK 21: 45 tests, 42 pass, 3 smoke skipped, with no warnings.
-    - On Tomcat 11.0.26 with JDK 21 and MySQL 8.0, the following match the Tomcat 9 run ([acceptance/README.md](acceptance/README.md)): `SmokeTest` 3/3, the 52-check checklist with 22 byte-identical screenshots, the 15 access checks and the 20 escaping checks.
+    - **After the code review (2026-10-01):**
+      - The Mockito agent path is quoted: a Maven repo path with a space stopped the test JVM from starting (reproduced, then fixed).
+      - `jakarta.servlet-api` is excluded from the Jakarta Tags API, so only the `provided` declaration remains.
+      - Parameter names are compiled in (`maven.compiler.parameters`).
+      - `web.xml` sets `metadata-complete="true"`, so there's no annotation scan, as with the 2.3 descriptor.
+      - `SmokeTest.latin1FormPostIsAccepted` guards the request-encoding pin; the smoke form now posts ISO-8859-1, like the browser.
+      - `AuthInterceptorTest.trailingSlashIsNotMatched` pins the trailing-slash 404.
+  - **Verified (after the review):**
+    - `mvnw verify` on JDK 21: 47 tests, 43 pass, 4 smoke skipped. With `-Dmaven.compiler.showDeprecation=true -Dmaven.compiler.showWarnings=true`, javac reports no warnings. The test JVM prints one CDS note ("Sharing is only supported for boot loader classes…") because the Mockito agent extends the boot class path; it was there before the review too.
+    - The build also passes with `-Dmaven.compiler.release=17` (class version 61), so nothing in the code needs 21.
+    - On Tomcat 11.0.26 with JDK 21 and MySQL 8.0, the following match the Tomcat 9 run ([acceptance/README.md](acceptance/README.md)): `SmokeTest` 4/4, the 52-check checklist with 22 byte-identical screenshots, the 15 access checks, the 20 escaping checks and the stored bytes.
+    - The same WAR without `request-character-encoding` fails `latin1FormPostIsAccepted` with HTTP 400, so the guard works.
   - **Found while testing:**
     - Tomcat 11 decodes requests as UTF-8 by default and answers invalid bytes with HTTP 400. The ISO-8859-1 forms failed on "café" until `web.xml` pinned `request-character-encoding` to ISO-8859-1 (G34).
     - Spring 7 maps a request whose context path carries `;` parameters, which Spring 5.3 answered with 404. The escaped menu URLs keep it harmless (G27).
-    - Spring 7 logs two WARN lines per unmapped URL ("No mapping" and "No endpoint").
+    - Spring 7 logs two WARN lines per unmapped URL ("No mapping" and "No endpoint"), both in `org.springframework.web.servlet.PageNotFound`. Spring 5.3 logged one. Both versions log the raw request URI, which can carry `;jsessionid=` (G41).
     - Tomcat 11.0.26 wrote no session file on stop, and logged no G36 warning.
     - Spring 5's `spring-jcl` is replaced by Apache `commons-logging` 1.3.5, which routes to SLF4J.
   - **Open:**
+    - **Before the merge:** the owner chooses the JDK standard (section 9). The WAR needs a JDK 21+ runtime (class version 65); if the standard is 17, set `maven.compiler.release` to 17.
     - A Phase 3 release runbook and rehearsal, including the rollback to the Phase 1 container.
-    - The Tomcat 11 + JDK 21 container (ops).
+    - The Tomcat 11 + JDK 21 container (ops). Check whether production Tomcat 9 runs with a Security Manager (`-security`): Tomcat 11 has dropped it [A] (open question #4).
     - Eclipse `.settings`.
 - **Scope:**
   1. **`pom.xml`:**
@@ -279,17 +289,17 @@ Move one axis at a time. Pass through Spring 5.3 so the security fixes ship befo
      - remove every `javax.servlet` artifact
   2. **`LoginController.java:3-5` and `AuthInterceptor.java:5-7`:** `javax.servlet.http.*` → `jakarta.servlet.http.*`. They're the only Java files affected [C].
   3. **JSTL URIs:** `http://java.sun.com/jsp/jstl/core` → `jakarta.tags.core` in `viewposition.jsp:3`, `viewlanguage.jsp:3`, `viewmarks.jsp:4`, `main.jsp:5` and `login.jsp:5`. The last three use it since the G27 fix.
-  4. **`web.xml`:** replace the 2.3 DTD with the Servlet 6.1 schema, or delete the file (`failOnMissingWebXml=false`, `pom.xml:83`).
+  4. **`web.xml`:** replace the 2.3 DTD with the Servlet 6.1 schema. **Keep the file:** it pins `request-character-encoding` to ISO-8859-1, without which Tomcat 11 answers Latin-1 form posts with HTTP 400 (see Found while testing).
      - EL becomes enabled by default.
      - That's safe: all 7 JSPs already opt in with `isELIgnored="false"` (`viewmarks.jsp` since the G40 fix, 2026-09-30) [C].
      - It closes G37.
   5. **Container:** Tomcat 11 on JDK 21, with the JNDI `jdbc/springrms` resource re-created (ops; no secrets in the repo).
 - **Files:** `pom.xml`, `LoginController.java`, `AuthInterceptor.java`, the five JSPs that use JSTL, `web.xml`, and the container (ops).
 - **Risks:**
-  - Spring 6+ stops matching trailing slashes by default [A]. Links come from `spring:url` without trailing slashes (`viewposition.jsp:49,53`) [C], but bookmarks may break.
+  - Spring 6+ stops matching trailing slashes [C: `AuthInterceptorTest.trailingSlashIsNotMatched`, 404 before any handler or check]. Links come from `spring:url` without trailing slashes (`viewposition.jsp:49,53`) [C], but bookmarks may break.
   - Spring 7 removals affecting `JstlView` or `JndiTemplate` would show up at compile time [A].
   - Tomcat 11 session persistence warns on the non-`Serializable` `UserInfo` (G36) [A].
-- **Rollback:** run Tomcat 9/JDK 21 with the Phase 2 WAR side by side until sign-off, and switch back by redeploying.
+- **Rollback:** keep the Phase 1 container (Tomcat 9 on its JDK 8, as released) and the Phase 1 WAR side by side until sign-off, and switch back by redeploying. Phase 2 was folded into Phase 3, so there is no Phase 2 WAR. JDK 21 would also be allowed there, because Spring 5.3.39 is past the Spring4Shell fix, but that combination hasn't been deployed. Data stays compatible: with the request encoding pinned, Tomcat 11 stores the same bytes as Tomcat 9 [C: 2026-10-01 run].
 - **Verification:**
   - `grep -rn "javax.servlet" src pom.xml` returns nothing.
   - Build and tests pass.
@@ -410,6 +420,6 @@ The schema (G22) is also needed.
 - Delete the three Dependabot branches (done).
 
 **Owner decisions still open:**
-- Choose the JDK standard: 21, or an organisational 17 or 25.
+- Choose the JDK standard: 21, or an organisational 17 or 25. Needed before Phase 3 merges: the branch builds for 21, and a `release` 17 build also passes (2026-10-01).
 - Choose the deployment target after Phase 4, and whether GitHub Actions is acceptable for CI.
 - Confirm there's no Oracle database and no plan to move to one.

@@ -5,7 +5,7 @@ tools: Read, Grep, Glob, Bash
 model: sonnet
 ---
 
-You find partial and unimplemented features in RMS (Spring MVC 4.3, JSP, Spring JDBC, MySQL).
+You find partial and unimplemented features in RMS (Spring MVC, JSP, Spring JDBC, MySQL; versions in `CLAUDE.md`).
 
 ## Start
 1. Read `docs/ROUTER.md`, then `docs/gaps.md` (existing IDs G1…), and only the business-flows/data-model files relevant to the scope.
