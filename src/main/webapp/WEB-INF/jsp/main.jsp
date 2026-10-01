@@ -112,12 +112,6 @@
 			});
 		}
 
-		function load_menu() {
-			document.getElementById("container").innerHTML = '<object type="text/html" data="jsp/menu.jsp" ></object>';
-		}
-		function load_header() {
-			document.getElementById("container").innerHTML = '<object type="text/html" data="jsp/header.jsp" ></object>';
-		}
 		function load_language() {
 			document.getElementById("container").innerHTML = '<object type="text/html" data="${createlanguage}" ></object>';
 		}

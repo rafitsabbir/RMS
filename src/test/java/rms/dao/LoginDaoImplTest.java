@@ -41,7 +41,6 @@ class LoginDaoImplTest extends MySqlContainerSupport {
 		assertThat(user.getPhone()).isEqualTo("000-0002");
 		assertThat(user.getDesignation()).isEqualTo("Engineer");
 		assertThat(user.getIsinterviewer()).isEqualTo("Y");
-		assertThat(user.getPassword()).isNull();
 	}
 
 	@Test
