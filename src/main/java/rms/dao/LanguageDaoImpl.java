@@ -23,11 +23,13 @@ public class LanguageDaoImpl implements LanguageDao {
 	private static final Logger log = LoggerFactory.getLogger(LanguageDaoImpl.class);
 
 	private String savelanguage = "insert into language  (isActive, languagename) VALUES (:isActive,:languagename)";
-	private String ifexist = "select languagename from language where languagename=:languagename ";
+	private String ifexist = "select count(*) from language where languagename=:languagename and isactive=1";
+	private String ifexistother = "select count(*) from language where languagename=:languagename and languagekey<>:languagekey and isactive=1";
+	private String reactivatelanguage = "update language set isactive=1 where languagename=:languagename and isactive=0 limit 1";
 	private String alllanguage = "select languagekey, languagename from language where  isactive=1";
-	private String findlanguagebyid = "select languagekey, languagename from language where languagekey=:languagekey";
+	private String findlanguagebyid = "select languagekey, languagename from language where languagekey=:languagekey and isactive=1";
 	private String updatelanguage = "update language set languagename=:languagename where languagekey=:languagekey";
-	private String deletelanguage = "delete from language where languagekey=:languagekey";
+	private String deletelanguage = "update language set isactive=0 where languagekey=:languagekey";
 
 	NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
@@ -59,24 +61,23 @@ public class LanguageDaoImpl implements LanguageDao {
 	}
 
 	@Override
-	public void addLanguage(LanguageInfo languageinfo) {
+	public boolean addLanguage(LanguageInfo languageinfo) {
 		// TODO Auto-generated method stub
 		Map<String, Object> paramMap = new HashMap<String, Object>();
 
 		paramMap.put("languagename", languageinfo.getLanguagename()
 				.toUpperCase().trim());
 
-		try {
-			String languagename = namedParameterJdbcTemplate.queryForObject(
-					ifexist, paramMap, String.class);
-
-			log.warn("Language {} already exists; not added", languagename);
-
-		} catch (EmptyResultDataAccessException e) {
+		if (namedParameterJdbcTemplate.queryForObject(ifexist, paramMap, Integer.class) > 0) {
+			log.warn("Language {} already exists; not added", paramMap.get("languagename"));
+			return false;
+		}
+		// A deleted language of the same name comes back rather than a second row being added
+		if (namedParameterJdbcTemplate.update(reactivatelanguage, paramMap) == 0) {
 			paramMap.put("isActive", 1);
 			namedParameterJdbcTemplate.update(savelanguage, paramMap);
 		}
-
+		return true;
 	}
 
 	@Override
@@ -84,18 +85,28 @@ public class LanguageDaoImpl implements LanguageDao {
 		// TODO Auto-generated method stub
 		Map<String, Object> paramMap = new HashMap<String, Object>();
 		paramMap.put("languagekey", languagekey);
-		return namedParameterJdbcTemplate.queryForObject(findlanguagebyid, paramMap, new LanguageMapper());
+		try {
+			return namedParameterJdbcTemplate.queryForObject(findlanguagebyid, paramMap, new LanguageMapper());
+		} catch (EmptyResultDataAccessException e) {
+			return null;
+		}
 	}
 
 	@Override
-	public void updateLanguage(LanguageInfo languageinfo) {
+	public boolean updateLanguage(LanguageInfo languageinfo) {
 		// TODO Auto-generated method stub
 		Map<String, Object> paramMap = new HashMap<String, Object>();
 
 		paramMap.put("languagename", languageinfo.getLanguagename()
 				.toUpperCase().trim());
 		paramMap.put("languagekey", languageinfo.getLanguagekey());
+
+		if (namedParameterJdbcTemplate.queryForObject(ifexistother, paramMap, Integer.class) > 0) {
+			log.warn("Language {} already exists; not renamed", paramMap.get("languagename"));
+			return false;
+		}
 		namedParameterJdbcTemplate.update(updatelanguage, paramMap);
+		return true;
 	}
 
 	@Override

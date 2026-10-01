@@ -19,15 +19,15 @@ public class LanguageServiceImpl implements LanguageService {
 	}	
 
 	@Override
-	public void updateLanguage(LanguageInfo languageinfo) {
+	public boolean updateLanguage(LanguageInfo languageinfo) {
 		// TODO Auto-generated method stub
-		languagedao.updateLanguage(languageinfo);
+		return languagedao.updateLanguage(languageinfo);
 	}
 
 	@Override
-	public void addLanguage(LanguageInfo languageinfo) {
+	public boolean addLanguage(LanguageInfo languageinfo) {
 		// TODO Auto-generated method stub
-		languagedao.addLanguage(languageinfo);
+		return languagedao.addLanguage(languageinfo);
 		
 	}
 

@@ -69,8 +69,7 @@ class AuthInterceptorTest {
 	void loggedOutRequestsRedirectToLogin() throws Exception {
 		mockMvc.perform(get("/viewpositionlist")).andExpect(redirectedUrl("/login"));
 		mockMvc.perform(post("/saveposition").param("positionname", "dev ops")).andExpect(redirectedUrl("/login"));
-		// characterizes G17: delete is a GET
-		mockMvc.perform(get("/deleteposition/1")).andExpect(redirectedUrl("/login"));
+		mockMvc.perform(post("/deleteposition/1")).andExpect(redirectedUrl("/login"));
 		mockMvc.perform(get("/adminviewmarks")).andExpect(redirectedUrl("/login"));
 
 		verifyNoInteractions(positionservice, marksservice);
@@ -89,8 +88,7 @@ class AuthInterceptorTest {
 	@Test
 	void interviewerIsRefusedAdminPages() throws Exception {
 		mockMvc.perform(get("/viewpositionlist").session(sessionFor("Y"))).andExpect(status().isForbidden());
-		// characterizes G17: delete is a GET
-		mockMvc.perform(get("/deleteposition/1").session(sessionFor("Y"))).andExpect(status().isForbidden());
+		mockMvc.perform(post("/deleteposition/1").session(sessionFor("Y"))).andExpect(status().isForbidden());
 		mockMvc.perform(get("/adminviewmarks").session(sessionFor("Y"))).andExpect(status().isForbidden());
 
 		verifyNoInteractions(positionservice, marksservice);

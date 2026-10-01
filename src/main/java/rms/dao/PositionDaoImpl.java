@@ -21,12 +21,14 @@ import rms.model.PositionInfo;
 public class PositionDaoImpl implements PositionDao {
 	private static final Logger log = LoggerFactory.getLogger(PositionDaoImpl.class);
 
-	private String ifexist = "select positionname from position where positionname=:positionname ";
+	private String ifexist = "select count(*) from position where positionname=:positionname and isactive=1";
+	private String ifexistother = "select count(*) from position where positionname=:positionname and positionkey<>:positionkey and isactive=1";
+	private String reactivateposition = "update position set isactive=1 where positionname=:positionname and isactive=0 limit 1";
 	private String saveposition = "insert into position  (isActive, positionname) VALUES (:isActive,:positionname)";
 	private String updateposition = "update position set positionname=:positionname where positionkey=:positionkey";
 	private String allposition = "select positionkey, positionname from position where  isactive=1";
-	private String deleteposition = "delete from position where positionkey=:positionkey";
-	private String findpositionbyid = "select positionkey, positionname from position where positionkey=:positionkey";
+	private String deleteposition = "update position set isactive=0 where positionkey=:positionkey";
+	private String findpositionbyid = "select positionkey, positionname from position where positionkey=:positionkey and isactive=1";
 
 	NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
@@ -48,34 +50,40 @@ public class PositionDaoImpl implements PositionDao {
 	}
 
 	@Override
-	public void updatePosition(PositionInfo positioninfo) {
+	public boolean updatePosition(PositionInfo positioninfo) {
 		// TODO Auto-generated method stub
 		Map<String, Object> paramMap = new HashMap<String, Object>();
 
 		paramMap.put("positionname", positioninfo.getPositionname()
 				.toUpperCase().trim());
 		paramMap.put("positionkey", positioninfo.getPositionkey());
+
+		if (namedParameterJdbcTemplate.queryForObject(ifexistother, paramMap, Integer.class) > 0) {
+			log.warn("Position {} already exists; not renamed", paramMap.get("positionname"));
+			return false;
+		}
 		namedParameterJdbcTemplate.update(updateposition, paramMap);
+		return true;
 	}
 
 	@Override
-	public void addPosition(PositionInfo positioninfo) {
+	public boolean addPosition(PositionInfo positioninfo) {
 		// TODO Auto-generated method stub
 		Map<String, Object> paramMap = new HashMap<String, Object>();
 
 		paramMap.put("positionname", positioninfo.getPositionname()
 				.toUpperCase().trim());
 
-		try {
-			String positionname = namedParameterJdbcTemplate.queryForObject(
-					ifexist, paramMap, String.class);
-
-			log.warn("Position {} already exists; not added", positionname);
-
-		} catch (EmptyResultDataAccessException e) {
+		if (namedParameterJdbcTemplate.queryForObject(ifexist, paramMap, Integer.class) > 0) {
+			log.warn("Position {} already exists; not added", paramMap.get("positionname"));
+			return false;
+		}
+		// A deleted position of the same name comes back rather than a second row being added
+		if (namedParameterJdbcTemplate.update(reactivateposition, paramMap) == 0) {
 			paramMap.put("isActive", 1);
 			namedParameterJdbcTemplate.update(saveposition, paramMap);
 		}
+		return true;
 	}
 
 	@Override
@@ -92,7 +100,11 @@ public class PositionDaoImpl implements PositionDao {
 		// TODO Auto-generated method stub
 		Map<String, Object> paramMap = new HashMap<String, Object>();
 		paramMap.put("positionkey", positionkey);
-		return namedParameterJdbcTemplate.queryForObject(findpositionbyid, paramMap, new PositionMapper());
+		try {
+			return namedParameterJdbcTemplate.queryForObject(findpositionbyid, paramMap, new PositionMapper());
+		} catch (EmptyResultDataAccessException e) {
+			return null;
+		}
 	}
 	
 
