@@ -19,15 +19,15 @@ public class PositionServiceImpl implements PositionService {
 	}
 
 	@Override
-	public void updatePosition(PositionInfo positioninfo) {
+	public boolean updatePosition(PositionInfo positioninfo) {
 		// TODO Auto-generated method stub
-		positiondao.updatePosition(positioninfo);
+		return positiondao.updatePosition(positioninfo);
 	}
 
 	@Override
-	public void addPosition(PositionInfo positioninfo) {
+	public boolean addPosition(PositionInfo positioninfo) {
 		// TODO Auto-generated method stub
-		positiondao.addPosition(positioninfo);
+		return positiondao.addPosition(positioninfo);
 	}
 
 	@Override

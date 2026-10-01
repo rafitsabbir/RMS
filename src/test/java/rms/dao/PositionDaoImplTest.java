@@ -26,7 +26,7 @@ class PositionDaoImplTest extends MySqlContainerSupport {
 
 	@Test
 	void addUppercasesTrimsAndActivates() {
-		dao.addPosition(position(0, "  dev ops "));
+		assertThat(dao.addPosition(position(0, "  dev ops "))).isTrue();
 
 		assertThat(jdbcTemplate.queryForObject(
 				"select count(*) from position where positionname='DEV OPS' and isactive=1", Integer.class))
@@ -34,35 +34,68 @@ class PositionDaoImplTest extends MySqlContainerSupport {
 	}
 
 	@Test
-	void addSilentlySkipsDuplicateName() {
-		// characterizes G14: the duplicate is only printed, not reported
-		dao.addPosition(position(0, "software engineer"));
+	void addRefusesDuplicateName() {
+		assertThat(dao.addPosition(position(0, "software engineer"))).isFalse();
 
 		assertThat(countRows()).isEqualTo(3);
 	}
 
 	@Test
+	void addBringsBackADeletedPosition() {
+		assertThat(dao.addPosition(position(0, " retired role "))).isTrue();
+
+		assertThat(countRows()).isEqualTo(3);
+		assertThat(isactive(3)).isEqualTo(1);
+	}
+
+	@Test
+	void addRefusesNameThatAlreadyHasTwoRows() {
+		jdbcTemplate.update("insert into position (positionname, isactive) values ('QA ENGINEER', 1)");
+
+		assertThat(dao.addPosition(position(0, "qa engineer"))).isFalse();
+		assertThat(countRows()).isEqualTo(4);
+	}
+
+	@Test
 	void updateUppercasesName() {
-		dao.updatePosition(position(1, " lead "));
+		assertThat(dao.updatePosition(position(1, " lead "))).isTrue();
 
 		assertThat(dao.findPositionById(1).getPositionname()).isEqualTo("LEAD");
 	}
 
 	@Test
-	void deleteRemovesTheRow() {
-		// characterizes G17: hard delete, not isactive=0
-		dao.deletePosition(2);
+	void updateRefusesNameOfAnotherActivePosition() {
+		assertThat(dao.updatePosition(position(1, "qa engineer"))).isFalse();
 
-		assertThat(countRows()).isEqualTo(2);
+		assertThat(dao.findPositionById(1).getPositionname()).isEqualTo("SOFTWARE ENGINEER");
 	}
 
 	@Test
-	void findByIdIgnoresActiveFlag() {
-		assertThat(dao.findPositionById(3).getPositionname()).isEqualTo("RETIRED ROLE");
+	void updateKeepingTheSameNameSucceeds() {
+		assertThat(dao.updatePosition(position(1, "software engineer"))).isTrue();
+	}
+
+	@Test
+	void deleteDeactivatesTheRow() {
+		dao.deletePosition(2);
+
+		assertThat(countRows()).isEqualTo(3);
+		assertThat(isactive(2)).isEqualTo(0);
+		assertThat(dao.getAllPosition()).extracting(PositionInfo::getPositionname).containsExactly("SOFTWARE ENGINEER");
+	}
+
+	@Test
+	void findByIdReturnsNullForDeletedOrMissingPosition() {
+		assertThat(dao.findPositionById(3)).isNull();
+		assertThat(dao.findPositionById(99)).isNull();
 	}
 
 	private int countRows() {
 		return jdbcTemplate.queryForObject("select count(*) from position", Integer.class);
+	}
+
+	private int isactive(int key) {
+		return jdbcTemplate.queryForObject("select isactive from position where positionkey=" + key, Integer.class);
 	}
 
 	private static PositionInfo position(int key, String name) {

@@ -51,7 +51,9 @@
 				</td>
 				<td>
 					<spring:url value="/deletelanguage/${languagelist.languagekey }" var="deleteURL" />
-					<a href="${deleteURL}">Delete</a>			
+					<form method="post" action="${deleteURL}" style="margin: 0;">
+						<button type="submit" class="btn btn-link" style="padding: 0;">Delete</button>
+					</form>
 				</td>
 			</tr>
 		</c:forEach>			

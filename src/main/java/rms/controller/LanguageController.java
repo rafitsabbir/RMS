@@ -4,11 +4,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.ModelAndView;
 
 import rms.model.LanguageInfo;
@@ -43,10 +45,19 @@ public class LanguageController {
 	public ModelAndView save(
 			@ModelAttribute("languageinfo") LanguageInfo languageinfo) {
 
-		if (languageinfo != null && languageinfo.getLanguagekey() > 0) {
-			languageservice.updateLanguage(languageinfo);
+		String name = languageinfo.getLanguagename();
+		if (name == null || name.trim().isEmpty()) {
+			return form(languageinfo, "Please enter a language name.");
+		}
+
+		boolean saved;
+		if (languageinfo.getLanguagekey() > 0) {
+			saved = languageservice.updateLanguage(languageinfo);
 		} else {
-			languageservice.addLanguage(languageinfo);
+			saved = languageservice.addLanguage(languageinfo);
+		}
+		if (!saved) {
+			return form(languageinfo, "Language " + name.trim().toUpperCase() + " already exists.");
 		}
 
 		return new ModelAndView("redirect:/viewlanguagelist");
@@ -59,13 +70,16 @@ public class LanguageController {
 
 		LanguageInfo languageinfo = languageservice
 				.findLanguageById(languagekey);
+		if (languageinfo == null) {
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+		}
 		mv.addObject("languageinfo", languageinfo);
 
 		return mv;
 
 	}
 	
-	@RequestMapping(value = "/deletelanguage/{languagekey}", method = RequestMethod.GET)
+	@RequestMapping(value = "/deletelanguage/{languagekey}", method = RequestMethod.POST)
 	public ModelAndView delete(@PathVariable("languagekey") int languagekey) {
 
 		languageservice.deleteLanguage(languagekey);
@@ -73,4 +87,11 @@ public class LanguageController {
 		return new ModelAndView("redirect:/viewlanguagelist");
 	}
 
+	/** The create/update form again, with the entered values and an error. */
+	private ModelAndView form(LanguageInfo languageinfo, String errorMessage) {
+		ModelAndView mv = new ModelAndView("createlanguage");
+		mv.addObject("languageinfo", languageinfo);
+		mv.addObject("errorMessage", errorMessage);
+		return mv;
+	}
 }

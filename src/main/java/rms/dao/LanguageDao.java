@@ -8,11 +8,11 @@ public interface LanguageDao {
 
 	public List<LanguageInfo> getAllLanguage();
 	
-	public void addLanguage(LanguageInfo languageinfo);
+	public boolean addLanguage(LanguageInfo languageinfo);
 	
 	public LanguageInfo findLanguageById(int languagekey);
 	
-	public void updateLanguage(LanguageInfo languageinfo);
+	public boolean updateLanguage(LanguageInfo languageinfo);
 	
 	public void deleteLanguage(int languagekey);
 

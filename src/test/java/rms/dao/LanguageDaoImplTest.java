@@ -26,7 +26,7 @@ class LanguageDaoImplTest extends MySqlContainerSupport {
 
 	@Test
 	void addUppercasesTrimsAndActivates() {
-		dao.addLanguage(language(0, "  kotlin "));
+		assertThat(dao.addLanguage(language(0, "  kotlin "))).isTrue();
 
 		assertThat(jdbcTemplate.queryForObject(
 				"select count(*) from language where languagename='KOTLIN' and isactive=1", Integer.class))
@@ -34,35 +34,68 @@ class LanguageDaoImplTest extends MySqlContainerSupport {
 	}
 
 	@Test
-	void addSilentlySkipsDuplicateName() {
-		// characterizes G14: the duplicate is only printed, not reported
-		dao.addLanguage(language(0, "java"));
+	void addRefusesDuplicateName() {
+		assertThat(dao.addLanguage(language(0, "java"))).isFalse();
 
 		assertThat(countRows()).isEqualTo(3);
 	}
 
 	@Test
+	void addBringsBackADeletedLanguage() {
+		assertThat(dao.addLanguage(language(0, " cobol "))).isTrue();
+
+		assertThat(countRows()).isEqualTo(3);
+		assertThat(isactive(3)).isEqualTo(1);
+	}
+
+	@Test
+	void addRefusesNameThatAlreadyHasTwoRows() {
+		jdbcTemplate.update("insert into language (languagename, isactive) values ('PYTHON', 1)");
+
+		assertThat(dao.addLanguage(language(0, "python"))).isFalse();
+		assertThat(countRows()).isEqualTo(4);
+	}
+
+	@Test
 	void updateUppercasesName() {
-		dao.updateLanguage(language(1, " go "));
+		assertThat(dao.updateLanguage(language(1, " go "))).isTrue();
 
 		assertThat(dao.findLanguageById(1).getLanguagename()).isEqualTo("GO");
 	}
 
 	@Test
-	void deleteRemovesTheRow() {
-		// characterizes G17: hard delete, not isactive=0
-		dao.deleteLanguage(2);
+	void updateRefusesNameOfAnotherActiveLanguage() {
+		assertThat(dao.updateLanguage(language(1, "python"))).isFalse();
 
-		assertThat(countRows()).isEqualTo(2);
+		assertThat(dao.findLanguageById(1).getLanguagename()).isEqualTo("JAVA");
 	}
 
 	@Test
-	void findByIdIgnoresActiveFlag() {
-		assertThat(dao.findLanguageById(3).getLanguagename()).isEqualTo("COBOL");
+	void updateKeepingTheSameNameSucceeds() {
+		assertThat(dao.updateLanguage(language(1, "java"))).isTrue();
+	}
+
+	@Test
+	void deleteDeactivatesTheRow() {
+		dao.deleteLanguage(2);
+
+		assertThat(countRows()).isEqualTo(3);
+		assertThat(isactive(2)).isEqualTo(0);
+		assertThat(dao.getAllLanguage()).extracting(LanguageInfo::getLanguagename).containsExactly("JAVA");
+	}
+
+	@Test
+	void findByIdReturnsNullForDeletedOrMissingLanguage() {
+		assertThat(dao.findLanguageById(3)).isNull();
+		assertThat(dao.findLanguageById(99)).isNull();
 	}
 
 	private int countRows() {
 		return jdbcTemplate.queryForObject("select count(*) from language", Integer.class);
+	}
+
+	private int isactive(int key) {
+		return jdbcTemplate.queryForObject("select isactive from language where languagekey=" + key, Integer.class);
 	}
 
 	private static LanguageInfo language(int key, String name) {

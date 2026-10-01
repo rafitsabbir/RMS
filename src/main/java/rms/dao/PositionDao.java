@@ -6,9 +6,9 @@ import rms.model.PositionInfo;
 
 public interface PositionDao {
 
-	public void updatePosition(PositionInfo fositioninfo);
+	public boolean updatePosition(PositionInfo fositioninfo);
 
-	public void addPosition(PositionInfo fositioninfo);
+	public boolean addPosition(PositionInfo fositioninfo);
 
 	public List<PositionInfo> getAllPosition();
 
