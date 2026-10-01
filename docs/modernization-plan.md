@@ -165,7 +165,7 @@ Move one axis at a time. Pass through Spring 5.3 so the security fixes ship befo
 ### Phase 1 — Dependency and security upgrades on Java 8 with `javax` (**M**)
 - **Status (2026-09-26):**
   - **Done on `dev`:**
-    - Spring BOM 5.3.39, with no per-module versions (`pom.xml:13,34-41`). The `spring.version` property stays; it now only sets the BOM version.
+    - Spring BOM 5.3.39, with no per-module versions (`pom.xml:13,35-42`). The `spring.version` property stays; it now only sets the BOM version.
     - `WebConfig implements WebMvcConfigurer` (B5).
     - `com.mysql:mysql-connector-j` 8.2.0, excluding `protobuf-java` (only for the X DevAPI). 8.2.0 is the newest release that still supports MySQL 5.7; 8.3.0+ need 8.0+ (release notes). It was chosen because the server version is unknown (open question #16). 8.4.0 was tried first and replaced after the code review found that it doesn't support 5.7.
     - SLF4J 2.0.20 and Logback 1.3.16, with `logback.xml`; the two DAO `System.out` calls are now `log.warn`. CR/LF in log messages are replaced with `_` (checked with a scratch run).

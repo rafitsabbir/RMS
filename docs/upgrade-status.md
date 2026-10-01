@@ -41,9 +41,9 @@ Owners:
 ### Phase 1: dependency and security upgrades on Java 8 ([plan §4](modernization-plan.md#phase-1--dependency-and-security-upgrades-on-java-8-with-javax-m))
 | Item | State | Owner | Evidence |
 |---|---|---|---|
-| Spring BOM 5.3.39, no per-module versions | Done | dev | `pom.xml:13,34-41` |
+| Spring BOM 5.3.39, no per-module versions | Done | dev | `pom.xml:13,35-42` |
 | `WebConfig implements WebMvcConfigurer` (B5) | Done | dev | `WebConfig.java:22` |
-| `com.mysql:mysql-connector-j` 8.2.0 (supports MySQL 5.7+), `protobuf-java` excluded | Done | dev | `pom.xml:111-122`; [plan §6](modernization-plan.md#mysql-compatibility) |
+| `com.mysql:mysql-connector-j` 8.2.0 (supports MySQL 5.7+), `protobuf-java` excluded | Done | dev | `pom.xml:118-129`; [plan §6](modernization-plan.md#mysql-compatibility) |
 | SLF4J 2.0.20 and Logback 1.3.16; DAO `System.out` → `log.warn` | Done | dev | `logback.xml`, `PositionDaoImpl.java:73` |
 | CDN bumps with SRI: jQuery 3.7.1, Bootstrap 3.4.1/4.6.2, DataTables 1.13.11, Font Awesome 4.7.0 | Done | dev | the 7 JSP heads; [tech-stack.md](tech-stack.md) |
 | Three stale Dependabot branches deleted | Done | owner | #7 |
@@ -60,7 +60,7 @@ Owners:
 |---|---|---|---|
 | **Phase 2:** JDK 8 → 21, Mockito 5, Logback 1.5, regenerate `.settings` | Coded with Phase 3 (2026-10-01): release 21, Mockito 5.24.0 as a Java agent, Logback 1.5.38. The stale Eclipse files were removed on 2026-10-01; m2e regenerates them. Ships only together with Spring 7, after Phase 1 is in production (Spring4Shell) | dev / ops | [plan §4–5](modernization-plan.md#phase-2--jdk-8--21-s) |
 | **Phase 3:** Spring 7.0, Jakarta namespace, Tomcat 11, `web.xml` (G37) | **Coded and verified 2026-10-01**, reviewed and re-verified: 47 tests on JDK 21 (43 pass, 4 smoke skipped); on Tomcat 11.0.26 the smoke test (4/4), checklist, access and escaping checks match Tomcat 9. **Merged into `dev`** on 2026-10-01; not released. Still open: the JDK standard (before the release), a Phase 3 release runbook and rehearsal, and the Tomcat 11 + JDK 21 container (ops), including whether production uses a Security Manager (#4). In production before **2027-03-31** (end of Tomcat 9 support) | dev / ops | [plan §4](modernization-plan.md#phase-3--spring-70-jakarta-namespace-and-tomcat-11-m), [acceptance/README.md](acceptance/README.md) |
-| **Phase 4:** GitHub Actions CI, JNDI context template, optional image | CI (`ci.yml`), the OSV-Scanner dependency scan and `deploy/tomcat/rms.xml` coded 2026-10-01; the template passed `SmokeTest` 4/4 on Tomcat 11. The container image is **pending** | dev | [plan §4](modernization-plan.md#phase-4--packaging-and-deployment-m) |
+| **Phase 4:** GitHub Actions CI, JNDI context template, optional image | CI (`ci.yml`), the OSV-Scanner dependency scan and `deploy/tomcat/rms.xml` coded 2026-10-01; the template passed `SmokeTest` 4/4 on Tomcat 11. CI passed on PR #16. The first full scan found 3 test-only vulnerabilities (AssertJ, and Testcontainers' `commons-compress`), fixed in the same PR. The container image is **pending** | dev | [plan §4](modernization-plan.md#phase-4--packaging-and-deployment-m) |
 | **Follow-ups:** JDK 25; Spring Security 7 (G11 has an interim interceptor since 2026-09-30; G13, G32); replacing the JSPs | Pending | After Phase 4 | [gaps.md](gaps.md) |
 
 ## Owner decisions still open
