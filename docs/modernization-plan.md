@@ -1,11 +1,11 @@
 # Modernization Plan
 
 Purpose: The agreed plan for bringing RMS up to a supported stack: current state, target stack with reasons, phases, risks and gates.
-Last updated: 2026-10-01 (Phase 3 coded and verified on a branch, with Phase 2 folded in, then reviewed and re-verified; Phase 3 rollback target corrected; Phase 1 rollback rehearsed; the Phase 3 JSTL list covers five JSPs). 2026-09-30 (G11 interceptor adds a second `javax.servlet` user; all 7 JSPs opt into EL after the G40 fix; G27/G38 fixed). 2026-09-26 (Phase 1 code on `dev`, not released; Phase 0 owner steps still open)
+Last updated: 2026-10-01 (Phase 3 merged into `dev` with releases on hold; Phase 1 frozen on `release/phase1`). 2026-10-01 (Phase 3 coded and verified on a branch, with Phase 2 folded in, then reviewed and re-verified; Phase 3 rollback target corrected; Phase 1 rollback rehearsed; the Phase 3 JSTL list covers five JSPs). 2026-09-30 (G11 interceptor adds a second `javax.servlet` user; all 7 JSPs opt into EL after the G40 fix; G27/G38 fixed). 2026-09-26 (Phase 1 code on `dev`, not released; Phase 0 owner steps still open)
 Read this when: you're upgrading libraries, the JDK, the framework, the servlet container or the DB driver, or planning a security fix to the stack.
 
 **Status and rules:**
-- **Status:** approved. Phases 0 and 1 are coded on `dev` (2026-09-26); see their status blocks. Neither is signed off, so Phase 1 is not releasable yet. Phases 2–4 have not started. The live tracker is [upgrade-status.md](upgrade-status.md).
+- **Status:** approved. Phases 0–3 are coded on `dev` (Phase 2 folded into Phase 3, merged 2026-10-01); see their status blocks. None is released: on 2026-10-01 the owner put releases on hold until the coding is done, and the tested Phase 1 candidate stays on `release/phase1`. Phase 4 has not started. The live tracker is [upgrade-status.md](upgrade-status.md).
 - **Go-ahead:** every phase needs its own go-ahead, because it needs builds (see [CLAUDE.md](../CLAUDE.md) critical rules).
 - **Principle:** make the smallest change that restores security patches, vendor support and maintainability:
   - no rewrite
@@ -248,7 +248,7 @@ Move one axis at a time. Pass through Spring 5.3 so the security fixes ship befo
 
 ### Phase 3 — Spring 7.0, Jakarta namespace and Tomcat 11 (**M**)
 - **Deadline:** in production before **2027-03-31** (see section 5).
-- **Status (2026-10-01):** coded and verified on branch `claude/tech-stack-review-lq0a2k`, not merged into `dev` until Phase 1 is in production.
+- **Status (2026-10-01):** coded and verified, then merged into `dev` the same day: the owner put releases on hold until the coding is done. The Phase 1 candidate stays releasable on `release/phase1`. The gates in section 5 apply to production, not to `dev`.
   - **Done:**
     - Spring BOM 7.0.9.
     - `jakarta.servlet-api` 6.1.0 (`provided`).
@@ -277,7 +277,7 @@ Move one axis at a time. Pass through Spring 5.3 so the security fixes ship befo
     - Tomcat 11.0.26 wrote no session file on stop, and logged no G36 warning.
     - Spring 5's `spring-jcl` is replaced by Apache `commons-logging` 1.3.5, which routes to SLF4J.
   - **Open:**
-    - **Before the merge:** the owner chooses the JDK standard (section 9). The WAR needs a JDK 21+ runtime (class version 65); if the standard is 17, set `maven.compiler.release` to 17.
+    - **Before the release:** the owner chooses the JDK standard (section 9). The WAR needs a JDK 21+ runtime (class version 65); if the standard is 17, set `maven.compiler.release` to 17.
     - A Phase 3 release runbook and rehearsal, including the rollback to the Phase 1 container.
     - The Tomcat 11 + JDK 21 container (ops). Check whether production Tomcat 9 runs with a Security Manager (`-security`): Tomcat 11 has dropped it [A] (open question #4).
     - Eclipse `.settings`.
@@ -420,6 +420,6 @@ The schema (G22) is also needed.
 - Delete the three Dependabot branches (done).
 
 **Owner decisions still open:**
-- Choose the JDK standard: 21, or an organisational 17 or 25. Needed before Phase 3 merges: the branch builds for 21, and a `release` 17 build also passes (2026-10-01).
+- Choose the JDK standard: 21, or an organisational 17 or 25. Needed before Phase 3 is released: `dev` builds for 21, and a `release` 17 build also passes (2026-10-01).
 - Choose the deployment target after Phase 4, and whether GitHub Actions is acceptable for CI.
 - Confirm there's no Oracle database and no plan to move to one.
