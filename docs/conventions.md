@@ -1,7 +1,7 @@
 # Conventions
 
 Purpose: The coding patterns RMS actually uses, so new code matches existing code.
-Last updated: 2026-10-01 (small fixes batch: save handling with `errorMessage`, state changes are POST, interceptor registration rule, line references, the `characterizes` example, the `main.jsp:35` deviation removed). 2026-10-01 (Phase 3: EL, Jakarta Tags URI, request encoding, Mockito agent; after the review: keep `web.xml`, parameter names). 2026-09-30 (output escaping rule after G27/G38)
+Last updated: 2026-10-01 (UI redesign: the "JSP views and UI" section replaces "Views": layout tag, no scriptlets, rms.js/rms.css, icons, list and form pattern). 2026-10-01 (small fixes batch: save handling with `errorMessage`, state changes are POST, interceptor registration rule, line references, the `characterizes` example, the `main.jsp:35` deviation removed). 2026-10-01 (Phase 3: EL, Jakarta Tags URI, request encoding, Mockito agent; after the review: keep `web.xml`, parameter names). 2026-09-30 (output escaping rule after G27/G38)
 Read this when: you're adding or reviewing code, or creating a new screen or module.
 
 ## Package & naming
@@ -17,31 +17,30 @@ Read this when: you're adding or reviewing code, or creating a new screen or mod
 ## Coding patterns
 - **Controllers:** class-level `@RequestMapping("/")`, and `@RequestMapping(value, method = RequestMethod.X)` on methods (no `@GetMapping` or `@PostMapping`). They return `ModelAndView` and inject services with `@Autowired` on a field (`rms/controller/*`).
 - **Save handling:** one `save` endpoint does both create and update. A key greater than 0 means update; otherwise insert (`PositionController.java:36-61`, `LanguageController.java:45-70`).
-  - **Refusals show the form again:** a blank name, or a business duplicate, returns the create view with the entered object and an `errorMessage` model attribute, which the create JSP prints through `<c:out>` (`PositionController.form`, `:95-101`; `createposition.jsp:28-34`). Only a successful save redirects to the list.
+  - **Refusals show the form again:** a blank name, or a business duplicate, returns the create view with the entered object and an `errorMessage` model attribute, which the create JSP prints through `<c:out>` (`PositionController.form`, `:95-101`; `createposition.jsp:20-25`). Only a successful save redirects to the list.
   - **DAO `add*`/`update*` return a boolean** for business duplicates (`false` = refused), not an exception. A missing or deleted key is `null` from the finder, which the controller turns into `ResponseStatusException(NOT_FOUND)`.
-  - **State changes are POST.** Saves and deletes use `RequestMethod.POST`; a GET is refused with 405. List pages render Delete as a POST form with a link-style button (`viewposition.jsp:55-60`), not as a link. There's no CSRF token yet (G32).
+  - **State changes are POST.** Saves and deletes use `RequestMethod.POST`; a GET is refused with 405. List pages render Delete as a POST form with a button (`viewposition.jsp:39-43`), not as a link. There's no CSRF token yet (G32).
 - **Services:** DAOs are injected with an `@Autowired` setter. The methods only pass calls through (`rms/service/*Impl.java`).
 - **DAOs:**
   - SQL lives in `String` fields at the top of the class, using named `:params`.
   - Parameters go in a `HashMap` paramMap.
   - Each DAO has a `private static final class XMapper implements RowMapper<XInfo>`.
   - `NamedParameterJdbcTemplate` is injected with an `@Autowired` setter (`rms/dao/*Impl.java`).
-- **Views:**
-  - JSPs use scriptlets as well as JSTL.
-  - URLs are built with `<spring:url>`.
-  - **Output escaping:** print user or database text through `<c:out>`, never as raw `${…}` or `<%= %>` (G27):
-    - EL: `<c:out value="${x.name}"/>` (`viewposition.jsp:50`).
-    - Scriptlet: `<c:out value="<%=x.getName()%>"/>` (`viewmarks.jsp:81-83`, `main.jsp:81,84,87`).
-    - Spring `form:` tags already escape by default. Never write user data into a JavaScript string or URL; take the user from the session instead (G38).
-    - A `<spring:url>` value that goes into a JavaScript string gets `htmlEscape="true" javaScriptEscape="true"` (`main.jsp:12-21`).
-  - **EL:** since Phase 3, `web.xml` uses the Servlet 6.1 schema, so EL is on by default (G37 fixed). All 7 JSPs still declare `isELIgnored="false"` from the Servlet 2.3 days; it's harmless.
-  - **JSTL:** the taglib URI is `jakarta.tags.core` (Jakarta Tags 3.0), not `http://java.sun.com/jsp/jstl/core`.
+- **JSP views and UI** (since the 2026-10-01 redesign):
+  - **Page shell:** every page behind the login wraps its content in `<rms:layout title="…" active="…">` (`WEB-INF/tags/layout.tag`; taglib `<%@ taglib prefix="rms" tagdir="/WEB-INF/tags" %>`). The tag renders the head, the sidebar menu, the top bar with the user and Log out, and `<main>`. Attributes: `title` (shown as "title - RMS"), `active` (the menu key: `home`, `marks`, `positions` or `languages`), `tables="true"` to load jQuery and DataTables, and `stylesheet` for one extra file in `resources/css` (`viewmarks.jsp:9`). `login.jsp` is the only page with its own `<head>`.
+  - **New menu entries** go in `layout.tag`, inside the admin (`role eq 'N'`, `:63`) or interviewer (`role eq 'Y'`, `:89`) block. An unbuilt module is a disabled `nav-link` with a "Soon" label, not a link.
+  - **No scriptlets:** JSPs use JSTL and EL only (no JSP has `<% %>` code since `f826830`). URLs are built with `<spring:url>`; the pages set `<spring:url value="/" var="base" htmlEscape="true" />` and build resource paths from `${base}`.
+  - **Output escaping:** print user or database text through `<c:out>`, never as raw `${…}` (G27): `<c:out value="${x.name}"/>` (`viewposition.jsp:33`, `viewmarks.jsp:42-44`). Integer keys and scores may print as `${…}`. Spring `form:` tags already escape by default. Never write user data into a JavaScript string or URL; take the user from the session instead (G38).
+  - **No inline scripts:** page behaviour lives in `resources/js/rms.js`, loaded by the layout. A `table[data-rms-table]` becomes a DataTable; a form with `data-rms-confirm="…"` asks before it posts (`rms.js:8-26`). Keep `rms.js` and `rms.css` ASCII (G34).
+  - **Look:** Bootstrap 5 classes plus the `rms-*` classes and theme tokens in `resources/css/rms.css` (`:root` custom properties). Icons are `<svg class="rms-icon"><use href="${base}resources/img/icons.svg#name"/></svg>`, from the Bootstrap Icons sprite. Page headers use `rms-page-header`, content sits in `card rms-card`.
+  - **List pages:** a header with an Add button, then a DataTable with an Actions column holding an Edit link and a Delete POST form with `data-rms-confirm` (`viewposition.jsp:11-50`). **Forms:** a labelled field, the `errorMessage` alert, and Save plus Cancel (`createposition.jsp:20-38`).
+  - **EL:** since Phase 3, `web.xml` uses the Servlet 6.1 schema, so EL is on by default (G37 fixed). All 7 JSPs still declare `isELIgnored="false"`; it's harmless.
+  - **JSTL:** the taglib URIs are `jakarta.tags.core` and `jakarta.tags.functions` (Jakarta Tags 3.0), not `http://java.sun.com/jsp/jstl/…`.
   - **Request encoding:** `web.xml` pins `request-character-encoding` to ISO-8859-1 to match the JSPs' `pageEncoding`. Change both together (G34). Don't delete `web.xml`: without the pin Tomcat 11 answers Latin-1 form posts with HTTP 400 (`SmokeTest.latin1FormPostIsAccepted`).
-  - List pages use DataTables 1.13.11 with its Bootstrap 3 integration, an Update link and a Delete POST form (`viewposition.jsp`, `viewlanguage.jsp`). Load one jQuery, then Bootstrap JS, then DataTables; `resources/css/datatables.css` goes after the CDN CSS (G31, G34).
-  - **Role checks are null-safe:** write `"N".equalsIgnoreCase(x.getIsinterviewer())`, never `x.getIsinterviewer().equals…` (`main.jsp:42,67`, `viewmarks.jsp:96,98`, G16).
+  - **Role and status checks are null-safe:** compare `fn:toUpperCase(x)` with `'N'`, `'Y'`, `'S'` or `'R'` in EL (`layout.tag:13`, `main.jsp:13`, `viewmarks.jsp:58,61`); `fn:toUpperCase` of NULL is empty, so NULL matches nothing (G16). In Java, write `"N".equalsIgnoreCase(x.getIsinterviewer())`.
 - **Access control:** `AuthInterceptor` is registered twice in `WebConfig.addInterceptors` (`WebConfig.java:47-54`). A new page is admin-only by default, because the second registration covers every path except `/`, `/home`, `/login`, `/welcome` and `/resources/**`. A page that any logged-in user may open (the interviewer's, G5) must be added to the login-only registration (`WebConfig.java:50`), and `AuthInterceptorTest.eachPathHasOneCheck` extended. New public paths go into the exclusion list on the admin-only registration (`:53`).
 - **Logging:** use SLF4J, with `private static final Logger log = LoggerFactory.getLogger(X.class);` as the first class field and `{}` placeholders (`PositionDaoImpl.java:23,82`). No new `System.out` (none is left in `src`). Never log passwords or other personal data. `logback.xml` replaces CR/LF in messages, so logged user input can't forge log lines.
-- **Front-end libraries:** load them from a pinned CDN version with an SRI `integrity` hash (sha384) and `crossorigin="anonymous"`, as in every JSP head since Phase 1 (`viewposition.jsp:11-24`). Compute the hash from the exact file, e.g. `curl -s URL | openssl dgst -sha384 -binary | openssl base64 -A`.
+- **Front-end libraries:** load them from a pinned CDN version with an SRI `integrity` hash (sha384) and `crossorigin="anonymous"`, as in `layout.tag:22-41` and `login.jsp:15-16`. Prefer jsDelivr npm paths and take the hash from the npm package file. Compute the hash from the exact file, e.g. `curl -s URL | openssl dgst -sha384 -binary | openssl base64 -A`.
 - **MVC config:** implement `WebMvcConfigurer`, not the deprecated `WebMvcConfigurerAdapter` (`WebConfig.java:22`).
 - **Style:** tab indentation. Eclipse "Auto-generated method stub" TODO comments are left in place (`rms/service/*Impl.java`, `rms/dao/*Impl.java`).
 - **Git:**

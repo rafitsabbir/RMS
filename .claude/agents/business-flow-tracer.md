@@ -12,7 +12,7 @@ You trace one business capability through the RMS code (Spring MVC, JSP, Spring 
 2. If a trace already exists, verify it against current code and report differences rather than re-deriving everything.
 
 ## Trace steps
-1. **Entry point:** the menu link in `WEB-INF/jsp/main.jsp` (`load_*()` functions / `spring:url`) and/or the `@RequestMapping` in `src/main/java/rms/controller/*`.
+1. **Entry point:** the sidebar link in `WEB-INF/tags/layout.tag` and/or the `@RequestMapping` in `src/main/java/rms/controller/*`.
 2. **Controller → Service → DAO:** follow each call; note the method names.
 3. **DB:** the SQL string fields in `rms/dao/*DaoImpl.java` — tables, columns, joins, and whether any stored procedures are called.
 4. **Mapping:** the `RowMapper` and `rms/model/*Info` fields.

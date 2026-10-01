@@ -1,7 +1,7 @@
 # Architecture
 
 Purpose: How RMS is layered and how a request moves through it.
-Last updated: 2026-10-01 (small fixes batch: login redirects to `/home`, two interceptor registrations, 404 handling, soft delete, cookie-only sessions). 2026-09-30 (G11 login check; G27 output escaping)
+Last updated: 2026-10-01 (UI redesign: layout tag replaces the `<object>` menu frame). 2026-10-01 (small fixes batch: login redirects to `/home`, two interceptor registrations, 404 handling, soft delete, cookie-only sessions). 2026-09-30 (G11 login check; G27 output escaping)
 Read this when: you need the overall picture before changing code, or you're deciding which layer a change belongs in.
 
 ## Overall diagram
@@ -30,7 +30,7 @@ Evidence: `src/main/java/rms/config/WebInitializer.java`, `rms/config/WebConfig.
 | Service | `rms.service` | `@Service` classes that pass calls straight to the DAO, with no logic | `rms/service/*Impl.java` |
 | DAO | `rms.dao` | `@Repository` classes with SQL as string fields and `RowMapper` inner classes | `rms/dao/*Impl.java` |
 | Model | `rms.model` | Plain `*Info` POJOs | `rms/model/*.java` |
-| View | `src/main/webapp/WEB-INF/jsp` | JSP pages with scriptlets and JSTL | `WEB-INF/jsp/*.jsp` |
+| View | `src/main/webapp/WEB-INF/jsp` | JSP pages with JSTL and EL (no scriptlets since 2026-10-01), sharing the `layout.tag` shell | `WEB-INF/jsp/*.jsp`, `WEB-INF/tags/layout.tag` |
 
 ## Request lifecycle
 1. `AuthInterceptor` runs first on every DispatcherServlet request except `/login`, `/welcome` and `/resources/**` (`WebConfig.java:47-54`). Logged out → redirect to `/login`.
@@ -39,7 +39,7 @@ Evidence: `src/main/java/rms/config/WebInitializer.java`, `rms/config/WebConfig.
 4. The DAO runs SQL through `NamedParameterJdbcTemplate` and maps rows to `*Info` models (`rms/dao/*Impl.java`).
 5. The controller returns a `ModelAndView`, which resolves to `/WEB-INF/jsp/<view>.jsp`, or a `redirect:` after saves, deletes and the login (`WebConfig.viewResolver`, `PositionController.save`).
 6. **Login:** `POST /welcome` with valid credentials answers 302 to `/home`, and `GET /home` renders `main.jsp` from the session, so a refresh doesn't re-post the credentials. `GET /` also redirects to `/home` (`LoginController.java:26-29,39-72`; flow in [business-flows/login.md](business-flows/login.md)).
-7. **UI shell:** `main.jsp` is the page frame. Each menu item loads its page into `#container` inside an `<object>` element (`main.jsp`, the `load_*()` functions).
+7. **UI shell:** every page behind the login is a normal page wrapped in the `layout.tag` tag file, which renders the sidebar menu, the top bar and the content area (`WEB-INF/tags/layout.tag`). Menu items are plain links, so back, refresh and bookmarks work. `main.jsp` is the home page with quick links per role. Until the 2026-10-01 redesign, `main.jsp` was a frame that loaded each page into an `<object>` element.
 
 ## Cross-cutting concerns
 - **Transactions:** none managed. There's no `@Transactional` or transaction manager, and none is needed: each write is a single statement (G19, closed as not a gap). `spring-tx` is declared on purpose, because the DAOs use its `DataAccessException` hierarchy (`pom.xml:72-76`).

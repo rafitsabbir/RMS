@@ -1,10 +1,10 @@
 # Acceptance Results
 
 Purpose: Results of the acceptance checklist ([modernization-plan.md](../modernization-plan.md), section 6) and the browser check per upgrade phase, with the Phase 0 baseline screenshots that later phases are compared against.
-Last updated: 2026-10-01 (small fixes batch: results, intended checklist differences, and notes on behaviour that changed since the older runs). 2026-10-01 (Phase 3 on Tomcat 11, rerun after the code review; merged into `dev`). 2026-09-30
+Last updated: 2026-10-01 (UI redesign noted: no run covers it yet). 2026-10-01 (small fixes batch: results, intended checklist differences, and notes on behaviour that changed since the older runs). 2026-10-01 (Phase 3 on Tomcat 11, rerun after the code review; merged into `dev`). 2026-09-30
 Read this when: you're signing off a phase, re-running the checklist after an upgrade, or comparing screens with the baseline.
 
-The sections are chronological and keep their results as history. Some behaviour they describe changed on 2026-10-01 (silent duplicate skip, GET delete links, `GET /` showing `index.jsp`, the login-page JavaScript error). The last section, *Small fixes batch*, lists what a checklist run should expect now.
+The sections are chronological and keep their results as history. Some behaviour they describe changed on 2026-10-01 (silent duplicate skip, GET delete links, `GET /` showing `index.jsp`, the login-page JavaScript error). The last section, *Small fixes batch*, lists what a checklist run should expect now. None of the runs below covers the 2026-10-01 UI redesign (`bb569c4`, `f826830`, `0aaf836`): their screenshots and page details (the `<object>` menu, Bootstrap 3/4, the status images) show the old UI. The redesign still needs its own run ([upgrade-status.md](../upgrade-status.md)).
 
 ## Run of 2026-09-27: Phase 0 baseline vs Phase 1
 **What ran:**

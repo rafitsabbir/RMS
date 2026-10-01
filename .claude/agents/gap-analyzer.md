@@ -14,7 +14,7 @@ You find partial and unimplemented features in RMS (Spring MVC, JSP, Spring JDBC
 ## What to search
 - Markers: `TODO|FIXME|HACK|XXX|not implemented|not supported|UnsupportedOperationException`. Note: Eclipse `// TODO Auto-generated method stub` is noise unless the body is empty/stubbed.
 - Stubs: empty method bodies; methods returning `null`, `0`, empty lists or hardcoded values.
-- Missing links: menu entries/URLs in `WEB-INF/jsp/main.jsp` with no `@RequestMapping`; mappings with no view; views with no handler.
+- Missing links: menu entries in `WEB-INF/tags/layout.tag` ("Coming soon" ones included) and URLs with no `@RequestMapping`; mappings with no view; views with no handler.
 - Dead code: interface methods never called, unused JS/CSS/images, unused model fields, declared-but-unused dependencies in `pom.xml`.
 - Silent failures: catch blocks that swallow, only `System.out`/`printStackTrace`, or continue as if successful.
 - Data: tables used in SQL but not defined in any script; soft-delete flags written but not honoured.

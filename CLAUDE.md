@@ -4,9 +4,9 @@
 Use subagents in .claude/agents/ — see ROUTER.md.
 
 ## Summary
-- RMS is a small recruitment management web app (`README.md`) with two roles: admin and interviewer, chosen by `isinterviewer` (`main.jsp`).
+- RMS is a small recruitment management web app (`README.md`) with two roles: admin and interviewer, chosen by `isinterviewer` (`WEB-INF/tags/layout.tag`).
 - Admins maintain the job-position and language/skill lists, and view candidates' scores on 10 criteria with a total and a selected/rejected status (`rms/controller/*`, `viewmarks.jsp`).
-- Candidate, interviewer, job and schedule modules, and interviewer score entry, are menu links only, with no backend (`main.jsp`, `MarksDaoImpl.java`).
+- Candidate, interviewer, job and schedule modules, and interviewer score entry, show only as disabled "Coming soon" menu entries, with no backend (`layout.tag`, `MarksDaoImpl.java`).
 
 **Stack:**
 - Java: 21 (`maven.compiler.release` in `pom.xml`), built with JDK 21.
@@ -42,9 +42,10 @@ src/main/java/rms/
   controller/                 Login, Position, Language, Marks
   service/  dao/  model/      *Service(+Impl), *Dao(+Impl), *Info
 src/main/webapp/
-  WEB-INF/jsp/                7 JSP views (main.jsp = menu shell)
+  WEB-INF/jsp/                7 JSP views (main.jsp = home page)
+  WEB-INF/tags/layout.tag     shared page shell: head, sidebar menu, top bar
   WEB-INF/web.xml             Servlet 6.1: request encoding ISO-8859-1, metadata-complete
-  resources/                  css, images
+  resources/                  css (rms.css theme), js (rms.js), img (SVG logo, icon sprite)
 src/test/java/rms/            controller, access-control, DAO (Testcontainers) and smoke tests
 db/                           schema.sql (inferred), test-seed.sql (synthetic)
   local/                      local MySQL setup: create DB + load schema and seed (README.md)
