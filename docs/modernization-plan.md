@@ -1,7 +1,7 @@
 # Modernization Plan
 
 Purpose: The agreed plan for bringing RMS up to a supported stack: current state, target stack with reasons, phases, risks and gates.
-Last updated: 2026-10-01 (Phase 4 CI, dependency scan and context template on `dev`; Eclipse files removed). 2026-10-01 (Phase 3 merged into `dev` with releases on hold; Phase 1 frozen on `release/phase1`). 2026-10-01 (Phase 3 coded and verified on a branch, with Phase 2 folded in, then reviewed and re-verified; Phase 3 rollback target corrected; Phase 1 rollback rehearsed; the Phase 3 JSTL list covers five JSPs). 2026-09-30 (G11 interceptor adds a second `javax.servlet` user; all 7 JSPs opt into EL after the G40 fix; G27/G38 fixed). 2026-09-26 (Phase 1 code on `dev`, not released; Phase 0 owner steps still open)
+Last updated: 2026-10-01 (small fixes batch: the `main.jsp` `System.out`, the G36 session warning and the G30 context-path redirect bug are fixed, so they're no longer described as current; checklist item 2 and stale line references updated). 2026-10-01 (Phase 4 CI, dependency scan and context template on `dev`; Eclipse files removed). 2026-10-01 (Phase 3 merged into `dev` with releases on hold; Phase 1 frozen on `release/phase1`). 2026-10-01 (Phase 3 coded and verified on a branch, with Phase 2 folded in, then reviewed and re-verified; Phase 3 rollback target corrected; Phase 1 rollback rehearsed; the Phase 3 JSTL list covers five JSPs). 2026-09-30 (G11 interceptor adds a second `javax.servlet` user; all 7 JSPs opt into EL after the G40 fix; G27/G38 fixed). 2026-09-26 (Phase 1 code on `dev`, not released; Phase 0 owner steps still open)
 Read this when: you're upgrading libraries, the JDK, the framework, the servlet container or the DB driver, or planning a security fix to the stack.
 
 **Status and rules:**
@@ -132,7 +132,7 @@ Move one axis at a time. Pass through Spring 5.3 so the security fixes ship befo
      - pinned compiler, war 3.4.x and surefire 3.x plugins
   3. **`.gitignore`:** stop tracking `target/` with `git rm -r --cached target` (G29).
   4. **Schema (G22):** `db/schema.sql`, DDL only from the owner, with no data and no secrets; plus a synthetic `db/test-seed.sql`.
-  5. **Characterization tests:** these pin current behaviour, including known defects. Mark such tests, e.g. `// characterizes G14`.
+  5. **Characterization tests:** these pin current behaviour, including known defects. Mark such tests, e.g. `// characterizes G10` (G14, the original example, was fixed on 2026-10-01 and its tests now pin the refusal).
      - **Controllers** (standalone MockMvc with mocked services):
        - Login success: view `main` and the session attribute `user`.
        - Login failure: view `login` and `errorMessage`.
@@ -141,7 +141,7 @@ Move one axis at a time. Pass through Spring 5.3 so the security fixes ship befo
        - `/adminviewmarks` model.
      - **DAOs** (Testcontainers MySQL):
        - login check and profile
-       - add (including the silent duplicate skip, G14), update, delete, and the `isactive=1` filter
+       - add (including the silent duplicate skip, G14; refused with a message since 2026-10-01), update, delete (a hard delete then, soft since G17), and the `isactive=1` filter
        - the `getAllMarksByAdmin` column mapping, as-is (G10)
      - **HTTP smoke test** against a deployed WAR, with the base URL taken from an environment variable:
        - `/login` returns 200
@@ -191,7 +191,7 @@ Move one axis at a time. Pass through Spring 5.3 so the security fixes ship befo
   4. **Logging:**
      - Add `slf4j-api` 2.0.x and `logback-classic` 1.3.x, plus `src/main/resources/logback.xml`.
      - Replace `System.out` at `PositionDaoImpl.java:69` and `LanguageDaoImpl.java:69`.
-     - `main.jsp:173` is left for G30.
+     - `main.jsp:173` was left for G30. That last `System.out` was removed with G30 on 2026-10-01; none is left in `src`.
   5. **Front end, drop-in versions within the same major:**
      - jQuery → 3.7.x
      - Bootstrap 3.3.7 → 3.4.1 and 4.1.1 → 4.6.x
@@ -209,7 +209,7 @@ Move one axis at a time. Pass through Spring 5.3 so the security fixes ship befo
 - **Risks:**
   - **Spring 4→5:** suffix-pattern URL matching is off by default [A]. RMS URLs have no extensions [C].
   - **Driver:** SSL, time-zone and character-set defaults change [A]. There are no date columns [C]. Non-ASCII text needs testing (G34).
-  - **Front-end bumps:** the visual appearance may shift. The JavaScript API risk is low [C]: the only inline scripts are `$(document).ready(...)` with `$('#…').DataTable()` (`viewposition.jsp:29`, `viewlanguage.jsp:29`, `viewmarks.jsp:44`) and the plain-DOM dropdown toggle in `main.jsp:101-114`. No Bootstrap JS plugin (modal, tooltip, dropdown…) is called.
+  - **Front-end bumps:** the visual appearance may shift. The JavaScript API risk is low [C]: the only inline scripts are `$(document).ready(...)` with `$('#…').DataTable()` (`viewposition.jsp:32`, `viewlanguage.jsp:32`, `viewmarks.jsp:49`) and the plain-DOM dropdown toggle in `main.jsp:99-113`. No Bootstrap JS plugin (modal, tooltip, dropdown…) is called.
 - **Rollback:**
   - Redeploy the Phase 0 WAR.
   - Keep the old driver jar and `driverClassName` until sign-off.
@@ -273,8 +273,8 @@ Move one axis at a time. Pass through Spring 5.3 so the security fixes ship befo
   - **Found while testing:**
     - Tomcat 11 decodes requests as UTF-8 by default and answers invalid bytes with HTTP 400. The ISO-8859-1 forms failed on "café" until `web.xml` pinned `request-character-encoding` to ISO-8859-1 (G34).
     - Spring 7 maps a request whose context path carries `;` parameters, which Spring 5.3 answered with 404. The escaped menu URLs keep it harmless (G27).
-    - Spring 7 logs two WARN lines per unmapped URL ("No mapping" and "No endpoint"), both in `org.springframework.web.servlet.PageNotFound`. Spring 5.3 logged one. Both versions log the raw request URI, which can carry `;jsessionid=` (G41).
-    - Tomcat 11.0.26 wrote no session file on stop, and logged no G36 warning.
+    - Spring 7 logs two WARN lines per unmapped URL ("No mapping" and "No endpoint"), both in `org.springframework.web.servlet.PageNotFound`. Spring 5.3 logged one. Both versions log the raw request URI, which could carry `;jsessionid=` (G41, fixed 2026-10-01 with cookie-only tracking).
+    - Tomcat 11.0.26 wrote no session file on stop, and logged no G36 warning. (G36 was fixed on 2026-10-01: `UserInfo` is `Serializable`.)
     - Spring 5's `spring-jcl` is replaced by Apache `commons-logging` 1.3.5, which routes to SLF4J.
   - **Open:**
     - **Before the release:** the owner chooses the JDK standard (section 9). The WAR needs a JDK 21+ runtime (class version 65); if the standard is 17, set `maven.compiler.release` to 17.
@@ -295,9 +295,9 @@ Move one axis at a time. Pass through Spring 5.3 so the security fixes ship befo
   5. **Container:** Tomcat 11 on JDK 21, with the JNDI `jdbc/springrms` resource re-created (ops; no secrets in the repo).
 - **Files:** `pom.xml`, `LoginController.java`, `AuthInterceptor.java`, the five JSPs that use JSTL, `web.xml`, and the container (ops).
 - **Risks:**
-  - Spring 6+ stops matching trailing slashes [C: `AuthInterceptorTest.trailingSlashIsNotMatched`, 404 before any handler or check]. Links come from `spring:url` without trailing slashes (`viewposition.jsp:49,53`) [C], but bookmarks may break.
+  - Spring 6+ stops matching trailing slashes [C: `AuthInterceptorTest.trailingSlashIsNotMatched`, 404 before any handler or check]. Links come from `spring:url` without trailing slashes (`viewposition.jsp:52,56`) [C], but bookmarks may break.
   - Spring 7 removals affecting `JstlView` or `JndiTemplate` would show up at compile time [A].
-  - Tomcat 11 session persistence warns on the non-`Serializable` `UserInfo` (G36) [A].
+  - Tomcat 11 session persistence would warn on the non-`Serializable` `UserInfo` (G36) [A]. Fixed on 2026-10-01: `UserInfo` is `Serializable`, and with a `<Manager>` a session survived a restart on a scratch Tomcat 11 ([build-run.md](build-run.md)).
 - **Rollback:** keep the Phase 1 container (Tomcat 9 on its JDK 8, as released) and the Phase 1 WAR side by side until sign-off, and switch back by redeploying. Phase 2 was folded into Phase 3, so there is no Phase 2 WAR. JDK 21 would also be allowed there, because Spring 5.3.39 is past the Spring4Shell fix, but that combination hasn't been deployed. Data stays compatible: with the request encoding pinned, Tomcat 11 stores the same bytes as Tomcat 9 [C: 2026-10-01 run].
 - **Verification:**
   - `grep -rn "javax.servlet" src pom.xml` returns nothing.
@@ -316,7 +316,7 @@ Move one axis at a time. Pass through Spring 5.3 so the security fixes ship befo
      - publishes the WAR as a build artifact
   2. **Deploy templates:**
      - A Tomcat context template for `jdbc/springrms`, with its values read from environment variables. No credentials or hosts go in the repo [A: mechanism].
-     - An optional container image (Tomcat 11 + JDK 21) that deploys the WAR as `ROOT`, which sidesteps the context-path redirect bug in G30.
+     - An optional container image (Tomcat 11 + JDK 21) that deploys the WAR as `ROOT`. (It was meant to sidestep the context-path redirect bug in G30, which was fixed on 2026-10-01: the login fallback and the `redirect:/home` both use the context path, `main.jsp:166`, `LoginController.java:57`.)
 - **Follow-ups, outside this plan:**
   - JDK 21 → 25 (S)
   - Spring Security 7 for G11, G13 and G32
@@ -330,7 +330,7 @@ Move one axis at a time. Pass through Spring 5.3 so the security fixes ship befo
 ## 5. Gates and deadlines
 - **JDK after Spring:**
   - Never run RMS on JDK 9+ while it's on Spring 4.3. Spring4Shell (CVE-2022-22965) applies to Spring MVC WARs on Tomcat with POJO binding [A].
-  - RMS binds `PositionInfo` and `LanguageInfo` (`PositionController.java:35`, `LanguageController.java:44`) [C].
+  - RMS binds `PositionInfo` and `LanguageInfo` (`PositionController.java:37-38`, `LanguageController.java:46-47`) [C].
   - Phase 2 therefore waits for Phase 1 to reach production.
 - **5.3 is only a waypoint:** its open-source support ended 2024-08-31 [A], so Phases 1–3 run back to back.
 - **Tomcat 9 support ends 2027-03-31** [A]. Phase 3 must be in production before then.
@@ -361,9 +361,9 @@ Results and the Phase 0 baseline screenshots: [acceptance/README.md](acceptance/
 1. **Login:** log in as an admin and as an interviewer, and check the menu, name, role and email. A wrong password shows "Invalid login!". Logout works.
 2. **Position:**
    - create one
-   - create a duplicate: today it's silently skipped
+   - create a duplicate: it's refused with "Position NAME already exists." and the typed value stays in the form (it was silently skipped before 2026-10-01); a blank name shows "Please enter a position name."
    - edit it
-   - delete it
+   - delete it with the Delete button (a soft delete: the row leaves the list; adding the name again brings it back)
    - check the list's search and sort
 3. **Language:** the same steps as Position.
 4. **Admin view marks:** check each candidate's names, position, language, 10 scores, total and Selected/Rejected label against the Phase 0 screenshots.
