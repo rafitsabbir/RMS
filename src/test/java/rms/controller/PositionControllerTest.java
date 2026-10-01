@@ -72,6 +72,7 @@ class PositionControllerTest {
 
 	@Test
 	void saveWithKeyUpdatesAndRedirectsToList() throws Exception {
+		when(positionservice.findPositionById(5)).thenReturn(new PositionInfo());
 		when(positionservice.updatePosition(any(PositionInfo.class))).thenReturn(true);
 
 		mockMvc.perform(post("/saveposition").param("positionkey", "5").param("positionname", "lead"))
@@ -115,12 +116,25 @@ class PositionControllerTest {
 	}
 
 	@Test
-	void updateToDuplicateShowsFormWithError() throws Exception {
+	void updateToDuplicateShowsFormWithErrorAndKeepsKey() throws Exception {
+		when(positionservice.findPositionById(5)).thenReturn(new PositionInfo());
 		when(positionservice.updatePosition(any(PositionInfo.class))).thenReturn(false);
 
 		mockMvc.perform(post("/saveposition").param("positionkey", "5").param("positionname", "lead"))
 				.andExpect(view().name("createposition"))
-				.andExpect(model().attribute("errorMessage", "Position LEAD already exists."));
+				.andExpect(model().attribute("errorMessage", "Position LEAD already exists."))
+				.andExpect(model().attribute("positioninfo", hasProperty("positionkey", is(5))));
+	}
+
+	@Test
+	void saveOfDeletedPositionIs404() throws Exception {
+		when(positionservice.findPositionById(5)).thenReturn(null);
+
+		mockMvc.perform(post("/saveposition").param("positionkey", "5").param("positionname", "x"))
+				.andExpect(status().isNotFound());
+
+		verify(positionservice, never()).updatePosition(any(PositionInfo.class));
+		verify(positionservice, never()).addPosition(any(PositionInfo.class));
 	}
 
 	@Test

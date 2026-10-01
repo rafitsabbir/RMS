@@ -15,7 +15,7 @@
 	height: 40px;
 }
 
-/* DataTables' Bootstrap 4 layout wraps its controls and the table in grid rows (-15px margins)
+/* DataTables' Bootstrap layout wraps its controls and the table in grid rows (-15px margins)
    with no container around them, so they stuck out 15px and caused a horizontal scrollbar. */
 .dataTables_wrapper .row {
 	margin-left: 0;
@@ -25,4 +25,21 @@
 .dataTables_wrapper .row > [class*="col-"] {
 	padding-left: 0;
 	padding-right: 0;
+}
+
+/* DataTables' Bootstrap 3 CSS adds 26px for sort arrows to every header cell, which would push Total
+   Score and Status out of view again (G40). This table keeps 4px and shows no arrows; sorting still works. */
+table.dataTable.results-table thead > tr > th.sorting,
+table.dataTable.results-table thead > tr > th.sorting_asc,
+table.dataTable.results-table thead > tr > th.sorting_desc {
+	padding-right: 4px;
+}
+
+table.dataTable.results-table thead > tr > th.sorting:before,
+table.dataTable.results-table thead > tr > th.sorting:after,
+table.dataTable.results-table thead > tr > th.sorting_asc:before,
+table.dataTable.results-table thead > tr > th.sorting_asc:after,
+table.dataTable.results-table thead > tr > th.sorting_desc:before,
+table.dataTable.results-table thead > tr > th.sorting_desc:after {
+	display: none;
 }

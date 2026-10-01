@@ -5,6 +5,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.head;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
@@ -154,9 +155,24 @@ class AuthInterceptorTest {
 	}
 
 	@Test
+	void menuPageNeedsNoRole() throws Exception {
+		mockMvc.perform(get("/home").session(sessionFor(null)))
+				.andExpect(status().isOk())
+				.andExpect(view().name("main"));
+	}
+
+	@Test
 	void loggedOutMenuPageRedirectsToLogin() throws Exception {
 		mockMvc.perform(get("/home")).andExpect(redirectedUrl("/login"));
 		mockMvc.perform(get("/")).andExpect(redirectedUrl("/login"));
+		mockMvc.perform(head("/home")).andExpect(redirectedUrl("/login"));
+		mockMvc.perform(get("/home;jsessionid=X")).andExpect(redirectedUrl("/login"));
+	}
+
+	@Test
+	void pagesBehindTheLoginAreNotCached() throws Exception {
+		mockMvc.perform(get("/home").session(sessionFor("Y"))).andExpect(header().string("Cache-Control", "no-store"));
+		mockMvc.perform(get("/viewpositionlist").session(sessionFor("N"))).andExpect(header().string("Cache-Control", "no-store"));
 	}
 
 	@Test

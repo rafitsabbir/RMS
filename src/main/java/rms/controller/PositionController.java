@@ -2,6 +2,7 @@ package rms.controller;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -43,12 +44,16 @@ public class PositionController {
 
 		boolean saved;
 		if (positioninfo.getPositionkey() > 0) {
+			// The position may have been deleted while the form was open
+			if (positionservice.findPositionById(positioninfo.getPositionkey()) == null) {
+				throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+			}
 			saved = positionservice.updatePosition(positioninfo);
 		} else {
 			saved = positionservice.addPosition(positioninfo);
 		}
 		if (!saved) {
-			return form(positioninfo, "Position " + name.trim().toUpperCase() + " already exists.");
+			return form(positioninfo, "Position " + name.trim().toUpperCase(Locale.ROOT) + " already exists.");
 		}
 
 		return new ModelAndView("redirect:/viewpositionlist");

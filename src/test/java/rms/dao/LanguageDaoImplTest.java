@@ -76,6 +76,33 @@ class LanguageDaoImplTest extends MySqlContainerSupport {
 	}
 
 	@Test
+	void updateLeavesDeletedOrMissingLanguageAlone() {
+		assertThat(dao.updateLanguage(language(3, "renamed"))).isTrue();
+		assertThat(dao.updateLanguage(language(99, "renamed"))).isTrue();
+
+		assertThat(name(3)).isEqualTo("COBOL");
+		assertThat(countRows()).isEqualTo(3);
+	}
+
+	@Test
+	void renameOntoTheNameOfADeletedLanguageIsAllowed() {
+		assertThat(dao.updateLanguage(language(1, "cobol"))).isTrue();
+
+		assertThat(name(1)).isEqualTo("COBOL");
+	}
+
+	@Test
+	void addBringsBackTheOldestOfSeveralDeletedRows() {
+		jdbcTemplate.update("insert into language (languagename, isactive) values ('COBOL', 0)");
+
+		assertThat(dao.addLanguage(language(0, "cobol"))).isTrue();
+
+		assertThat(isactive(3)).isEqualTo(1);
+		assertThat(jdbcTemplate.queryForObject(
+				"select count(*) from language where languagename='COBOL' and isactive=1", Integer.class)).isEqualTo(1);
+	}
+
+	@Test
 	void deleteDeactivatesTheRow() {
 		dao.deleteLanguage(2);
 
@@ -95,7 +122,11 @@ class LanguageDaoImplTest extends MySqlContainerSupport {
 	}
 
 	private int isactive(int key) {
-		return jdbcTemplate.queryForObject("select isactive from language where languagekey=" + key, Integer.class);
+		return jdbcTemplate.queryForObject("select isactive from language where languagekey=?", Integer.class, key);
+	}
+
+	private String name(int key) {
+		return jdbcTemplate.queryForObject("select languagename from language where languagekey=?", String.class, key);
 	}
 
 	private static LanguageInfo language(int key, String name) {

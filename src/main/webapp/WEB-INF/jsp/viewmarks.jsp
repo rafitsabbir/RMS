@@ -12,6 +12,8 @@
 	href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css" integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
 <link rel="stylesheet"
 	href="https://cdn.datatables.net/1.13.11/css/dataTables.bootstrap.min.css" integrity="sha384-l2WpiBvV3jxT9soajqlYVZkCyShrAMkhYlR3YpVxutac8q2X3W7p5kDvjkQgyM+Y" crossorigin="anonymous">
+<spring:url value="/resources/css/datatables.css" var="datatablescss" />
+<link rel="stylesheet" type="text/css" href="${datatablescss}"/>
 <spring:url value="/resources/css/viewmarks.css" var="viewmarkscss" />
 <link rel="stylesheet" type="text/css" href="${viewmarkscss}"/>
 <script

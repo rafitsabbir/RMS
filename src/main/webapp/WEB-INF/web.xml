@@ -10,8 +10,15 @@
 		rejects such posts with HTTP 400 (e.g. "café"; SmokeTest checks this). Moving everything to UTF-8
 		is G34 (docs/gaps.md). -->
 	<request-character-encoding>ISO-8859-1</request-character-encoding>
-	<!-- Sessions by cookie only, so no ;jsessionid in URLs, history or logs (G41) -->
+	<!-- Sessions by cookie only, so no ;jsessionid in URLs, history or logs (G41). SameSite=Lax keeps
+		other sites' form posts from carrying the session cookie; a CSRF token still comes with G32. -->
 	<session-config>
+		<cookie-config>
+			<attribute>
+				<attribute-name>SameSite</attribute-name>
+				<attribute-value>Lax</attribute-value>
+			</attribute>
+		</cookie-config>
 		<tracking-mode>COOKIE</tracking-mode>
 	</session-config>
 </web-app>

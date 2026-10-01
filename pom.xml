@@ -69,6 +69,12 @@
 			<artifactId>spring-web</artifactId>
 		</dependency>
 
+		<!-- The DAOs use its DataAccessException hierarchy directly (no transaction management, G19) -->
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-tx</artifactId>
+		</dependency>
+
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-jdbc</artifactId>

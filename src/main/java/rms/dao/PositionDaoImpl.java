@@ -4,6 +4,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -23,9 +24,9 @@ public class PositionDaoImpl implements PositionDao {
 
 	private String ifexist = "select count(*) from position where positionname=:positionname and isactive=1";
 	private String ifexistother = "select count(*) from position where positionname=:positionname and positionkey<>:positionkey and isactive=1";
-	private String reactivateposition = "update position set isactive=1 where positionname=:positionname and isactive=0 limit 1";
+	private String reactivateposition = "update position set isactive=1, positionname=:positionname where positionname=:positionname and isactive=0 order by positionkey limit 1";
 	private String saveposition = "insert into position  (isActive, positionname) VALUES (:isActive,:positionname)";
-	private String updateposition = "update position set positionname=:positionname where positionkey=:positionkey";
+	private String updateposition = "update position set positionname=:positionname where positionkey=:positionkey and isactive=1";
 	private String allposition = "select positionkey, positionname from position where  isactive=1";
 	private String deleteposition = "update position set isactive=0 where positionkey=:positionkey";
 	private String findpositionbyid = "select positionkey, positionname from position where positionkey=:positionkey and isactive=1";
@@ -50,12 +51,14 @@ public class PositionDaoImpl implements PositionDao {
 	}
 
 	@Override
-	public boolean updatePosition(PositionInfo positioninfo) {
+	// synchronized: the duplicate check and the write must not interleave with another save, as there is
+	// no UNIQUE index (G33, G22). This covers one Tomcat only.
+	public synchronized boolean updatePosition(PositionInfo positioninfo) {
 		// TODO Auto-generated method stub
 		Map<String, Object> paramMap = new HashMap<String, Object>();
 
 		paramMap.put("positionname", positioninfo.getPositionname()
-				.toUpperCase().trim());
+				.toUpperCase(Locale.ROOT).trim());
 		paramMap.put("positionkey", positioninfo.getPositionkey());
 
 		if (namedParameterJdbcTemplate.queryForObject(ifexistother, paramMap, Integer.class) > 0) {
@@ -67,12 +70,13 @@ public class PositionDaoImpl implements PositionDao {
 	}
 
 	@Override
-	public boolean addPosition(PositionInfo positioninfo) {
+	// synchronized: see updatePosition
+	public synchronized boolean addPosition(PositionInfo positioninfo) {
 		// TODO Auto-generated method stub
 		Map<String, Object> paramMap = new HashMap<String, Object>();
 
 		paramMap.put("positionname", positioninfo.getPositionname()
-				.toUpperCase().trim());
+				.toUpperCase(Locale.ROOT).trim());
 
 		if (namedParameterJdbcTemplate.queryForObject(ifexist, paramMap, Integer.class) > 0) {
 			log.warn("Position {} already exists; not added", paramMap.get("positionname"));

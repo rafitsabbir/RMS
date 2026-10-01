@@ -2,6 +2,7 @@ package rms.controller;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -52,12 +53,16 @@ public class LanguageController {
 
 		boolean saved;
 		if (languageinfo.getLanguagekey() > 0) {
+			// The language may have been deleted while the form was open
+			if (languageservice.findLanguageById(languageinfo.getLanguagekey()) == null) {
+				throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+			}
 			saved = languageservice.updateLanguage(languageinfo);
 		} else {
 			saved = languageservice.addLanguage(languageinfo);
 		}
 		if (!saved) {
-			return form(languageinfo, "Language " + name.trim().toUpperCase() + " already exists.");
+			return form(languageinfo, "Language " + name.trim().toUpperCase(Locale.ROOT) + " already exists.");
 		}
 
 		return new ModelAndView("redirect:/viewlanguagelist");
