@@ -80,9 +80,38 @@ class SmokeTest {
 
 		assertThat(connection.getResponseCode()).isEqualTo(200);
 		String body = read(connection);
-		assertThat(body).contains("sidenav");
+		assertThat(body).contains("id=\"rms-sidebar\"");
+		// Menu items are real links now, not pages loaded into an <object>
+		assertThat(body).doesNotContain("<object");
 		// G38: the score-entry URLs carry no userid
 		assertThat(body).doesNotContain("?user=");
+	}
+
+	@Test
+	@EnabledIfEnvironmentVariable(named = "RMS_SMOKE_USER", matches = ".+")
+	@EnabledIfEnvironmentVariable(named = "RMS_SMOKE_PASSWORD", matches = ".+")
+	void listPageUsesTheLayout() throws IOException {
+		HttpURLConnection login = postLogin(System.getenv("RMS_SMOKE_USER"), System.getenv("RMS_SMOKE_PASSWORD"));
+		assertThat(login.getResponseCode()).isEqualTo(302);
+		HttpURLConnection connection = (HttpURLConnection) URI.create(baseUrl() + "/viewpositionlist").toURL()
+				.openConnection();
+		connection.setInstanceFollowRedirects(false);
+		connection.setRequestProperty("Cookie", sessionCookie(login));
+
+		assertThat(connection.getResponseCode()).isEqualTo(200);
+		String body = read(connection);
+		assertThat(body).contains("<title>Positions - RMS</title>");
+		assertThat(body).contains("id=\"rms-sidebar\"");
+		assertThat(body).contains("id=\"positiontable\"");
+	}
+
+	@Test
+	void brandAssetsAreServed() throws IOException {
+		HttpURLConnection connection = (HttpURLConnection) URI.create(baseUrl() + "/resources/img/logo.svg").toURL()
+				.openConnection();
+
+		assertThat(connection.getResponseCode()).isEqualTo(200);
+		assertThat(connection.getContentType()).startsWith("image/svg+xml");
 	}
 
 	/** The pages post ISO-8859-1; web.xml pins that decoding (Tomcat 11 would answer 400 for UTF-8-invalid bytes). */

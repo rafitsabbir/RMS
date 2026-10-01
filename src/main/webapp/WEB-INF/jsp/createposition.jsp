@@ -1,39 +1,41 @@
 <%@ page language="java" contentType="text/html; charset=ISO-8859-1"
-	pageEncoding="ISO-8859-1" isELIgnored="false"%>
+	pageEncoding="ISO-8859-1" isELIgnored="false" trimDirectiveWhitespaces="true"%>
 <%@ taglib uri="http://www.springframework.org/tags/form" prefix="form" %>
 <%@ taglib uri="http://www.springframework.org/tags" prefix="spring" %>
 <%@ taglib uri="jakarta.tags.core" prefix="c" %>
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
-<html>
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet"
-	href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css" integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
-<script
-	src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha384-1H217gwSVyLSIfaLxHbE7dRb3v4mYCKbpQvzx0cegeju1MVsGrX5xXxAvs/HgeFs" crossorigin="anonymous"></script>
-<script
-	src="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/js/bootstrap.min.js" integrity="sha384-aJ21OjlMXNL5UyIl/XNwTMqvzeRMZH2w8c5cRVpzpU8Y5bApTppSuUkhZXN0VxHd" crossorigin="anonymous"></script>
-<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
-<title></title>
-</head>
-<body>
+<%@ taglib prefix="rms" tagdir="/WEB-INF/tags" %>
+<spring:url value="/" var="base" htmlEscape="true" />
 <spring:url value="/saveposition" var="saveURL" />
-	<form:form id="position"  modelAttribute="positioninfo" method="POST" action="${saveURL}">
-	<form:hidden path="positionkey"/>
-		<div class="form-group">
-			<label for="usr">Position Name:</label> 
-			<form:input path="positionname" class="form-control" style="text-transform: uppercase; width: auto;"
-			id="positionname" name="positionname"/>
+<spring:url value="/viewpositionlist" var="listURL" />
+<c:set var="heading" value="${positioninfo.positionkey > 0 ? 'Edit position' : 'Add position'}" />
+<rms:layout title="${heading}" active="positions">
+	<div class="rms-page-header">
+		<div>
+			<h1><c:out value="${heading}" /></h1>
+			<p>Names are saved in capital letters and must be unique.</p>
 		</div>
-		<c:if test="${not empty errorMessage}">
-		<div class="form-group">
-			<div class="alert alert-danger">
-				<c:out value="${errorMessage}"/>
+	</div>
+	<div class="card rms-card rms-form-card">
+		<div class="card-body p-4">
+			<c:if test="${not empty errorMessage}">
+			<div class="alert alert-danger d-flex align-items-center gap-2" role="alert">
+				<svg class="rms-icon" aria-hidden="true"><use href="${base}resources/img/icons.svg#exclamation-triangle-fill"/></svg>
+				<span><c:out value="${errorMessage}"/></span>
 			</div>
+			</c:if>
+			<form:form id="position" modelAttribute="positioninfo" method="POST" action="${saveURL}">
+				<form:hidden path="positionkey"/>
+				<div class="mb-4">
+					<label for="positionname" class="form-label">Position name</label>
+					<form:input path="positionname" cssClass="form-control rms-uppercase" id="positionname"
+						autocomplete="off" aria-describedby="positionname-help"/>
+					<div id="positionname-help" class="form-text">For example: Software Engineer.</div>
+				</div>
+				<div class="d-flex gap-2">
+					<button type="submit" class="btn btn-primary">Save</button>
+					<a class="btn btn-outline-secondary" href="${listURL}">Cancel</a>
+				</div>
+			</form:form>
 		</div>
-		</c:if>
-		<button type="submit" class="btn btn-primary">Save</button>
-	</form:form>
-
-</body>
-</html>
+	</div>
+</rms:layout>

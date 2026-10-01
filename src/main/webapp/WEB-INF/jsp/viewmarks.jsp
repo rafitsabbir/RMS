@@ -1,112 +1,75 @@
 <%@ page language="java" contentType="text/html; charset=ISO-8859-1"
-	pageEncoding="ISO-8859-1" isELIgnored="false"%>
+	pageEncoding="ISO-8859-1" isELIgnored="false" trimDirectiveWhitespaces="true"%>
 <%@ taglib uri="http://www.springframework.org/tags" prefix="spring" %>
 <%@ taglib uri="jakarta.tags.core" prefix="c" %>
-<%@ page import="java.util.*"%>
-<%@ page import="rms.model.*"%>
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
-<html>
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet"
-	href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css" integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
-<link rel="stylesheet"
-	href="https://cdn.datatables.net/1.13.11/css/dataTables.bootstrap.min.css" integrity="sha384-l2WpiBvV3jxT9soajqlYVZkCyShrAMkhYlR3YpVxutac8q2X3W7p5kDvjkQgyM+Y" crossorigin="anonymous">
-<spring:url value="/resources/css/datatables.css" var="datatablescss" />
-<link rel="stylesheet" type="text/css" href="${datatablescss}"/>
-<spring:url value="/resources/css/viewmarks.css" var="viewmarkscss" />
-<link rel="stylesheet" type="text/css" href="${viewmarkscss}"/>
-<script
-	src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha384-1H217gwSVyLSIfaLxHbE7dRb3v4mYCKbpQvzx0cegeju1MVsGrX5xXxAvs/HgeFs" crossorigin="anonymous"></script>
-<script
-	src="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/js/bootstrap.min.js" integrity="sha384-aJ21OjlMXNL5UyIl/XNwTMqvzeRMZH2w8c5cRVpzpU8Y5bApTppSuUkhZXN0VxHd" crossorigin="anonymous"></script>
-<script
-	src="https://cdn.datatables.net/1.13.11/js/jquery.dataTables.min.js" integrity="sha384-xbKh5PcHqYD2znaTJ+mPamIq8ERw8yRfp72NI8CGRg51FffJAXidmePtdkmCjEh9" crossorigin="anonymous"></script>
-<script
-	src="https://cdn.datatables.net/1.13.11/js/dataTables.bootstrap.min.js" integrity="sha384-xX2rLG/IDoD8nMCCawO1tSmnmivygPR0hHih92wcA9NqItz/WQBRYL3LcGloEQnU" crossorigin="anonymous"></script>
-<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
-<title></title>
-<%
-    @SuppressWarnings("unchecked")
-	List<MarksInfo>  markslist =  (ArrayList<MarksInfo>) request.getAttribute("markslist");
-	MarksInfo marksinfo = null;
-	
-%>
-<%!
-public int getFullmarks(MarksInfo marksinfo) {
-	// TODO Auto-generated method stub
-	return marksinfo.getWorkexp() + marksinfo.getTechknowledge()
-			+ marksinfo.getLeadership() + marksinfo.getDecision()
-			+ marksinfo.getProbsolving() + marksinfo.getStress()
-			+ marksinfo.getEducation() + marksinfo.getComskill()
-			+ marksinfo.getAttitude() + marksinfo.getPersonality();
-}
-%>
-</head>
-<body>
-	<script>
-		$(document).ready(function() {
-			$('#markstable').DataTable();
-		});
-	</script>
-
-	<table id="markstable" class="table table-striped table-bordered table-condensed results-table"
-		style="width: 100%">
-		<thead>
-			<tr>				
-				<th>Candidate Name</th>
-				<th>Position</th>
-				<th>Language</th>
-				<th>Work Experience</th>
-				<th>Technical Knowledge</th>
-				<th>Leadership Skill</th>
-				<th>Decision Making</th>
-				<th>Problem Solving Skill</th>
-				<th>Stress Tolerance</th>
-				<th>Educational Background</th>
-				<th>Communication Skill</th>
-				<th>Attitude</th>
-				<th>Personality</th>
-				<th>Total Score</th>
-				<th>Status</th>
-			</tr>
-		</thead>
-		<tbody>
-			<%
-				if (markslist != null) {
-					for (int i = 0; i < markslist.size(); i++) {
-						marksinfo = (MarksInfo) markslist.get(i);
-			%>
-			<tr>
-				<td><c:out value="<%=marksinfo.getCandidateid()%>"/></td>
-				<td><c:out value="<%=marksinfo.getPosition()%>"/></td>
-				<td><c:out value="<%=marksinfo.getLanguage()%>"/></td>
-				<td><%=marksinfo.getWorkexp()%></td>
-				<td><%=marksinfo.getTechknowledge()%></td>
-				<td><%=marksinfo.getLeadership()%></td>
-				<td><%=marksinfo.getDecision()%></td>
-				<td><%=marksinfo.getProbsolving()%></td>
-				<td><%=marksinfo.getStress()%></td>
-				<td><%=marksinfo.getEducation()%></td>
-				<td><%=marksinfo.getComskill()%></td>
-				<td><%=marksinfo.getAttitude()%></td>
-				<td><%=marksinfo.getPersonality()%></td>
-				<td><%=getFullmarks(marksinfo)%></td>
-				<td>
-				<%if("S".equalsIgnoreCase(marksinfo.getCandidateStatus())){%>
-				<img alt="" src="resources/happy.jpg" class="status-icon" align="center">
-				<%}else if("R".equalsIgnoreCase(marksinfo.getCandidateStatus())){ %>
-				<img alt="" src="resources/sad.jpg" class="status-icon" align="center">
-				<%}else{ %>
-				<img alt="" src="resources/new.jpg" class="status-icon" align="center">
-				<%} %>
-				</td>
-			</tr>
-			<%
-				}
-				}
-			%>
-		</tbody>
-	</table>
-</body>
-</html>
+<%@ taglib uri="jakarta.tags.functions" prefix="fn" %>
+<%@ taglib prefix="rms" tagdir="/WEB-INF/tags" %>
+<spring:url value="/" var="base" htmlEscape="true" />
+<c:set var="icons" value="${base}resources/img/icons.svg" />
+<rms:layout title="Candidate Status" active="marks" tables="true" stylesheet="viewmarks.css">
+	<div class="rms-page-header">
+		<div>
+			<h1>Candidate Status</h1>
+			<p>Scores on 10 criteria, with each candidate's total and selection status.</p>
+		</div>
+	</div>
+	<div class="card rms-card rms-results-card">
+		<div class="card-body">
+			<table id="markstable" class="table table-sm table-striped table-hover align-middle w-100 results-table" data-rms-table>
+				<thead>
+					<tr>
+						<th>Candidate Name</th>
+						<th>Position</th>
+						<th>Language</th>
+						<th>Work Experience</th>
+						<th>Technical Knowledge</th>
+						<th>Leadership Skill</th>
+						<th>Decision Making</th>
+						<th>Problem Solving Skill</th>
+						<th>Stress Tolerance</th>
+						<th>Educational Background</th>
+						<th>Communication Skill</th>
+						<th>Attitude</th>
+						<th>Personality</th>
+						<th>Total Score</th>
+						<th>Status</th>
+					</tr>
+				</thead>
+				<tbody>
+				<c:forEach items="${markslist}" var="marks">
+					<%-- The DAO puts the candidate's name in candidateid (G10) --%>
+					<tr>
+						<td><c:out value="${marks.candidateid}"/></td>
+						<td><c:out value="${marks.position}"/></td>
+						<td><c:out value="${marks.language}"/></td>
+						<td>${marks.workexp}</td>
+						<td>${marks.techknowledge}</td>
+						<td>${marks.leadership}</td>
+						<td>${marks.decision}</td>
+						<td>${marks.probsolving}</td>
+						<td>${marks.stress}</td>
+						<td>${marks.education}</td>
+						<td>${marks.comskill}</td>
+						<td>${marks.attitude}</td>
+						<td>${marks.personality}</td>
+						<td class="fw-semibold">${marks.workexp + marks.techknowledge + marks.leadership + marks.decision + marks.probsolving + marks.stress + marks.education + marks.comskill + marks.attitude + marks.personality}</td>
+						<td>
+						<c:choose>
+							<c:when test="${fn:toUpperCase(marks.candidateStatus) eq 'S'}">
+								<span class="badge rounded-pill text-bg-success rms-status"><svg class="rms-icon" aria-hidden="true"><use href="${icons}#check-circle-fill"/></svg>Selected</span>
+							</c:when>
+							<c:when test="${fn:toUpperCase(marks.candidateStatus) eq 'R'}">
+								<span class="badge rounded-pill text-bg-danger rms-status"><svg class="rms-icon" aria-hidden="true"><use href="${icons}#x-circle-fill"/></svg>Rejected</span>
+							</c:when>
+							<c:otherwise>
+								<span class="badge rounded-pill text-bg-secondary rms-status"><svg class="rms-icon" aria-hidden="true"><use href="${icons}#hourglass-split"/></svg>Pending</span>
+							</c:otherwise>
+						</c:choose>
+						</td>
+					</tr>
+				</c:forEach>
+				</tbody>
+			</table>
+		</div>
+	</div>
+</rms:layout>
