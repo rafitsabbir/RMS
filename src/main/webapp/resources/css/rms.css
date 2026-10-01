@@ -1,0 +1,517 @@
+/* RMS theme and layout, on top of Bootstrap 5.3 (docs/conventions.md, "UI").
+   Keep this file ASCII: the pages are ISO-8859-1 (G34). */
+
+/* Theme tokens */
+:root {
+	--rms-primary: #1f5fa8;
+	--rms-primary-rgb: 31, 95, 168;
+	--rms-primary-dark: #184c87;
+	--rms-primary-darker: #133d6d;
+	--rms-primary-soft: #e6eef8;
+	--rms-navy: #0f2a44;
+	--rms-navy-raised: #173a5e;
+	--rms-accent: #14a38b;
+	--rms-bg: #f4f6fa;
+	--rms-surface: #ffffff;
+	--rms-border: #e3e8ef;
+	--rms-text: #1d2733;
+	--rms-muted: #5b6b7f;
+	--rms-sidebar-width: 220px;
+	--rms-topbar-height: 60px;
+
+	--bs-primary: var(--rms-primary);
+	--bs-primary-rgb: var(--rms-primary-rgb);
+	--bs-link-color: var(--rms-primary);
+	--bs-link-color-rgb: var(--rms-primary-rgb);
+	--bs-link-hover-color: var(--rms-primary-darker);
+	--bs-link-hover-color-rgb: 19, 61, 109;
+	--bs-body-color: var(--rms-text);
+	--bs-secondary-color: var(--rms-muted);
+	--bs-border-color: var(--rms-border);
+	--bs-focus-ring-color: rgba(var(--rms-primary-rgb), 0.25);
+}
+
+.btn-primary {
+	--bs-btn-bg: var(--rms-primary);
+	--bs-btn-border-color: var(--rms-primary);
+	--bs-btn-hover-bg: var(--rms-primary-dark);
+	--bs-btn-hover-border-color: var(--rms-primary-dark);
+	--bs-btn-active-bg: var(--rms-primary-darker);
+	--bs-btn-active-border-color: var(--rms-primary-darker);
+	--bs-btn-disabled-bg: var(--rms-primary);
+	--bs-btn-disabled-border-color: var(--rms-primary);
+	--bs-btn-focus-shadow-rgb: var(--rms-primary-rgb);
+}
+
+/* Darker than Bootstrap's red, so the text keeps 4.5:1 contrast on striped and hovered table rows */
+.btn-outline-danger {
+	--bs-btn-color: #b02a37;
+	--bs-btn-border-color: #b02a37;
+	--bs-btn-hover-bg: #b02a37;
+	--bs-btn-hover-border-color: #b02a37;
+	--bs-btn-active-bg: #8f2230;
+	--bs-btn-active-border-color: #8f2230;
+}
+
+.btn-outline-primary {
+	--bs-btn-color: var(--rms-primary);
+	--bs-btn-border-color: var(--rms-primary);
+	--bs-btn-hover-bg: var(--rms-primary);
+	--bs-btn-hover-border-color: var(--rms-primary);
+	--bs-btn-active-bg: var(--rms-primary-dark);
+	--bs-btn-active-border-color: var(--rms-primary-dark);
+	--bs-btn-focus-shadow-rgb: var(--rms-primary-rgb);
+}
+
+.pagination {
+	--bs-pagination-color: var(--rms-primary);
+	--bs-pagination-hover-color: var(--rms-primary-darker);
+	--bs-pagination-focus-color: var(--rms-primary-darker);
+	--bs-pagination-focus-box-shadow: 0 0 0 0.25rem rgba(var(--rms-primary-rgb), 0.25);
+	--bs-pagination-active-bg: var(--rms-primary);
+	--bs-pagination-active-border-color: var(--rms-primary);
+}
+
+.form-control:focus,
+.form-select:focus {
+	border-color: #8fb0d8;
+	box-shadow: 0 0 0 0.25rem rgba(var(--rms-primary-rgb), 0.25);
+}
+
+.rms-icon {
+	width: 1em;
+	height: 1em;
+	flex-shrink: 0;
+	fill: currentColor;
+	vertical-align: -0.125em;
+}
+
+.rms-uppercase {
+	text-transform: uppercase;
+}
+
+body {
+	background-color: var(--rms-bg);
+}
+
+/* App shell: sidebar on the left, top bar and content on the right */
+.rms-shell {
+	display: flex;
+	min-height: 100vh;
+}
+
+.rms-sidebar {
+	--bs-offcanvas-width: 260px;
+	--bs-offcanvas-bg: var(--rms-navy);
+	--bs-offcanvas-color: #c9d6e6;
+	background-color: var(--rms-navy);
+	color: #c9d6e6;
+}
+
+@media (min-width: 992px) {
+	/* Bootstrap makes .offcanvas-lg transparent (!important) where it is not an offcanvas */
+	.rms-sidebar.offcanvas-lg {
+		background-color: var(--rms-navy) !important;
+	}
+
+	.rms-sidebar {
+		position: sticky;
+		top: 0;
+		flex: 0 0 var(--rms-sidebar-width);
+		width: var(--rms-sidebar-width);
+		height: 100vh;
+		overflow-y: auto;
+	}
+}
+
+.rms-brand {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 16px 16px 12px;
+	color: #ffffff;
+	text-decoration: none;
+}
+
+.rms-brand:hover {
+	color: #ffffff;
+}
+
+.rms-brand-name {
+	display: block;
+	font-size: 1.25rem;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	line-height: 1.1;
+}
+
+.rms-brand-sub {
+	display: block;
+	font-size: 0.75rem;
+	color: #9fb3cb;
+	line-height: 1.2;
+}
+
+.rms-nav {
+	padding: 8px 10px 24px;
+}
+
+.rms-nav .nav-link {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 8px 10px;
+	border-radius: 8px;
+	color: #c9d6e6;
+	font-size: 0.95rem;
+}
+
+.rms-nav .nav-link:hover,
+.rms-nav .nav-link:focus-visible {
+	background-color: var(--rms-navy-raised);
+	color: #ffffff;
+}
+
+.rms-nav .nav-link.active {
+	background-color: var(--rms-primary);
+	color: #ffffff;
+}
+
+.rms-nav .nav-link.disabled {
+	color: #8ea3bb;
+	cursor: default;
+}
+
+.rms-nav-heading {
+	padding: 16px 10px 6px;
+	font-size: 0.7rem;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: #8ea3bb;
+}
+
+.rms-soon {
+	margin-left: auto;
+	padding: 2px 6px;
+	border-radius: 999px;
+	background-color: var(--rms-navy-raised);
+	color: #c9d6e6;
+	font-size: 0.65rem;
+	font-weight: 600;
+}
+
+.rms-content {
+	flex: 1 1 auto;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+.rms-topbar {
+	position: sticky;
+	top: 0;
+	z-index: 1020;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	height: var(--rms-topbar-height);
+	padding: 0 24px;
+	background-color: var(--rms-surface);
+	border-bottom: 1px solid var(--rms-border);
+}
+
+.rms-topbar-brand {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	color: var(--rms-navy);
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-decoration: none;
+}
+
+.rms-menu-toggle {
+	padding: 4px 8px;
+	font-size: 1.4rem;
+	line-height: 1;
+	color: var(--rms-navy);
+}
+
+.rms-user {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-left: auto;
+	min-width: 0;
+}
+
+.rms-avatar {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	flex-shrink: 0;
+	border-radius: 50%;
+	background-color: var(--rms-primary-soft);
+	color: var(--rms-primary-dark);
+	font-size: 0.85rem;
+	font-weight: 700;
+	text-transform: uppercase;
+}
+
+.rms-user-text {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	line-height: 1.2;
+}
+
+.rms-user-name {
+	font-weight: 600;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.rms-user-role {
+	font-size: 0.8rem;
+	color: var(--rms-muted);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.rms-main {
+	flex: 1 1 auto;
+	padding: 24px;
+}
+
+@media (max-width: 575.98px) {
+	.rms-topbar {
+		padding: 0 12px;
+	}
+
+	.rms-main {
+		padding: 16px 12px;
+	}
+
+	.rms-user-text {
+		display: none;
+	}
+
+	/* Table buttons show only their icon; the label stays for screen readers */
+	.rms-btn-label {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+	}
+
+	.table > thead > tr > th.rms-col-id {
+		width: auto;
+	}
+}
+
+/* Page content */
+.rms-page-header {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 20px;
+}
+
+.rms-page-header h1 {
+	margin-bottom: 4px;
+	font-size: 1.5rem;
+	font-weight: 600;
+	color: var(--rms-navy);
+}
+
+.rms-page-header p {
+	margin-bottom: 0;
+	color: var(--rms-muted);
+}
+
+.rms-card {
+	border: 1px solid var(--rms-border);
+	border-radius: 12px;
+	box-shadow: 0 1px 2px rgba(15, 42, 68, 0.06);
+}
+
+.rms-form-card {
+	max-width: 560px;
+}
+
+/* List tables: a narrow id column and actions sized to their buttons */
+.table > thead > tr > th.rms-col-id {
+	width: 8rem;
+}
+
+/* Wide tables scroll inside their card, never the page */
+.rms-card .dt-layout-table {
+	overflow-x: auto;
+}
+
+/* Name cells: a long unbroken name (such as the &#NNNN; codes of G34) wraps instead of widening the table */
+.rms-name {
+	overflow-wrap: anywhere;
+}
+
+.table > thead > tr > th.rms-col-actions {
+	width: 1%;
+	white-space: nowrap;
+}
+
+/* Home page tiles */
+.rms-tile {
+	position: relative;
+	height: 100%;
+	transition: box-shadow 0.15s ease-in-out, transform 0.15s ease-in-out;
+}
+
+.rms-tile:hover {
+	box-shadow: 0 6px 18px rgba(15, 42, 68, 0.12);
+	transform: translateY(-2px);
+}
+
+.rms-tile-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 44px;
+	height: 44px;
+	margin-bottom: 12px;
+	border-radius: 10px;
+	background-color: var(--rms-primary-soft);
+	color: var(--rms-primary);
+	font-size: 1.3rem;
+}
+
+.rms-tile h2 {
+	font-size: 1.1rem;
+	font-weight: 600;
+	color: var(--rms-navy);
+}
+
+.rms-tile p {
+	margin-bottom: 0;
+	color: var(--rms-muted);
+}
+
+.rms-tile-soon {
+	background-color: transparent;
+	border-style: dashed;
+	box-shadow: none;
+}
+
+.rms-tile-soon:hover {
+	box-shadow: none;
+	transform: none;
+}
+
+.rms-tile-soon .rms-tile-icon {
+	background-color: #eceff4;
+	color: var(--rms-muted);
+}
+
+/* Candidate status badges (viewmarks.jsp) */
+.rms-status {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	font-weight: 600;
+}
+
+/* Login page */
+.rms-login {
+	min-height: 100vh;
+	display: flex;
+	background-color: var(--rms-bg);
+}
+
+.rms-login-banner {
+	flex: 1 1 55%;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	padding: 40px 48px;
+	background: var(--rms-navy) url("../img/login-banner.svg") center / cover no-repeat;
+	color: #ffffff;
+}
+
+.rms-login-brand {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+}
+
+.rms-login-brand .rms-brand-name {
+	font-size: 1.6rem;
+}
+
+.rms-login-brand .rms-brand-sub {
+	font-size: 0.9rem;
+	color: #c9d6e6;
+}
+
+.rms-login-tagline {
+	max-width: 420px;
+	margin: 0;
+	font-size: 1.35rem;
+	font-weight: 500;
+	line-height: 1.4;
+}
+
+.rms-login-panel {
+	flex: 1 1 45%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 32px 24px;
+}
+
+.rms-login-card {
+	width: 100%;
+	max-width: 400px;
+	padding: 36px 32px;
+}
+
+.rms-login-card h1 {
+	font-size: 1.5rem;
+	font-weight: 600;
+	color: var(--rms-navy);
+}
+
+@media (max-width: 991.98px) {
+	.rms-login {
+		flex-direction: column;
+	}
+
+	.rms-login-banner {
+		flex: 0 0 auto;
+		gap: 12px;
+		padding: 20px 24px;
+		background-image: linear-gradient(135deg, var(--rms-navy) 0%, #16406e 55%, var(--rms-primary) 100%);
+	}
+
+	.rms-login-tagline {
+		font-size: 1rem;
+	}
+
+	.rms-login-panel {
+		flex: 1 1 auto;
+		align-items: flex-start;
+	}
+}
+
+@media (max-width: 575.98px) {
+	.rms-login-card {
+		padding: 28px 20px;
+	}
+}
