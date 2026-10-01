@@ -46,6 +46,8 @@ public class AuthInterceptor implements HandlerInterceptor {
 			return false;
 		}
 
+		// Pages behind the login must not come back from the browser cache after logout
+		response.setHeader("Cache-Control", "no-store");
 		return true;
 	}
 

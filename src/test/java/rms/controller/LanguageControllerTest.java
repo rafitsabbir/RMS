@@ -72,6 +72,7 @@ class LanguageControllerTest {
 
 	@Test
 	void saveWithKeyUpdatesAndRedirectsToList() throws Exception {
+		when(languageservice.findLanguageById(7)).thenReturn(new LanguageInfo());
 		when(languageservice.updateLanguage(any(LanguageInfo.class))).thenReturn(true);
 
 		mockMvc.perform(post("/savelanguage").param("languagekey", "7").param("languagename", "go"))
@@ -115,12 +116,25 @@ class LanguageControllerTest {
 	}
 
 	@Test
-	void updateToDuplicateShowsFormWithError() throws Exception {
+	void updateToDuplicateShowsFormWithErrorAndKeepsKey() throws Exception {
+		when(languageservice.findLanguageById(7)).thenReturn(new LanguageInfo());
 		when(languageservice.updateLanguage(any(LanguageInfo.class))).thenReturn(false);
 
 		mockMvc.perform(post("/savelanguage").param("languagekey", "7").param("languagename", "go"))
 				.andExpect(view().name("createlanguage"))
-				.andExpect(model().attribute("errorMessage", "Language GO already exists."));
+				.andExpect(model().attribute("errorMessage", "Language GO already exists."))
+				.andExpect(model().attribute("languageinfo", hasProperty("languagekey", is(7))));
+	}
+
+	@Test
+	void saveOfDeletedLanguageIs404() throws Exception {
+		when(languageservice.findLanguageById(7)).thenReturn(null);
+
+		mockMvc.perform(post("/savelanguage").param("languagekey", "7").param("languagename", "x"))
+				.andExpect(status().isNotFound());
+
+		verify(languageservice, never()).updateLanguage(any(LanguageInfo.class));
+		verify(languageservice, never()).addLanguage(any(LanguageInfo.class));
 	}
 
 	@Test

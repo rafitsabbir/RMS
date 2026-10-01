@@ -51,4 +51,20 @@ class MarksDaoImplTest extends MySqlContainerSupport {
 		assertThat(marks.get(1).getCandidateStatus()).isEqualTo("R");
 	}
 
+	@Test
+	void deletedPositionAndLanguageStillShowWithTheirCandidates() {
+		// Why delete is a soft delete (G17): this query joins candidates to position and language
+		PositionDaoImpl positions = new PositionDaoImpl();
+		positions.setNamedParameterJdbcTemplate(namedParameterJdbcTemplate);
+		positions.deletePosition(1);
+		LanguageDaoImpl languages = new LanguageDaoImpl();
+		languages.setNamedParameterJdbcTemplate(namedParameterJdbcTemplate);
+		languages.deleteLanguage(1);
+
+		MarksInfo first = dao.getAllMarksByAdmin().get(0);
+		assertThat(first.getCandidateid()).isEqualTo("Carla Candidate");
+		assertThat(first.getPosition()).isEqualTo("SOFTWARE ENGINEER");
+		assertThat(first.getLanguage()).isEqualTo("JAVA");
+	}
+
 }

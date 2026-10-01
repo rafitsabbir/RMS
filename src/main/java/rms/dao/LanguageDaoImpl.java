@@ -4,6 +4,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -25,10 +26,10 @@ public class LanguageDaoImpl implements LanguageDao {
 	private String savelanguage = "insert into language  (isActive, languagename) VALUES (:isActive,:languagename)";
 	private String ifexist = "select count(*) from language where languagename=:languagename and isactive=1";
 	private String ifexistother = "select count(*) from language where languagename=:languagename and languagekey<>:languagekey and isactive=1";
-	private String reactivatelanguage = "update language set isactive=1 where languagename=:languagename and isactive=0 limit 1";
+	private String reactivatelanguage = "update language set isactive=1, languagename=:languagename where languagename=:languagename and isactive=0 order by languagekey limit 1";
 	private String alllanguage = "select languagekey, languagename from language where  isactive=1";
 	private String findlanguagebyid = "select languagekey, languagename from language where languagekey=:languagekey and isactive=1";
-	private String updatelanguage = "update language set languagename=:languagename where languagekey=:languagekey";
+	private String updatelanguage = "update language set languagename=:languagename where languagekey=:languagekey and isactive=1";
 	private String deletelanguage = "update language set isactive=0 where languagekey=:languagekey";
 
 	NamedParameterJdbcTemplate namedParameterJdbcTemplate;
@@ -61,12 +62,13 @@ public class LanguageDaoImpl implements LanguageDao {
 	}
 
 	@Override
-	public boolean addLanguage(LanguageInfo languageinfo) {
+	// synchronized: see updateLanguage
+	public synchronized boolean addLanguage(LanguageInfo languageinfo) {
 		// TODO Auto-generated method stub
 		Map<String, Object> paramMap = new HashMap<String, Object>();
 
 		paramMap.put("languagename", languageinfo.getLanguagename()
-				.toUpperCase().trim());
+				.toUpperCase(Locale.ROOT).trim());
 
 		if (namedParameterJdbcTemplate.queryForObject(ifexist, paramMap, Integer.class) > 0) {
 			log.warn("Language {} already exists; not added", paramMap.get("languagename"));
@@ -93,12 +95,14 @@ public class LanguageDaoImpl implements LanguageDao {
 	}
 
 	@Override
-	public boolean updateLanguage(LanguageInfo languageinfo) {
+	// synchronized: the duplicate check and the write must not interleave with another save, as there is
+	// no UNIQUE index (G33, G22). This covers one Tomcat only.
+	public synchronized boolean updateLanguage(LanguageInfo languageinfo) {
 		// TODO Auto-generated method stub
 		Map<String, Object> paramMap = new HashMap<String, Object>();
 
 		paramMap.put("languagename", languageinfo.getLanguagename()
-				.toUpperCase().trim());
+				.toUpperCase(Locale.ROOT).trim());
 		paramMap.put("languagekey", languageinfo.getLanguagekey());
 
 		if (namedParameterJdbcTemplate.queryForObject(ifexistother, paramMap, Integer.class) > 0) {
