@@ -43,12 +43,14 @@ src/main/java/rms/
   service/  dao/  model/      *Service(+Impl), *Dao(+Impl), *Info
 src/main/webapp/
   WEB-INF/jsp/                7 JSP views (main.jsp = menu shell)
-  WEB-INF/web.xml             empty stub
+  WEB-INF/web.xml             Servlet 6.1: request encoding ISO-8859-1, metadata-complete
   resources/                  css, js, images
 src/test/java/rms/            controller, access-control, DAO (Testcontainers) and smoke tests
 db/                           schema.sql (inferred), test-seed.sql (synthetic)
   local/                      local MySQL setup: create DB + load schema and seed (README.md)
 mvnw, .mvn/wrapper/           Maven Wrapper
+.github/workflows/            CI: build + tests (JDK 21, Testcontainers), OSV-Scanner
+deploy/tomcat/rms.xml         JNDI context template (env-var placeholders only)
 docs/                         project knowledge; start at docs/ROUTER.md
 target/                       build output (git-ignored)
 ```

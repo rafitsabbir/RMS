@@ -1,7 +1,7 @@
 # Build & Run
 
 Purpose: How RMS is built, packaged, deployed and tested.
-Last updated: 2026-10-01 (Phase 3: JDK 21, Tomcat 11, request encoding; after the review: runtime JDK 21+, quoted Mockito agent and IDE note, Latin-1 smoke test, 47 tests). 2026-10-01 (link to the Phase 1 release runbook). 2026-09-30 (G11 tests: 45 tests, smoke 3/3; smoke checks G38). 2026-09-27 (full test run with Docker; Tomcat 9 smoke run; `db/local` script and Compose file executed; `mvnw` made executable)
+Last updated: 2026-10-01 (CI, the Tomcat context template, Eclipse import). 2026-10-01 (Phase 3: JDK 21, Tomcat 11, request encoding; after the review: runtime JDK 21+, quoted Mockito agent and IDE note, Latin-1 smoke test, 47 tests). 2026-10-01 (link to the Phase 1 release runbook). 2026-09-30 (G11 tests: 45 tests, smoke 3/3; smoke checks G38). 2026-09-27 (full test run with Docker; Tomcat 9 smoke run; `db/local` script and Compose file executed; `mvnw` made executable)
 Read this when: you're building, deploying, setting up an environment, or fixing a build or startup failure.
 
 ## Build
@@ -14,11 +14,21 @@ Read this when: you're building, deploying, setting up an environment, or fixing
   - **Agent path:** it's quoted in `argLine`, so a Maven repo in a folder with a space (such as a Windows user folder) works. Unquoted, the test JVM didn't start (reproduced 2026-10-01 with `-Dmaven.repo.local` on a path with a space).
   - **IDE test runs** don't go through Maven, so `${org.mockito:mockito-core:jar}` isn't set. Either Mockito attaches itself (JDK 21 warns; the tests still run), or, if the IDE copies surefire's `argLine`, the JVM gets the literal placeholder and doesn't start [not tested]. Add `-javaagent:<path to mockito-core-5.24.0.jar>` to the run configuration, or let Maven run the tests.
   - **JaCoCo (Phase 4):** write `<argLine>@{argLine} -javaagent:…</argLine>` and declare an empty `argLine` property; the explicit `argLine` would otherwise drop JaCoCo's agent.
+- **CI (GitHub Actions, since 2026-10-01):**
+  - `.github/workflows/ci.yml` runs on PRs and pushes to `dev` and `master`, and on demand. It runs `./mvnw -B verify` on Temurin 21 with `RMS_REQUIRE_DOCKER=true`, so the DAO tests run against Testcontainers MySQL and can't silently skip. `SmokeTest` is skipped (no deployed app). The WAR (`rms-war`) and the surefire reports are kept as run artifacts.
+  - `.github/workflows/osv-scanner.yml` scans the Maven dependencies, transitive ones included, with OSV-Scanner 2.6.0. On a PR it fails only on vulnerabilities the PR adds. On pushes to `dev`/`master` it scans everything and reports to *Security > Code scanning*. The weekly run only starts once the file is on `master`, because GitHub runs schedules from the default branch.
+  - Every action is pinned to a full commit SHA, with its version in a comment. Update the SHA and the comment together.
+  - Checked locally with actionlint 1.7.12 (no findings). The OSV scan couldn't run on the dev machine (Maven Central rate limit, OSV API blocked), so its first real run is in CI.
 - **WAR contents:** `WEB-INF/lib/` has the 9 Spring 7.0.9 jars plus `commons-logging-1.3.5`, Micrometer 1.16.7 and `jspecify` (pulled in by Spring 7), Jakarta Tags (`jakarta.servlet.jsp.jstl-api-3.0.2`, `jakarta.servlet.jsp.jstl-3.0.1`), `mysql-connector-j-8.2.0`, `slf4j-api-2.0.20` and `logback-classic`/`logback-core` 1.5.38, plus `WEB-INF/classes/logback.xml`. Test libraries, `protobuf-java`, `jakarta.el-api` and `jakarta.servlet-api` (Tomcat provides both; the Jakarta Tags API's own copies are excluded) aren't bundled (`unzip -l`, 2026-10-01). The GlassFish Jakarta Tags jar contains a relocated copy of Xalan 2.7.2 ([tech-stack.md](tech-stack.md)).
 
 ## Run / deploy
 - **How it runs:** deploy the WAR to a Servlet 6.1 container (Tomcat 11) on a JDK 21+ runtime (class version 65). `jakarta.servlet-api` 6.1.0 is `provided` (`pom.xml`). There's no embedded server and no `main()` (`rms/config/WebInitializer.java`). `web.xml` sets the request encoding to ISO-8859-1 to match the JSPs; without it Tomcat 11 uses UTF-8 and answers Latin-1 form posts such as "café" with HTTP 400 (G34), so keep the file; `SmokeTest.latin1FormPostIsAccepted` checks it. `metadata-complete="true"` turns off annotation scanning, as the old 2.3 descriptor did; Spring's and Logback's initializers still run.
-- **Database connection:** the container must provide a JNDI DataSource named `jdbc/springrms`, which the app looks up as `java:comp/env/jdbc/springrms` (`WebConfig.getDataSource`). Its definition isn't in the repo.
+- **Database connection:** the container must provide a JNDI DataSource named `jdbc/springrms`, which the app looks up as `java:comp/env/jdbc/springrms` (`WebConfig.getDataSource`). No environment's values are in the repo.
+- **Context template (`deploy/tomcat/rms.xml`, since 2026-10-01):**
+  - Copy it unchanged to Tomcat's `conf/Catalina/localhost/rms.xml` (context path `/rms`), with `mysql-connector-j-8.2.0.jar` in Tomcat's `lib/`. Never put it in the WAR.
+  - Start Tomcat with `-Dorg.apache.tomcat.util.digester.PROPERTY_SOURCE=org.apache.tomcat.util.digester.EnvironmentPropertySource`, for example in `bin/setenv.sh`. Give Tomcat's environment `RMS_DB_URL` (with `sslMode=REQUIRED`), `RMS_DB_USER` and `RMS_DB_PASSWORD`, from the service manager or a file only the Tomcat user can read.
+  - Tested 2026-10-01 on Tomcat 11.0.26 / JDK 21 against the `db/local` database: `SmokeTest` 4/4 and no errors in the log. The password wasn't on the `java` command line.
+  - **A missing variable isn't reported at startup.** Tomcat leaves the `${...}` text in place, so the first login fails with HTTP 500 and "Access denied" in the log (tested by unsetting `RMS_DB_PASSWORD`).
 - **Driver change for Phase 1 (ops, outside the repo):**
   - The WAR now bundles Connector/J 8.2.0, the newest release that still supports MySQL 5.7 servers (8.3.0 and later need 8.0+; Connector/J release notes).
   - The container's JNDI resource should use `driverClassName` `com.mysql.cj.jdbc.Driver`. The old name `com.mysql.jdbc.Driver` still exists in the jar as a deprecated shim that logs a warning (`jar tf`).
@@ -62,4 +72,4 @@ Tests are characterization tests: they pin current behaviour, including known de
 ## Repo notes
 - **`.gitattributes`** keeps `mvnw` at LF and `*.cmd` at CRLF line endings, so the wrapper runs on Linux CI as well as Windows.
 - **`target/` is not tracked:** `.gitignore` lists `target/`. The old committed WAR, which predates the Position module (G29), is only in `master`'s history.
-- Eclipse project files are committed: `.project`, `.classpath`, `.settings/`. `.settings` still says Java 1.5; `pom.xml` is authoritative.
+- **Eclipse:** the project files (`.project`, `.classpath`, `.settings/`) aren't in the repo since 2026-10-01; they said Java 1.5 and web 2.3. `.gitignore` lists them. Use *File > Import > Maven > Existing Maven Projects*: m2e generates them from `pom.xml` (Java 21). In an existing workspace, delete the old project (not its contents) and import it again once. Other IDEs import `pom.xml` directly.
