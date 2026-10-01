@@ -1,13 +1,15 @@
 # Phase 1 Release Runbook
 
-Purpose: How to release Phase 1 (Spring 5.3.39 on Java 8) from `dev` to production: what ships, what users notice, the owner checks, the ops steps, the checks after deploy and the rollback. It includes the rehearsal that proved those steps.
-Last updated: 2026-10-01 (written and rehearsed on Tomcat 9 with MySQL 5.7)
+Purpose: How to release Phase 1 (Spring 5.3.39 on Java 8) from the `release/phase1` branch to production: what ships, what users notice, the owner checks, the ops steps, the checks after deploy and the rollback. It includes the rehearsal that proved those steps.
+Last updated: 2026-10-01 (the release source moved from `dev` to `release/phase1`). 2026-10-01 (written and rehearsed on Tomcat 9 with MySQL 5.7)
 Read this when: you're preparing, doing or signing off the Phase 1 release, or rolling it back.
 
 No credentials, hostnames or JNDI definitions belong in this file. Each environment's values stay in its container.
 
+**Branch (2026-10-01):** the owner decided to finish the coding before any release, so Phase 3 was merged into `dev`. The tested Phase 1 state is frozen on `release/phase1` at `d535f1c`, the commit the rehearsal below used. Release from that branch, never from `dev`, which now needs JDK 21 and Tomcat 11. The copy of this file on `release/phase1` predates this note and says `dev`; there, read `dev` as `release/phase1`.
+
 ## What ships
-Compared with `master` (`e5705c0`, the 2020 code), `dev` adds the following. Details are in [upgrade-status.md](upgrade-status.md) and [gaps.md](gaps.md).
+Compared with `master` (`e5705c0`, the 2020 code), `release/phase1` adds the following. Details are in [upgrade-status.md](upgrade-status.md) and [gaps.md](gaps.md).
 - **Stack (G24, Phase 1):**
   - Spring 5.3.39 (was 4.3.0).
   - MySQL Connector/J 8.2.0 (was 5.1.36).
@@ -20,7 +22,7 @@ Compared with `master` (`e5705c0`, the 2020 code), `dev` adds the following. Det
   - G27 and G38: user data is shown as text.
   - G40: the results table fits its area.
 - **No database change:** no table, column or data changes.
-  - No SQL string in the DAOs changed (`git diff master..dev -- src/main/java/rms/dao`). The only DAO change is `System.out` → `log.warn`.
+  - No SQL string in the DAOs changed (`git diff master..release/phase1 -- src/main/java/rms/dao`). The only DAO change is `System.out` → `log.warn`.
   - The `db/` scripts are for local and test databases only.
 
 ## What users will notice
@@ -40,7 +42,7 @@ Compared with `master` (`e5705c0`, the 2020 code), `dev` adds the following. Det
 6. **Sign-off:** name a domain user to run the acceptance checklist ([modernization-plan.md](modernization-plan.md) §6).
 7. **Backup:** take a routine database backup before the window.
 8. **Go:**
-   - Merge the `dev` → `master` PR.
+   - Open a PR `release/phase1` → `master` and merge it. (PR #14, from `dev`, was closed on 2026-10-01 when Phase 3 went into `dev`.)
    - Build the WAR from `master` on JDK 8 with `./mvnw -B verify`. The output is `target/rmsv2-1.0.1-SNAPSHOT.war` ([build-run.md](build-run.md)).
 
 ## Ops steps (Tomcat)
@@ -91,7 +93,7 @@ This ran in a scratch environment, with a throwaway database. Nothing real was t
   - MySQL 5.7.44, loaded from `db/schema.sql` and `db/test-seed.sql`.
   - The Phase 0 WAR, built from `d813e71`: the 2020 app code with build fixes.
   - Login, the lists and Candidate Status worked.
-- **Release:** the ops steps above, in order, with the `dev` WAR. Results:
+- **Release:** the ops steps above, in order, with the `dev` WAR of that day (now `release/phase1`). Results:
   - `SmokeTest` passed 3 of 3.
   - The full acceptance checklist was identical to the latest run on MySQL 8.0: all 52 checks, and all 22 screenshots byte-identical. Only item 5 fails (G34). This was Phase 1's first run on MySQL 5.7.
   - The 15 access checks (G11) and the 20 escaping checks (G27/G38) passed.

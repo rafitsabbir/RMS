@@ -1,7 +1,7 @@
 # Acceptance Results
 
 Purpose: Results of the acceptance checklist ([modernization-plan.md](../modernization-plan.md), section 6) and the browser check per upgrade phase, with the Phase 0 baseline screenshots that later phases are compared against.
-Last updated: 2026-10-01 (Phase 3 on Tomcat 11, rerun after the code review). 2026-09-30
+Last updated: 2026-10-01 (Phase 3 on Tomcat 11, rerun after the code review; merged into `dev`). 2026-09-30
 Read this when: you're signing off a phase, re-running the checklist after an upgrade, or comparing screens with the baseline.
 
 ## Run of 2026-09-27: Phase 0 baseline vs Phase 1
@@ -147,8 +147,8 @@ Read this when: you're signing off a phase, re-running the checklist after an up
     - "łódź" and "čeština" store ł, ź and č as `&#322;`, `&#378;` and `&#269;`.
     - "š", "€", "–", curly quotes, "Š" and "œ" are stored as control characters U+0080–U+009F. The list sends them back as windows-1252 bytes, so they still look right.
 
-## Phase 3 on a branch (2026-10-01): Spring 7, Jakarta, Tomcat 11, JDK 21
-- **What ran:** the Phase 3 WAR from branch `claude/tech-stack-review-lq0a2k`.
+## Phase 3 (2026-10-01): Spring 7, Jakarta, Tomcat 11, JDK 21
+- **What ran:** the Phase 3 WAR from branch `claude/tech-stack-review-lq0a2k`, merged into `dev` the same day.
   - Spring 7.0.9 on Jakarta EE 11, Jakarta Tags 3.0, Java 21 bytecode.
   - Tomcat 11.0.26 on OpenJDK 21.0.10, with Connector/J 8.2.0 in `lib/` and `com.mysql.cj.jdbc.Driver` with `sslMode=REQUIRED`.
   - MySQL 8.0 from `db/local/docker-compose.yml`, freshly seeded before each run.
