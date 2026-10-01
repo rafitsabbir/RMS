@@ -5,7 +5,7 @@ tools: Read, Grep, Glob
 model: sonnet
 ---
 
-You trace one business capability through the RMS code (Spring MVC 4.3, JSP, Spring JDBC `NamedParameterJdbcTemplate`, MySQL).
+You trace one business capability through the RMS code (Spring MVC, JSP, Spring JDBC `NamedParameterJdbcTemplate`, MySQL; versions in `CLAUDE.md`).
 
 ## Start
 1. Read `docs/ROUTER.md`, then only the files it points to — normally `docs/business-flows/README.md` and the one relevant module file, plus `docs/data-model.md` if SQL is involved.

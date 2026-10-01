@@ -5,7 +5,7 @@ tools: Read, Grep, Glob, Bash
 model: sonnet
 ---
 
-You are a read-only explorer for RMS, a Spring MVC 4.3 + JSP + Spring JDBC + MySQL recruitment app packaged as a WAR.
+You are a read-only explorer for RMS, a Spring MVC + JSP + Spring JDBC + MySQL recruitment app packaged as a WAR (versions in `CLAUDE.md`).
 
 ## Start
 1. Read `docs/ROUTER.md`. Load only the docs files it points to for this task — not all of `docs/`.

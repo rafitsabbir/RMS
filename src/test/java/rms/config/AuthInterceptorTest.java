@@ -126,6 +126,15 @@ class AuthInterceptorTest {
 	}
 
 	@Test
+	void trailingSlashIsNotMatched() throws Exception {
+		// Spring 6+ no longer maps "/x/" to "/x" (Spring 5.3 did): 404 for everyone, before any handler or check
+		mockMvc.perform(get("/viewpositionlist/").session(sessionFor("N"))).andExpect(status().isNotFound());
+		mockMvc.perform(get("/viewpositionlist/")).andExpect(status().isNotFound());
+
+		verifyNoInteractions(positionservice);
+	}
+
+	@Test
 	void loginPagesNeedNoSession() throws Exception {
 		mockMvc.perform(get("/login"))
 				.andExpect(status().isOk())
@@ -165,7 +174,7 @@ class AuthInterceptorTest {
 		return session;
 	}
 
-	/** parseAndCache makes matches() use PathPattern, as Spring 6+ does; the MockMvc tests use Spring 5.3's own matcher. */
+	/** parseAndCache makes matches() use the parsed path (PathPattern), as the DispatcherServlet does in Spring 6+. */
 	private static MockHttpServletRequest request(String path) {
 		MockHttpServletRequest request = new MockHttpServletRequest("GET", path);
 		ServletRequestPathUtils.parseAndCache(request);

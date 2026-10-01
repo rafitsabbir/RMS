@@ -19,7 +19,7 @@ Evidence: `pom.xml`, `.mvn/wrapper/maven-wrapper.properties`, `rms/config/WebCon
 
 ## Build / run / test
 - **Build:** with `JAVA_HOME` set to a JDK 21, `./mvnw -B verify` (or `mvnw.cmd`) runs the tests and builds `target/rmsv2-1.0.1-SNAPSHOT.war`.
-- **Run:** deploy the WAR to a Servlet 6.1 container (Tomcat 11) that provides the JNDI DataSource `jdbc/springrms`. Open `/login`. See [docs/build-run.md](docs/build-run.md).
+- **Run:** deploy the WAR to a Servlet 6.1 container (Tomcat 11) on a JDK 21+ runtime that provides the JNDI DataSource `jdbc/springrms`. Open `/login`. See [docs/build-run.md](docs/build-run.md).
 - **Test:** characterization tests live in `src/test/java/rms/`. Controller tests always run; DAO tests need Docker (throwaway MySQL via Testcontainers, never a real DB); `SmokeTest` needs `RMS_BASE_URL`. See [docs/build-run.md](docs/build-run.md).
 
 ## Critical rules

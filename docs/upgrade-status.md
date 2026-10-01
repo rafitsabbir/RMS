@@ -1,7 +1,7 @@
 # Upgrade Status
 
 Purpose: The live tracker for the tech upgrade: what is done, in progress and pending, what to do next, and how to resume on another machine. Details stay in the linked owning docs.
-Last updated: 2026-10-01 (Phase 3 coded and verified on a branch). 2026-10-01 (Phase 1 release runbook, rehearsed on MySQL 5.7). 2026-09-30 (G11 interim login check merged to `dev`; G27/G38 output escaping)
+Last updated: 2026-10-01 (Phase 3 coded and verified on a branch, then reviewed and re-verified; JDK standard needed before the merge). 2026-10-01 (Phase 1 release runbook, rehearsed on MySQL 5.7). 2026-09-30 (G11 interim login check merged to `dev`; G27/G38 output escaping)
 Read this when: you're resuming upgrade work, or asking "where are we / what's next".
 
 ## Snapshot (2026-09-27)
@@ -9,7 +9,7 @@ Read this when: you're resuming upgrade work, or asking "where are we / what's n
 - **Alerts:** GitHub reported 26 alerts on `master` before Phase 1: 2 critical, 9 high, 12 moderate and 3 low (an external figure; [open-questions.md](open-questions.md) #7).
 - **Last build:** on 2026-09-27, `RMS_REQUIRE_DOCKER=true ./mvnw -B verify` gave BUILD SUCCESS on JDK 8u504 and on JDK 21. 34 of 36 tests passed, including all 18 DAO tests. The 2 smoke tests then passed separately against Tomcat 9.0.122 ([build-run.md](build-run.md)).
 - **Current phase:** Phase 1 is coded, and its acceptance checklist matches the Phase 0 baseline ([acceptance/README.md](acceptance/README.md)). It's still **not releasable**: the owner must confirm the DDL, and ops must make the container changes (below). The release steps, owner checks and rollback are in [release-phase1.md](release-phase1.md). They were rehearsed on 2026-10-01 from an old-style container on MySQL 5.7.44, where everything passed, including the rollback.
-- **Phase 3 (2026-10-01):** coded and verified on branch `claude/tech-stack-review-lq0a2k` (Spring 7.0.9, Jakarta EE 11, Tomcat 11, JDK 21). It waits there until Phase 1 is in production.
+- **Phase 3 (2026-10-01):** coded and verified on branch `claude/tech-stack-review-lq0a2k` (Spring 7.0.9, Jakarta EE 11, Tomcat 11, JDK 21), then reviewed: no critical or high findings, and the fixes were re-verified the same day. It waits there until Phase 1 is in production.
 
 ## Status by work item
 States:
@@ -40,9 +40,9 @@ Owners:
 ### Phase 1: dependency and security upgrades on Java 8 ([plan §4](modernization-plan.md#phase-1--dependency-and-security-upgrades-on-java-8-with-javax-m))
 | Item | State | Owner | Evidence |
 |---|---|---|---|
-| Spring BOM 5.3.39, no per-module versions | Done | dev | `pom.xml:13,32-39` |
+| Spring BOM 5.3.39, no per-module versions | Done | dev | `pom.xml:13,34-41` |
 | `WebConfig implements WebMvcConfigurer` (B5) | Done | dev | `WebConfig.java:22` |
-| `com.mysql:mysql-connector-j` 8.2.0 (supports MySQL 5.7+), `protobuf-java` excluded | Done | dev | `pom.xml:105-116`; [plan §6](modernization-plan.md#mysql-compatibility) |
+| `com.mysql:mysql-connector-j` 8.2.0 (supports MySQL 5.7+), `protobuf-java` excluded | Done | dev | `pom.xml:111-122`; [plan §6](modernization-plan.md#mysql-compatibility) |
 | SLF4J 2.0.20 and Logback 1.3.16; DAO `System.out` → `log.warn` | Done | dev | `logback.xml`, `PositionDaoImpl.java:73` |
 | CDN bumps with SRI: jQuery 3.7.1, Bootstrap 3.4.1/4.6.2, DataTables 1.13.11, Font Awesome 4.7.0 | Done | dev | the 7 JSP heads; [tech-stack.md](tech-stack.md) |
 | Three stale Dependabot branches deleted | Done | owner | #7 |
@@ -58,14 +58,14 @@ Owners:
 | Item | State | Gate / deadline | Evidence |
 |---|---|---|---|
 | **Phase 2:** JDK 8 → 21, Mockito 5, Logback 1.5, regenerate `.settings` | Coded with Phase 3 (2026-10-01): release 21, Mockito 5.24.0 as a Java agent, Logback 1.5.38. `.settings` still say 1.5 (**open**). Ships only together with Spring 7, after Phase 1 is in production (Spring4Shell) | dev / ops | [plan §4–5](modernization-plan.md#phase-2--jdk-8--21-s) |
-| **Phase 3:** Spring 7.0, Jakarta namespace, Tomcat 11, `web.xml` (G37) | **Coded and verified 2026-10-01** on branch `claude/tech-stack-review-lq0a2k`: 45 tests on JDK 21; on Tomcat 11.0.26 the smoke test, checklist, access and escaping checks match Tomcat 9. **Not merged** into `dev` until Phase 1 is in production. Still open: a Phase 3 release runbook and rehearsal, and the Tomcat 11 + JDK 21 container (ops). In production before **2027-03-31** (end of Tomcat 9 support) | dev / ops | [plan §4](modernization-plan.md#phase-3--spring-70-jakarta-namespace-and-tomcat-11-m), [acceptance/README.md](acceptance/README.md) |
+| **Phase 3:** Spring 7.0, Jakarta namespace, Tomcat 11, `web.xml` (G37) | **Coded and verified 2026-10-01** on branch `claude/tech-stack-review-lq0a2k`, reviewed and re-verified: 47 tests on JDK 21 (43 pass, 4 smoke skipped); on Tomcat 11.0.26 the smoke test (4/4), checklist, access and escaping checks match Tomcat 9. **Not merged** into `dev` until Phase 1 is in production. Still open: the JDK standard (before the merge), a Phase 3 release runbook and rehearsal, and the Tomcat 11 + JDK 21 container (ops), including whether production uses a Security Manager (#4). In production before **2027-03-31** (end of Tomcat 9 support) | dev / ops | [plan §4](modernization-plan.md#phase-3--spring-70-jakarta-namespace-and-tomcat-11-m), [acceptance/README.md](acceptance/README.md) |
 | **Phase 4:** GitHub Actions CI, JNDI context template, optional image | Pending | After Phase 3 | [plan §4](modernization-plan.md#phase-4--packaging-and-deployment-m) |
 | **Follow-ups:** JDK 25; Spring Security 7 (G11 has an interim interceptor since 2026-09-30; G13, G32); replacing the JSPs | Pending | After Phase 4 | [gaps.md](gaps.md) |
 
 ## Owner decisions still open
 - The MySQL server version in production (#16). It decides whether the driver can move past 8.2.0.
 - The container, the JNDI setup and runtime ownership (#4, #17).
-- The JDK standard: 21, or an organisational 17 or 25.
+- The JDK standard: 21, or an organisational 17 or 25. Needed before the Phase 3 merge: the branch builds for 21 (the WAR then needs a JDK 21+ runtime); a `release` 17 build also passes.
 - The deployment target after Phase 4, and whether GitHub Actions is acceptable for CI.
 - Confirm there is no Oracle database and no plan to move to one.
 
@@ -74,8 +74,8 @@ Owners:
 2. ~~Deploy to a local Tomcat 9, run `SmokeTest`, the acceptance checklist and the baseline screenshot~~ done 2026-09-27 ([acceptance/README.md](acceptance/README.md)). Optional: have a domain user repeat the checklist on a desktop browser with real CDN access.
 3. ~~Do the browser check of every page and the non-ASCII test (G34)~~ done 2026-09-27.
 4. Release Phase 1 by following [release-phase1.md](release-phase1.md): the owner checks first (#16, #19, #20, #21, CDN access, sign-off), then the ops steps, then the merge to `master` and the deploy.
-5. Once Phase 1 is in production, merge the Phase 3 branch into `dev`. It already includes Phase 2's JDK move.
-6. Write and rehearse a Phase 3 release runbook, like [release-phase1.md](release-phase1.md): Tomcat 11 on JDK 21, the JNDI resource re-created, and the rollback to the Phase 1 container. Then release before 2027-03-31.
+5. Once Phase 1 is in production and the owner has set the JDK standard, merge the Phase 3 branch into `dev`. It already includes Phase 2's JDK move. If the standard is 17, set `maven.compiler.release` to 17 first.
+6. Write and rehearse a Phase 3 release runbook, like [release-phase1.md](release-phase1.md): Tomcat 11 on JDK 21, the JNDI resource re-created, no Security Manager, and the rollback to the kept Phase 1 container and WAR (there is no Phase 2 WAR). Then release before 2027-03-31.
 
 ## Resume on another machine
 1. Clone the repo, then `git checkout dev`.

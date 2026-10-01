@@ -15,6 +15,8 @@
 		<jstl.api.version>3.0.2</jstl.api.version>
 		<jstl.impl.version>3.0.1</jstl.impl.version>
 		<maven.compiler.release>21</maven.compiler.release>
+		<!-- Keeps parameter names: Spring 6.1+ needs them for an unnamed @PathVariable or @RequestParam -->
+		<maven.compiler.parameters>true</maven.compiler.parameters>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<junit.version>5.13.4</junit.version>
 		<mockito.version>5.24.0</mockito.version>
@@ -37,7 +39,7 @@
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
-			<!-- Keeps every JUnit 5 module on one version (Mockito pulls an older junit-jupiter-api) -->
+			<!-- Keeps every JUnit 5 module on one version -->
 			<dependency>
 				<groupId>org.junit</groupId>
 				<artifactId>junit-bom</artifactId>
@@ -81,10 +83,14 @@
 			<artifactId>jakarta.servlet.jsp.jstl-api</artifactId>
 			<version>${jstl.api.version}</version>
 			<exclusions>
-				<!-- Tomcat 11 provides Jakarta EL 6.0 -->
+				<!-- Tomcat 11 provides Jakarta EL 6.0 and Servlet 6.1 (the servlet API is declared as provided below) -->
 				<exclusion>
 					<groupId>jakarta.el</groupId>
 					<artifactId>jakarta.el-api</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>jakarta.servlet</groupId>
+					<artifactId>jakarta.servlet-api</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>
@@ -211,7 +217,8 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<configuration>
-					<argLine>-javaagent:${org.mockito:mockito-core:jar}</argLine>
+					<!-- Quoted so a Maven repo path with a space (e.g. a Windows user folder) stays one argument -->
+					<argLine>-javaagent:"${org.mockito:mockito-core:jar}"</argLine>
 				</configuration>
 			</plugin>
 		</plugins>

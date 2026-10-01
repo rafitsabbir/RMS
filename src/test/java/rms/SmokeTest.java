@@ -9,6 +9,7 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -16,7 +17,8 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 /**
  * HTTP smoke test against an already deployed WAR (local dev only).
  * Enabled only when RMS_BASE_URL is set, e.g. the local Tomcat context URL.
- * The login test also needs RMS_SMOKE_USER and RMS_SMOKE_PASSWORD (seed test values).
+ * The login test also needs RMS_SMOKE_USER and RMS_SMOKE_PASSWORD (seed test values); the Latin-1 post
+ * needs only a working database (it expects "Invalid login!").
  */
 @EnabledIfEnvironmentVariable(named = "RMS_BASE_URL", matches = ".+")
 class SmokeTest {
@@ -47,24 +49,39 @@ class SmokeTest {
 	@EnabledIfEnvironmentVariable(named = "RMS_SMOKE_USER", matches = ".+")
 	@EnabledIfEnvironmentVariable(named = "RMS_SMOKE_PASSWORD", matches = ".+")
 	void loginShowsMenu() throws IOException {
-		String form = "username=" + URLEncoder.encode(System.getenv("RMS_SMOKE_USER"), "UTF-8")
-				+ "&password=" + URLEncoder.encode(System.getenv("RMS_SMOKE_PASSWORD"), "UTF-8");
-		HttpURLConnection connection = (HttpURLConnection) URI.create(baseUrl() + "/welcome").toURL().openConnection();
-		connection.setRequestMethod("POST");
-		connection.setDoOutput(true);
-		connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-		OutputStream out = connection.getOutputStream();
-		try {
-			out.write(form.getBytes("UTF-8"));
-		} finally {
-			out.close();
-		}
+		HttpURLConnection connection = postLogin(System.getenv("RMS_SMOKE_USER"), System.getenv("RMS_SMOKE_PASSWORD"));
 
 		assertThat(connection.getResponseCode()).isEqualTo(200);
 		String body = read(connection);
 		assertThat(body).contains("sidenav");
 		// G38: the score-entry URLs carry no userid
 		assertThat(body).doesNotContain("?user=");
+	}
+
+	/** The pages post ISO-8859-1; web.xml pins that decoding (Tomcat 11 would answer 400 for UTF-8-invalid bytes). */
+	@Test
+	void latin1FormPostIsAccepted() throws IOException {
+		HttpURLConnection connection = postLogin("caf\u00e9", "x");
+
+		assertThat(connection.getResponseCode()).isEqualTo(200);
+		assertThat(read(connection)).contains("Invalid login!");
+	}
+
+	/** Posts the login form the way the browser does for an ISO-8859-1 page. */
+	private static HttpURLConnection postLogin(String username, String password) throws IOException {
+		String form = "username=" + URLEncoder.encode(username, StandardCharsets.ISO_8859_1)
+				+ "&password=" + URLEncoder.encode(password, StandardCharsets.ISO_8859_1);
+		HttpURLConnection connection = (HttpURLConnection) URI.create(baseUrl() + "/welcome").toURL().openConnection();
+		connection.setRequestMethod("POST");
+		connection.setDoOutput(true);
+		connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+		OutputStream out = connection.getOutputStream();
+		try {
+			out.write(form.getBytes(StandardCharsets.ISO_8859_1));
+		} finally {
+			out.close();
+		}
+		return connection;
 	}
 
 	private static String read(HttpURLConnection connection) throws IOException {

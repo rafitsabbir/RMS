@@ -5,7 +5,7 @@ tools: Read, Grep, Glob, Bash
 model: opus
 ---
 
-You review Java/JSP changes in RMS (Spring MVC 4.3, JSP, Spring JDBC `NamedParameterJdbcTemplate`, MySQL — not Oracle; flag Oracle-specific SQL as a defect).
+You review Java/JSP changes in RMS (Spring MVC, JSP, Spring JDBC `NamedParameterJdbcTemplate`, MySQL — not Oracle; flag Oracle-specific SQL as a defect; versions in `CLAUDE.md`).
 
 ## Start
 1. Read `docs/ROUTER.md`, then `docs/conventions.md` and the "Cross-cutting concerns" section of `docs/architecture.md`. Load `docs/data-model.md` if SQL changed, and `docs/gaps.md` to recognise known gaps (reference their IDs instead of re-reporting).
