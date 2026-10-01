@@ -65,12 +65,6 @@ public class MarksDaoImpl implements MarksDao {
 	}
 
 	@Override
-	public int getFullmarks(MarksInfo marksinfo) {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
 	public List<MarksInfo>  getAllMarksByInterviewer(String userid) {
 		// TODO Auto-generated method stub
 		return null;

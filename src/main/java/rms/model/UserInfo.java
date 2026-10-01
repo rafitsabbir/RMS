@@ -10,7 +10,6 @@ public class UserInfo implements Serializable {
 	private int isactive = 0;
 	private String userid = null;
 	private String username = null;
-	private String password = null;
 	private String firstname = null;
 	private String lastname = null;
 	private String email = null;
@@ -20,14 +19,6 @@ public class UserInfo implements Serializable {
 	
 	public UserInfo(){
 		
-	}
-
-	public String getPassword() {
-		return password;
-	}
-
-	public void setPassword(String password) {
-		this.password = password;
 	}
 
 	public String getIsinterviewer() {
@@ -40,8 +31,8 @@ public class UserInfo implements Serializable {
 
 	@Override
 	public String toString() {
-		return "UserInfo [isactive=" + isactive + ", userid=" + userid + ", username=" + username + ", password="
-				+ password + ", firstname=" + firstname + ", lastname=" + lastname + ", email=" + email + ", phone="
+		return "UserInfo [isactive=" + isactive + ", userid=" + userid + ", username=" + username
+				+ ", firstname=" + firstname + ", lastname=" + lastname + ", email=" + email + ", phone="
 				+ phone + ", designation=" + designation + ", isinterviewer=" + isinterviewer + "]";
 	}
 

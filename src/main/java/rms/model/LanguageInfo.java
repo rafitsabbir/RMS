@@ -2,22 +2,13 @@ package rms.model;
 
 public class LanguageInfo {
 
-	private int isactive = 0;
 	private int languagekey = 0;
 	private String languagename = null;
 
 	@Override
 	public String toString() {
-		return "LanguageInfo [isactive=" + isactive + ", languagekey="
+		return "LanguageInfo [languagekey="
 				+ languagekey + ", languagename=" + languagename + "]";
-	}
-
-	public int getIsactive() {
-		return isactive;
-	}
-
-	public void setIsactive(int isactive) {
-		this.isactive = isactive;
 	}
 
 	public int getLanguagekey() {
