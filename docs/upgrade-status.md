@@ -1,7 +1,7 @@
 # Upgrade Status
 
 Purpose: The live tracker for the tech upgrade: what is done, in progress and pending, what to do next, and how to resume on another machine. Details stay in the linked owning docs.
-Last updated: 2026-10-01 (coding before any release: Phase 3 merged into `dev`, Phase 1 frozen on `release/phase1`). 2026-10-01 (Phase 3 coded and verified on a branch, then reviewed and re-verified). 2026-10-01 (Phase 1 release runbook, rehearsed on MySQL 5.7). 2026-09-30 (G11 interim login check merged to `dev`; G27/G38 output escaping)
+Last updated: 2026-10-01 (upgrade wrap-up: CI, dependency scan, context template, Eclipse files removed). 2026-10-01 (coding before any release: Phase 3 merged into `dev`, Phase 1 frozen on `release/phase1`). 2026-10-01 (Phase 3 coded and verified on a branch, then reviewed and re-verified). 2026-10-01 (Phase 1 release runbook, rehearsed on MySQL 5.7). 2026-09-30 (G11 interim login check merged to `dev`; G27/G38 output escaping)
 Read this when: you're resuming upgrade work, or asking "where are we / what's next".
 
 ## Snapshot (2026-09-27)
@@ -58,23 +58,23 @@ Owners:
 ### Phases 2–4 and follow-ups
 | Item | State | Gate / deadline | Evidence |
 |---|---|---|---|
-| **Phase 2:** JDK 8 → 21, Mockito 5, Logback 1.5, regenerate `.settings` | Coded with Phase 3 (2026-10-01): release 21, Mockito 5.24.0 as a Java agent, Logback 1.5.38. `.settings` still say 1.5 (**open**). Ships only together with Spring 7, after Phase 1 is in production (Spring4Shell) | dev / ops | [plan §4–5](modernization-plan.md#phase-2--jdk-8--21-s) |
+| **Phase 2:** JDK 8 → 21, Mockito 5, Logback 1.5, regenerate `.settings` | Coded with Phase 3 (2026-10-01): release 21, Mockito 5.24.0 as a Java agent, Logback 1.5.38. The stale Eclipse files were removed on 2026-10-01; m2e regenerates them. Ships only together with Spring 7, after Phase 1 is in production (Spring4Shell) | dev / ops | [plan §4–5](modernization-plan.md#phase-2--jdk-8--21-s) |
 | **Phase 3:** Spring 7.0, Jakarta namespace, Tomcat 11, `web.xml` (G37) | **Coded and verified 2026-10-01**, reviewed and re-verified: 47 tests on JDK 21 (43 pass, 4 smoke skipped); on Tomcat 11.0.26 the smoke test (4/4), checklist, access and escaping checks match Tomcat 9. **Merged into `dev`** on 2026-10-01; not released. Still open: the JDK standard (before the release), a Phase 3 release runbook and rehearsal, and the Tomcat 11 + JDK 21 container (ops), including whether production uses a Security Manager (#4). In production before **2027-03-31** (end of Tomcat 9 support) | dev / ops | [plan §4](modernization-plan.md#phase-3--spring-70-jakarta-namespace-and-tomcat-11-m), [acceptance/README.md](acceptance/README.md) |
-| **Phase 4:** GitHub Actions CI, JNDI context template, optional image | Pending | After Phase 3 | [plan §4](modernization-plan.md#phase-4--packaging-and-deployment-m) |
+| **Phase 4:** GitHub Actions CI, JNDI context template, optional image | CI (`ci.yml`), the OSV-Scanner dependency scan and `deploy/tomcat/rms.xml` coded 2026-10-01; the template passed `SmokeTest` 4/4 on Tomcat 11. The container image is **pending** | dev | [plan §4](modernization-plan.md#phase-4--packaging-and-deployment-m) |
 | **Follow-ups:** JDK 25; Spring Security 7 (G11 has an interim interceptor since 2026-09-30; G13, G32); replacing the JSPs | Pending | After Phase 4 | [gaps.md](gaps.md) |
 
 ## Owner decisions still open
 - The MySQL server version in production (#16). It decides whether the driver can move past 8.2.0.
 - The container, the JNDI setup and runtime ownership (#4, #17).
 - The JDK standard: 21, or an organisational 17 or 25. Needed before the Phase 3 merge: the branch builds for 21 (the WAR then needs a JDK 21+ runtime); a `release` 17 build also passes.
-- The deployment target after Phase 4, and whether GitHub Actions is acceptable for CI.
+- The deployment target after Phase 4. (GitHub Actions for CI was accepted on 2026-10-01.)
 - Confirm there is no Oracle database and no plan to move to one.
 
 ## Next actions, in order
 1. ~~Run the DAO tests with Docker~~ done 2026-09-27 (18/18).
 2. ~~Deploy to a local Tomcat 9, run `SmokeTest`, the acceptance checklist and the baseline screenshot~~ done 2026-09-27 ([acceptance/README.md](acceptance/README.md)). Optional: have a domain user repeat the checklist on a desktop browser with real CDN access.
 3. ~~Do the browser check of every page and the non-ASCII test (G34)~~ done 2026-09-27.
-4. **Coding first (2026-10-01):** the upgrade wrap-up (Eclipse files, CI, JNDI template), then the work in [gaps.md](gaps.md). Releases are on hold.
+4. **Coding first (2026-10-01):** ~~the upgrade wrap-up (Eclipse files, CI, JNDI template)~~ done 2026-10-01. Next: the work in [gaps.md](gaps.md), such as Spring Security 7 (G11, G13, G32), the small fixes and the missing modules. Releases are on hold.
 5. When releases resume: Phase 1 from `release/phase1` by following [release-phase1.md](release-phase1.md) (owner checks #16, #19, #20, #21, CDN access and sign-off first), or skip straight to the current `dev` if the owner prefers one release. Either way the owner sets the JDK standard before `dev` is released; if it's 17, set `maven.compiler.release` to 17.
 6. Write and rehearse a Phase 3 release runbook, like [release-phase1.md](release-phase1.md): Tomcat 11 on JDK 21, the JNDI resource re-created, no Security Manager, and the rollback to the kept Phase 1 container and WAR (there is no Phase 2 WAR). Then release before 2027-03-31.
 

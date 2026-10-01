@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+	Tomcat context for RMS: the JNDI DataSource jdbc/springrms that WebConfig.getDataSource looks up.
+	Copy it to conf/Catalina/localhost/rms.xml (context path /rms). Never put it in the WAR.
+
+	No values belong in this file. Tomcat fills in each ${...} from an environment variable when it
+	starts with this system property (for example in bin/setenv.sh):
+		-Dorg.apache.tomcat.util.digester.PROPERTY_SOURCE=org.apache.tomcat.util.digester.EnvironmentPropertySource
+	Set these in Tomcat's environment only:
+		RMS_DB_URL        jdbc:mysql://<db-host>:<port>/<db-name>?sslMode=REQUIRED
+		RMS_DB_USER
+		RMS_DB_PASSWORD
+	mysql-connector-j-8.2.0.jar goes in Tomcat's lib/. Pool sizes are the DBCP2 defaults (maxTotal 8);
+	add maxTotal/maxIdle here if production needs more. See docs/build-run.md.
+-->
+<Context>
+	<Resource name="jdbc/springrms" auth="Container" type="javax.sql.DataSource"
+		driverClassName="com.mysql.cj.jdbc.Driver"
+		url="${RMS_DB_URL}" username="${RMS_DB_USER}" password="${RMS_DB_PASSWORD}"
+		validationQuery="SELECT 1"/>
+</Context>

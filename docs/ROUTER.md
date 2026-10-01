@@ -1,7 +1,7 @@
 # Docs Router
 
 Purpose: Points each kind of task to the minimum set of docs and code to read.
-Last updated: 2026-10-01 (Phase 1 release runbook; Phase 3: `jakarta.servlet`)
+Last updated: 2026-10-01 (CI workflows and the Tomcat context template). 2026-10-01 (Phase 1 release runbook; Phase 3: `jakarta.servlet`)
 Read this when: you're starting any task. Start here, not with every doc.
 
 **Rule:** read only the files listed for your task. Open other docs only if those files point you there, or the task clearly spans categories.
@@ -11,11 +11,11 @@ Read this when: you're starting any task. Start here, not with every doc.
 | Fixing a bug in a business flow | [business-flows/README.md](business-flows/README.md), then the one module file ([login](business-flows/login.md), [masters](business-flows/masters.md), [evaluation](business-flows/evaluation.md)); [open-questions.md](open-questions.md) if the area is marked partial | `rms/controller/<X>Controller.java` → `rms/service/<X>ServiceImpl.java` → `rms/dao/<X>DaoImpl.java`, `WEB-INF/jsp/<view>.jsp`, `src/test/java/rms/**/<X>*Test.java` |
 | Adding a new feature or screen | [conventions.md](conventions.md), [business-flows/masters.md](business-flows/masters.md) (template pattern), [architecture.md](architecture.md) | `PositionController.java` (CRUD template), `main.jsp` (menu `load_*()` functions and `spring:url` values) |
 | DB / SQL change | [data-model.md](data-model.md), then the affected module in business-flows/ | `rms/dao/*DaoImpl.java` (SQL string fields and `RowMapper`s), `rms/model/*Info.java`, `db/schema.sql` (inferred), `db/local/` (local DB setup), `src/test/java/rms/dao/` |
-| Build, deploy or environment issue | [build-run.md](build-run.md), [tech-stack.md](tech-stack.md) | `pom.xml`, `mvnw`, `.mvn/wrapper/`, `rms/config/WebInitializer.java`, `WebConfig.getDataSource` |
+| Build, deploy or environment issue | [build-run.md](build-run.md), [tech-stack.md](tech-stack.md) | `pom.xml`, `mvnw`, `.mvn/wrapper/`, `.github/workflows/`, `deploy/tomcat/rms.xml`, `rms/config/WebInitializer.java`, `WebConfig.getDataSource` |
 | Config or integration change | [config.md](config.md) | `rms/config/WebConfig.java`, `src/main/webapp/WEB-INF/web.xml` |
 | Resuming upgrade work / "what's next?" | [upgrade-status.md](upgrade-status.md) first, then the phase in [modernization-plan.md](modernization-plan.md); [acceptance/README.md](acceptance/README.md) to sign off a phase | `pom.xml`, `src/test/java/rms/`, `db/`, `db/local/README.md` |
 | Upgrading libraries/JDK/framework | [upgrade-status.md](upgrade-status.md), [modernization-plan.md](modernization-plan.md), [tech-stack.md](tech-stack.md), [conventions.md](conventions.md) | `pom.xml`, `WebConfig.java`, `LoginController.java` and `AuthInterceptor.java` (the only `jakarta.servlet` users), `WEB-INF/web.xml`, JSP `<head>` CDN links |
-| Releasing a phase / deploying to production / rollback | [release-phase1.md](release-phase1.md), then [build-run.md](build-run.md) and [acceptance/README.md](acceptance/README.md) | `pom.xml`, the WAR from `./mvnw -B verify`, `src/test/java/rms/SmokeTest.java` |
+| Releasing a phase / deploying to production / rollback | [release-phase1.md](release-phase1.md), then [build-run.md](build-run.md) and [acceptance/README.md](acceptance/README.md) | `pom.xml`, the WAR from `./mvnw -B verify` (or the CI artifact), `deploy/tomcat/rms.xml`, `src/test/java/rms/SmokeTest.java` |
 | Dependency upgrade / security fix | [upgrade-status.md](upgrade-status.md), [modernization-plan.md](modernization-plan.md) (phase and gates first), then [tech-stack.md](tech-stack.md), [build-run.md](build-run.md) | `pom.xml`, `src/test/java/rms/` (the characterization tests must stay green) |
 | Understanding the overall system | [architecture.md](architecture.md), [business-flows/README.md](business-flows/README.md) | `WebConfig.java`, `rms/controller/` |
 | Code review / following conventions | [conventions.md](conventions.md), plus the "Cross-cutting concerns" section of [architecture.md](architecture.md) | the changed files, and their tests in `src/test/java/rms/` |

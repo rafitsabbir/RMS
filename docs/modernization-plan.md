@@ -1,7 +1,7 @@
 # Modernization Plan
 
 Purpose: The agreed plan for bringing RMS up to a supported stack: current state, target stack with reasons, phases, risks and gates.
-Last updated: 2026-10-01 (Phase 3 merged into `dev` with releases on hold; Phase 1 frozen on `release/phase1`). 2026-10-01 (Phase 3 coded and verified on a branch, with Phase 2 folded in, then reviewed and re-verified; Phase 3 rollback target corrected; Phase 1 rollback rehearsed; the Phase 3 JSTL list covers five JSPs). 2026-09-30 (G11 interceptor adds a second `javax.servlet` user; all 7 JSPs opt into EL after the G40 fix; G27/G38 fixed). 2026-09-26 (Phase 1 code on `dev`, not released; Phase 0 owner steps still open)
+Last updated: 2026-10-01 (Phase 4 CI, dependency scan and context template on `dev`; Eclipse files removed). 2026-10-01 (Phase 3 merged into `dev` with releases on hold; Phase 1 frozen on `release/phase1`). 2026-10-01 (Phase 3 coded and verified on a branch, with Phase 2 folded in, then reviewed and re-verified; Phase 3 rollback target corrected; Phase 1 rollback rehearsed; the Phase 3 JSTL list covers five JSPs). 2026-09-30 (G11 interceptor adds a second `javax.servlet` user; all 7 JSPs opt into EL after the G40 fix; G27/G38 fixed). 2026-09-26 (Phase 1 code on `dev`, not released; Phase 0 owner steps still open)
 Read this when: you're upgrading libraries, the JDK, the framework, the servlet container or the DB driver, or planning a security fix to the stack.
 
 **Status and rules:**
@@ -227,7 +227,7 @@ Move one axis at a time. Pass through Spring 5.3 so the security fixes ship befo
   - Mockito 5.24.0, loaded as a `-javaagent` through the dependency plugin's `properties` goal, because JDK 21 warns about Mockito attaching itself.
   - Logback 1.5.38. A Logback 1.6 line exists but wasn't evaluated.
   - JUnit stays 5.13.4; moving to 6 is optional.
-  - `.settings` isn't regenerated yet (open).
+  - The stale Eclipse files (`.project`, `.classpath`, `.settings/`, Java 1.5 and web 2.3) were removed from the repo and git-ignored on 2026-10-01. m2e regenerates them from the pom on import ([build-run.md](build-run.md)).
   - The gate still holds: JDK 21 reaches production only together with Spring 7, after Phase 1.
 - **Scope:**
   - Set `maven.compiler.release=21`.
@@ -280,7 +280,6 @@ Move one axis at a time. Pass through Spring 5.3 so the security fixes ship befo
     - **Before the release:** the owner chooses the JDK standard (section 9). The WAR needs a JDK 21+ runtime (class version 65); if the standard is 17, set `maven.compiler.release` to 17.
     - A Phase 3 release runbook and rehearsal, including the rollback to the Phase 1 container.
     - The Tomcat 11 + JDK 21 container (ops). Check whether production Tomcat 9 runs with a Security Manager (`-security`): Tomcat 11 has dropped it [A] (open question #4).
-    - Eclipse `.settings`.
 - **Scope:**
   1. **`pom.xml`:**
      - `spring-framework-bom` 7.0.x
@@ -306,6 +305,10 @@ Move one axis at a time. Pass through Spring 5.3 so the security fixes ship befo
   - The acceptance checklist passes on Tomcat 11.
 
 ### Phase 4 — Packaging and deployment (**M**)
+- **Status (2026-10-01):** CI, the dependency scan and the context template are coded on `dev`; the container image is still pending. The owner accepted GitHub Actions by choosing this work.
+  - `.github/workflows/ci.yml`: `./mvnw -B verify` on Temurin 21 with `RMS_REQUIRE_DOCKER=true`, so the DAO tests run against Testcontainers MySQL. It uploads the WAR and the test reports as artifacts. Every action is pinned to a commit SHA.
+  - `.github/workflows/osv-scanner.yml`: Google's OSV-Scanner 2.6.0 reusable workflows. A PR fails only on vulnerabilities it introduces; pushes to `dev` and `master` scan everything and report to code scanning. The weekly run starts once the file is on `master`, the default branch.
+  - `deploy/tomcat/rms.xml`: the `jdbc/springrms` resource with `${RMS_DB_URL}`, `${RMS_DB_USER}` and `${RMS_DB_PASSWORD}`, filled in by Tomcat's `EnvironmentPropertySource` [C: on Tomcat 11.0.26 the template, copied verbatim, passed `SmokeTest` 4/4; without `RMS_DB_PASSWORD` the login failed with "Access denied"].
 - **Scope:**
   1. **CI** (GitHub Actions):
      - runs `mvnw verify` with Testcontainers on PRs to `dev` and `master`
@@ -421,5 +424,5 @@ The schema (G22) is also needed.
 
 **Owner decisions still open:**
 - Choose the JDK standard: 21, or an organisational 17 or 25. Needed before Phase 3 is released: `dev` builds for 21, and a `release` 17 build also passes (2026-10-01).
-- Choose the deployment target after Phase 4, and whether GitHub Actions is acceptable for CI.
+- Choose the deployment target after Phase 4. (GitHub Actions for CI: accepted on 2026-10-01.)
 - Confirm there's no Oracle database and no plan to move to one.

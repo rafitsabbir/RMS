@@ -1,0 +1,54 @@
+# Builds the WAR and runs the tests on JDK 21 (docs/build-run.md).
+# The DAO tests use Testcontainers (Docker is available on ubuntu-latest); SmokeTest is
+# skipped because it needs a deployed app (RMS_BASE_URL).
+name: CI
+
+on:
+  pull_request:
+    branches: [dev, master]
+  push:
+    branches: [dev, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Build and test
+        env:
+          # Fail, rather than skip, the DAO tests if Docker is missing
+          RMS_REQUIRE_DOCKER: "true"
+        run: ./mvnw -B verify
+
+      - name: Upload WAR
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: rms-war
+          path: target/rmsv2-1.0.1-SNAPSHOT.war
+          if-no-files-found: error
+
+      - name: Upload test reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: test-reports
+          path: target/surefire-reports/
+          if-no-files-found: ignore
