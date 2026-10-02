@@ -4,9 +4,9 @@
 Use subagents in .claude/agents/ — see ROUTER.md.
 
 ## Summary
-- RMS is a small recruitment management web app (`README.md`) with two roles: admin and interviewer, chosen by `isinterviewer` (`WEB-INF/tags/layout.tag`).
-- Admins maintain candidates (add, list, edit, soft delete; IDs generated as C1, C2, …) and the job-position and language/skill lists, and view candidates' scores on 10 criteria with a total and a selected/rejected status (`rms/controller/*`, `viewmarks.jsp`).
-- Interviewer, job and schedule modules, and interviewer score entry, show only as disabled "Coming soon" menu entries, with no backend (`layout.tag`, `MarksDaoImpl.java`).
+- RMS is a small recruitment management web app (`README.md`) with four roles in `admin.role`: Super Admin, HR, Hiring Manager (read-only) and Interviewer (`rms/model/Role.java`; NULL falls back to `isinterviewer`). Access is deny-by-default in `SecurityConfig`.
+- Super Admins manage users (Users and Roles: add, role, deactivate, reset password; IDs U1, U2, …). Super Admins and HR maintain candidates (add, list, edit, soft delete; IDs C1, C2, …) and the job-position and language/skill lists, and view candidates' scores on 10 criteria with a total and a selected/rejected status (`rms/controller/*`, `viewmarks.jsp`). Everyone can change their own password.
+- Job and schedule modules, and interviewer score entry, show only as disabled "Coming soon" menu entries, with no backend (`layout.tag`, `MarksDaoImpl.java`). They are Phases 2–4 of the roles plan ([docs/upgrade-status.md](docs/upgrade-status.md)).
 
 **Stack:**
 - Java: 21 (`maven.compiler.release` in `pom.xml`), built with JDK 21.
@@ -14,7 +14,7 @@ Use subagents in .claude/agents/ — see ROUTER.md.
 - Framework: Spring MVC 7.0.9 (Spring BOM) on Jakarta EE 11, with JSP/Jakarta Tags (JSTL 3.0) and Spring JDBC (`NamedParameterJdbcTemplate`, no ORM).
 - Database: MySQL (Connector/J 8.2.0, `com.mysql.cj.jdbc.Driver`) through JNDI `jdbc/springrms`, in an external Servlet 6.1 container (Tomcat 11).
 - Logging: SLF4J 2.0 with Logback 1.5 (`src/main/resources/logback.xml`).
-- Security: Spring Security 7.0.7: form login, roles, CSRF tokens, POST logout (`rms/config/SecurityConfig.java`).
+- Security: Spring Security 7.0.7: form login, four roles, deny by default, CSRF tokens, POST logout, login lock, {bcrypt} for new passwords (`rms/config/SecurityConfig.java`).
 
 Evidence: `pom.xml`, `.mvn/wrapper/maven-wrapper.properties`, `rms/config/WebConfig.java`.
 
@@ -39,18 +39,18 @@ Evidence: `pom.xml`, `.mvn/wrapper/maven-wrapper.properties`, `rms/config/WebCon
 ```
 pom.xml                       Maven build (WAR)
 src/main/java/rms/
-  config/                     WebInitializer (bootstrap), WebConfig (MVC, DataSource), SecurityConfig + SecurityInitializer (Spring Security)
-  controller/                 Login, Position, Language, Candidate, Marks
+  config/                     WebInitializer (bootstrap), WebConfig (MVC, DataSource), SecurityConfig + SecurityInitializer (Spring Security), AccountCheckFilter, LoginThrottle
+  controller/                 Login, Account, User, Position, Language, Candidate, Marks
   service/  dao/  model/      *Service(+Impl), *Dao(+Impl), *Info
 src/main/webapp/
-  WEB-INF/jsp/                9 JSP views (main.jsp = home page)
+  WEB-INF/jsp/                12 JSP views (main.jsp = home page)
   WEB-INF/tags/layout.tag     shared page shell: head, sidebar menu, top bar
   WEB-INF/web.xml             Servlet 6.1: request encoding ISO-8859-1, metadata-complete
   resources/                  css (rms.css theme), js (rms.js), img (SVG logo, icon sprite)
 src/test/java/rms/            controller, security, service, DAO (Testcontainers) and smoke tests
 db/                           schema.sql (inferred), test-seed.sql (synthetic)
   local/                      local MySQL setup: create DB + load schema and seed (README.md)
-  migrations/                 numbered changes for existing databases, run by the owner (001: candidate.isactive)
+  migrations/                 numbered changes for existing databases, run by the owner (001 candidate.isactive, 002 roles, 003 password hashing)
 mvnw, .mvn/wrapper/           Maven Wrapper
 .github/workflows/            CI: build + tests (JDK 21, Testcontainers), OSV-Scanner
 deploy/tomcat/rms.xml         JNDI context template (env-var placeholders only)

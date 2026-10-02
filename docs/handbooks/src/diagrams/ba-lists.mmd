@@ -1,0 +1,6 @@
+flowchart LR
+  V[View list] --> A[Add or Edit] --> S{Valid?}
+  S -->|no - message shown,<br/>values kept| A
+  S -->|yes - saved| V
+  V --> D[Delete] --> Q{Confirm?}
+  Q -->|yes - hidden from lists,<br/>kept in database| V

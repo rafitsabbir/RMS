@@ -14,13 +14,17 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import rms.model.LoginInfo;
+import rms.model.Role;
 import rms.model.UserInfo;
 
 @Repository
 public class LoginDaoImpl implements LoginDao {
 	// The password is checked in Java by Spring Security (SecurityConfig.passwordEncoder), not in SQL (G13)
 	final String loginsbyusername = "select userid, username, password from users where username= :username";
-	final String userinfo = "select * from admin where userid= :userid";
+	// The admin row (the profile) plus the users row's forced-change flag; NULL (0) when there is no users row.
+	// A subquery, not a join: two users rows for one userid (no known key, G22) must not make two profile rows
+	final String userinfo = "select a.*, (select max(u.mustchangepassword) from users u where u.userid=a.userid) "
+			+ "as mustchangepassword from admin a where a.userid= :userid";
 
 	NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
@@ -42,6 +46,10 @@ public class LoginDaoImpl implements LoginDao {
 			userinfo.setPhone(rs.getString("phone"));
 			userinfo.setDesignation(rs.getString("designation"));
 			userinfo.setIsinterviewer(rs.getString("isinterviewer"));
+			// admin.role, or the role the legacy isinterviewer implies when it is NULL (migration 002)
+			Role role = Role.of(rs.getString("role"), userinfo.getIsinterviewer());
+			userinfo.setRole(role == null ? null : role.name());
+			userinfo.setMustchangepassword(rs.getInt("mustchangepassword"));
 			return userinfo;
 		}
 	}

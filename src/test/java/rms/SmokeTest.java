@@ -133,6 +133,34 @@ class SmokeTest {
 		assertThat(CSRF_FIELD.matcher(body).find()).isTrue();
 	}
 
+	/** Needs a Super Admin smoke user (test.admin in the seed). */
+	@Test
+	@EnabledIfEnvironmentVariable(named = "RMS_SMOKE_USER", matches = ".+")
+	@EnabledIfEnvironmentVariable(named = "RMS_SMOKE_PASSWORD", matches = ".+")
+	void userAndPasswordPagesRender() throws IOException {
+		HttpURLConnection login = postLogin(System.getenv("RMS_SMOKE_USER"), System.getenv("RMS_SMOKE_PASSWORD"));
+		String cookie = sessionCookie(login);
+
+		HttpURLConnection list = open("/viewuserlist", cookie);
+		assertThat(list.getResponseCode()).isEqualTo(200);
+		String body = read(list);
+		assertThat(body).contains("<title>Users and Roles - RMS</title>");
+		assertThat(body).contains("id=\"usertable\"");
+
+		HttpURLConnection form = open("/createuser", cookie);
+		assertThat(form.getResponseCode()).isEqualTo(200);
+		body = read(form);
+		assertThat(body).contains("id=\"role\"");
+		assertThat(body).contains("value=\"HIRING_MANAGER\"");
+		assertThat(CSRF_FIELD.matcher(body).find()).isTrue();
+
+		HttpURLConnection password = open("/changepassword", cookie);
+		assertThat(password.getResponseCode()).isEqualTo(200);
+		body = read(password);
+		assertThat(body).contains("id=\"currentpassword\"");
+		assertThat(CSRF_FIELD.matcher(body).find()).isTrue();
+	}
+
 	@Test
 	@EnabledIfEnvironmentVariable(named = "RMS_SMOKE_USER", matches = ".+")
 	@EnabledIfEnvironmentVariable(named = "RMS_SMOKE_PASSWORD", matches = ".+")

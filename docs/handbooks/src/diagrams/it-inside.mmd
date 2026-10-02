@@ -1,0 +1,8 @@
+flowchart TD
+  R[HTTP request] --> SF[Spring Security filter chain<br/>login, role check, CSRF, session]
+  SF --> DS[Spring DispatcherServlet]
+  DS --> C[Controllers<br/>Login, Position, Language, Candidate, Marks]
+  C --> SV[Services]
+  SV --> D[DAOs with SQL<br/>NamedParameterJdbcTemplate]
+  D --> J[JNDI DataSource] --> DB[(MySQL)]
+  C --> V[JSP views + shared layout] --> H[HTML to the browser]

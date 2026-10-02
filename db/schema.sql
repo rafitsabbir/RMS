@@ -12,6 +12,9 @@
 --     Columns 6-7 are not read; interviewerid/candidateid are assumed there.
 --   * candidate.isactive is NEW (2026-10-02, candidate soft delete): production needs
 --     db/migrations/001-candidate-isactive.sql before a WAR with the candidate delete.
+--   * admin.role and users.mustchangepassword are NEW (2026-10-02, roles and password security):
+--     production needs db/migrations/002-user-roles.sql before a WAR with the roles. users.password
+--     must hold 68 characters ({bcrypt} plus a 60-character hash).
 --   * Types, lengths, keys and NULL rules: guessed. No unique index on names,
 --     which keeps the current duplicate behaviour (G33).
 -- Used only by the Testcontainers DAO tests (src/test/java/rms/dao).
@@ -20,6 +23,7 @@ CREATE TABLE users (
 	userid VARCHAR(50) NOT NULL,
 	username VARCHAR(100) NOT NULL,
 	password VARCHAR(100) NOT NULL,
+	mustchangepassword TINYINT NOT NULL DEFAULT 0,
 	PRIMARY KEY (userid)
 );
 
@@ -33,6 +37,7 @@ CREATE TABLE admin (
 	phone VARCHAR(30),
 	designation VARCHAR(100),
 	isinterviewer CHAR(1),
+	role VARCHAR(20),
 	PRIMARY KEY (userid)
 );
 

@@ -1,0 +1,169 @@
+# RMS Developer Handbook
+@ Recruitment Management System — code structure, request flow, security model, conventions, tests and recipes for common changes
+@ Branch dev as of 2 October 2026 (roles plan, Phase 1). Java 21, Spring 7, Tomcat 11, MySQL.
+
+## 1. First day
+1. Install **JDK 21** (for example Eclipse Temurin 21) and set JAVA_HOME. A JRE isn't enough. Maven comes with the repository (Maven Wrapper).
+2. Clone the repository and switch to the working branch: `git checkout dev`.
+3. Build and run the tests: `./mvnw -B verify` (Windows: `mvnw.cmd -B verify`). The WAR is target/rmsv2-1.0.1-SNAPSHOT.war.
+4. Optional: install **Docker**, so the DAO tests run against a throwaway MySQL instead of being skipped.
+5. Optional: build a local database with db/local/ (script or Docker Compose; synthetic data only), install **Tomcat 11** and deploy the WAR (see "Run locally on Tomcat" in section 7).
+6. Read CLAUDE.md and docs/ROUTER.md in the repository: they point to the right document for every kind of task.
+
+> **House rules:** never connect to a shared or production database; never put passwords, hostnames or connection strings in code, documents or commits; work on the dev branch.
+
+## 2. Repository map
+|Path|What it is|
+|---|---|
+|pom.xml|Maven build, packaging war|
+|src/main/java/rms/config/|WebInitializer (bootstraps Spring), WebConfig (MVC, view resolver, JNDI DataSource, static resources), SecurityConfig (access rules, login, logout, CSRF, password check), AccountCheckFilter, LoginThrottle, SecurityInitializer (registers the security filter), PlainTextPasswordEncoder (legacy passwords)|
+|src/main/java/rms/controller/|Login, Account (Change password), User (Users and Roles), Position, Language, Candidate and Marks controllers|
+|src/main/java/rms/service/|*Service interfaces and *ServiceImpl classes (mostly pass-through; UserServiceImpl encodes passwords), RmsUserDetails, PasswordRules|
+|src/main/java/rms/dao/|*Dao interfaces and *DaoImpl classes — all SQL lives here|
+|src/main/java/rms/model/|*Info beans: PositionInfo, LanguageInfo, CandidateInfo, MarksInfo, UserInfo, LoginInfo, and the Role enum|
+|src/main/resources/logback.xml|Logging configuration|
+|src/main/webapp/WEB-INF/jsp/|9 views: login, main (home), create*/view* per module, viewmarks|
+|src/main/webapp/WEB-INF/tags/layout.tag|Page shell: head, sidebar menu, top bar, Log out|
+|src/main/webapp/WEB-INF/web.xml|Request encoding ISO-8859-1, cookie-only sessions|
+|src/main/webapp/resources/|css/rms.css, js/rms.js, img/ (logo, icons.svg sprite)|
+|src/test/java/rms/|Controller, security, service, DAO and smoke tests|
+|db/schema.sql, db/test-seed.sql|Schema (inferred from the SQL, not the production DDL) and synthetic seed data|
+|db/migrations/|Numbered scripts for existing databases|
+|db/local/|Local database setup|
+|deploy/tomcat/rms.xml|Tomcat context template (placeholders only)|
+|.github/workflows/|CI build and OSV dependency scan|
+|docs/|Project knowledge; start at docs/ROUTER.md|
+
+## 3. A request's path
+![Saving a position: from the browser through security, controller, service and DAO to MySQL](dev-request.png)
+
+- Controllers return ModelAndView. The view name maps to /WEB-INF/jsp/<name>.jsp.
+- Services are pass-through today; put business rules there when they grow beyond simple validation.
+- There is no transaction management: every write is a single SQL statement.
+- "Not found" (a missing or deleted key) is a null from the DAO, which the controller turns into HTTP 404.
+- Business refusals (duplicates) are a false from the DAO, shown as a message on the form, never an exception.
+
+## 4. Security model
+- **Login:** Spring Security handles `POST /welcome` (fields username and password) and calls `LoginService.loadUserByUsername`. Never read credentials in a controller.
+- **Roles:** four, in `rms.model.Role`: SUPER_ADMIN, HR, HIRING_MANAGER, INTERVIEWER, read from admin.role (NULL falls back to admin.isinterviewer: N is Super Admin, Y is Interviewer). The authority is ROLE_ plus the name. Writes keep isinterviewer in step (N for Super Admin, Y for the rest) so an older WAR still works after a rollback.
+- **Rules** live in `SecurityConfig.appFilterChain` and **deny by default**: /login and /welcome are public; /, /home, /changepassword and /savepassword need any login; every other page is listed in USER_ADMIN_PAGES, STAFF_READ_PAGES or HR_PAGES with its roles; `anyRequest().denyAll()` refuses the rest. A new URL is refused for everyone until you list it.
+- **Account check:** `AccountCheckFilter` re-reads the user's admin row on every request: deactivated or a changed role ends the session (/login?ended); a reset password (users.mustchangepassword = 1) allows only Change password.
+- **Login lock:** `LoginThrottle`, 5 failures per username and address in 15 minutes lock it there for 15 minutes; in memory per Tomcat node.
+- **Menu** visibility is separate: layout.tag shows blocks by the session user's role name (`role eq 'HR'`). Change both the rule and the menu.
+- **Session:** after login the profile (UserInfo) is in the session as "user"; the JSPs read it from there, and AccountCheckFilter refreshes it.
+- **CSRF:** every POST needs the token. `<form:form>` adds it automatically; a plain `<form method="post">` gets HTTP 403.
+- **Passwords:** stored values starting with {bcrypt} are checked with bcrypt; anything else as a legacy plain-text password (exact match). RMS stores every new, reset or changed password as {bcrypt} (`UserServiceImpl`, rules in `PasswordRules`). Hashing the existing rows is db/migrations/003-hash-passwords/, which waits for the owner's approval.
+
+## 5. Coding conventions
+|Topic|Rule|Example|
+|---|---|---|
+|Layering|controller → service → dao → model; SQL only in DAOs|PositionController → PositionServiceImpl → PositionDaoImpl|
+|Naming|Interface plus *Impl; models *Info; keys <entity>key|PositionDao / PositionDaoImpl, positionkey|
+|URLs|Lowercase, no separators: /create<x>, /view<x>list, /save<x>, /update<x>/{key}, /delete<x>/{key}|/viewpositionlist|
+|Mappings|@RequestMapping(value, method = RequestMethod.X), not @GetMapping|All controllers|
+|Injection|@Autowired field in controllers; setter injection in services and DAOs|setPositionDao(…)|
+|SQL|String fields at the top of the DAO, named :params, HashMap parameter maps, a private static RowMapper|PositionDaoImpl|
+|State changes|POST only. One save handles create (key 0) and update (key > 0). Delete is a soft delete (isactive = 0)|POST /deleteposition/{k}|
+|Logging|SLF4J; `private static final Logger log` as the first field; {} placeholders; never log passwords or personal data|log.warn("Position {} already exists", name)|
+|Style|Tabs for indentation; match the surrounding code|—|
+
+## 6. Pages and UI
+- Every logged-in page wraps its content in the layout tag, for example `<rms:layout title="Positions" active="positions" tables="true">`. "active" highlights the menu entry; tables="true" loads jQuery and DataTables.
+- **No scriptlets** (<% %>) and **no inline scripts.** Page behaviour goes in resources/js/rms.js: a table with data-rms-table becomes a DataTable; a form with data-rms-confirm="…" asks before posting.
+- Print user or database text with `<c:out value="${x.name}"/>`, never raw ${…}. Spring form: tags escape by themselves.
+- Build URLs with `<spring:url>`. For free-text keys in links use `<c:url>` with `<c:param>` (it encodes +), and print the result with <c:out>.
+- Styling: Bootstrap 5 classes plus the rms-* classes and colour tokens in resources/css/rms.css. Icons: `<svg class="rms-icon"><use href="${base}resources/img/icons.svg#pencil"/></svg>`.
+- New CDN libraries need a pinned version and an SRI integrity hash (see layout.tag).
+- Keep rms.js and rms.css ASCII-only; the pages are ISO-8859-1.
+
+## 7. Recipes
+### Add a new screen (a CRUD module)
+Copy the Position module (or the Candidate module, for a text key and dropdowns) and rename. Checklist:
+- model/XInfo.java: fields, getters and setters, a toString without personal data.
+- dao/XDao.java and XDaoImpl.java (@Repository): SQL fields, an XMapper, add/update return a boolean for duplicates, find returns null when missing.
+- service/XService.java and XServiceImpl.java (@Service).
+- controller/XController.java (@Controller, @RequestMapping("/")): create, save (POST), list, update form, delete (POST).
+- WEB-INF/jsp/createx.jsp and viewx.jsp on <rms:layout>, using <form:form>.
+- A menu entry in layout.tag inside the right role block, with a new "active" key; optionally a tile in main.jsp.
+- Schema: the table in db/schema.sql and seed rows in db/test-seed.sql; a numbered script in db/migrations/ for existing databases.
+- Tests: XControllerTest (standalone MockMvc), XDaoImplTest (extends MySqlContainerSupport), and access cases in SecurityConfigTest.
+- Docs: the flow file under docs/business-flows/, plus docs/gaps.md and docs/data-model.md if facts change.
+
+Component scanning finds the new beans, but **the new URLs are refused for everyone** until you give them an access rule (next recipe).
+
+### Open a screen to a role
+Add the URLs to the matching array in `SecurityConfig` (HR_PAGES for Super Admin and HR, STAFF_READ_PAGES to add Hiring Managers, USER_ADMIN_PAGES for Super Admins), or add a rule above anyRequest():
+```
+.requestMatchers(HR_PAGES).hasAnyRole(SUPER_ADMIN, HR)
+.requestMatchers("/myevaluations", "/saveevaluation").hasRole(Role.INTERVIEWER.name())   // new rule
+.anyRequest().denyAll()
+```
+Then add the menu link inside the right `<c:if test="${role eq 'INTERVIEWER'}">` block in layout.tag, and add a `Page` with its allowed roles to `SecurityConfigTest.pages()`; `eachRoleOpensExactlyItsPages` checks it for every role. Checks that depend on the row ("only my assigned candidates") go in the service or controller.
+
+### Add a field to an existing screen
+1. Add the column to db/schema.sql and a script in db/migrations/ (with a rollback line).
+2. Add the field to the *Info model, the SQL strings, the parameter map and the RowMapper.
+3. Add the input to the create*.jsp (`<form:input path="…"/>`) and the column to the view*.jsp (with <c:out>).
+4. Validate it in the controller's save method, and update the tests.
+
+### Change a validation message or rule
+Messages are set in the controller (the form(info, "message") helper) and shown by the alert in the create*.jsp. Change the controller and its test together.
+
+### Run locally on Tomcat
+1. Create the local database: db/local/setup-local-db.sh (or .ps1), or `docker compose -f db/local/docker-compose.yml up -d`.
+2. Copy deploy/tomcat/rms.xml to Tomcat's conf/Catalina/localhost/, put the Connector/J jar in lib/, and set RMS_DB_URL, RMS_DB_USER, RMS_DB_PASSWORD and the property-source option (see the IT guide).
+3. Copy the WAR to webapps/rms.war, start Tomcat, open http://localhost:8080/rms/login and sign in with a seed user from db/test-seed.sql.
+
+## 8. Database work
+- db/schema.sql is **inferred** from the SQL in the DAOs, not exported from production. Types and lengths are guesses until the owner provides the real DDL.
+- Every schema change needs: the column in schema.sql (for tests and new local databases), a numbered script in db/migrations/ (for existing databases, run by the owner before deploying), and a note in docs/data-model.md.
+- Soft delete everywhere: lists and finds filter isactive = 1; reports may still join deleted rows on purpose.
+- The SQL is MySQL-specific (concat(), UPDATE … ORDER BY … LIMIT, REGEXP).
+- MarksDaoImpl reads columns by position from m.*: don't change the column order of the marks table.
+
+## 9. Tests
+|Kind|Where|Needs|How|
+|---|---|---|---|
+|Controller|rms/controller/*ControllerTest|Nothing|Standalone MockMvc, @Mock services, @InjectMocks controller, new WebConfig().viewResolver()|
+|Security|rms/config/SecurityConfigTest|Nothing|@SpringJUnitWebConfig, @MockitoBean services, MockMvc with springSecurity(); POSTs need .with(csrf())|
+|Service|rms/service/*Test|Nothing|Mockito|
+|DAO|rms/dao/*DaoImplTest|Docker|Extend MySqlContainerSupport: a fresh schema.sql and test-seed.sql before each test. Skipped without Docker; RMS_REQUIRE_DOCKER=true turns that into a failure (CI sets it).|
+|Smoke|rms/SmokeTest|A deployed WAR|Set RMS_BASE_URL (and RMS_SMOKE_USER, RMS_SMOKE_PASSWORD with seed values)|
+
+- These are **characterization tests**: they pin what the code does today. A test that pins a known defect carries a comment such as `// characterizes G10`.
+- Use only synthetic data: no real names, credentials or hostnames.
+- Mockito runs as a Java agent configured in pom.xml. When running tests from an IDE, add -javaagent:<path to the mockito-core jar> to the run configuration, or let Maven run them.
+- Current numbers on a machine without Docker: 145 tests, 86 pass, 59 skipped (DAO and smoke).
+
+## 10. Pitfalls
+|Pitfall|What happens|What to do|
+|---|---|---|
+|Plain HTML form with method="post"|HTTP 403 (no CSRF token)|Use <form:form>|
+|Raw ${…} in a JSP|Cross-site scripting hole|Print text with <c:out>|
+|Deleting web.xml|Tomcat 11 rejects accented form input with HTTP 400|Keep it; it pins ISO-8859-1|
+|Forgetting the access rule|New pages are refused for every role (403)|List the URL in SecurityConfig with its roles, and add it to SecurityConfigTest.pages()|
+|Text keys in URL paths|The security firewall rejects ; and an encoded /|Use a query parameter or a form field|
+|queryForObject on a row that may be missing|It throws an exception|Return null (catch EmptyResultDataAccessException, or query a list)|
+|Logging personal data|Names or IDs end up in log files|Don't log passwords, names or free-text IDs|
+|Schema change without a migration|Tests pass, production breaks|Always add a db/migrations/ script|
+
+## 11. Git and CI
+- master is the default (production) branch; day-to-day work happens on dev. Release branches such as release/phase1 are frozen candidates.
+- Keep commits focused and the build green: run ./mvnw -B verify before pushing.
+- CI (.github/workflows/ci.yml) runs on pushes and pull requests to dev and master: a JDK 21 build, all tests with Docker (the DAO tests must run), and the WAR kept as an artifact.
+- OSV-Scanner checks the dependencies; a pull request fails if it adds a known vulnerability. GitHub Actions are pinned by commit SHA.
+- Update the owning document in docs/ in the same change when behaviour or facts change.
+
+## 12. Where to read more
+|Question|File in the repository|
+|---|---|
+|Which document for my task?|docs/ROUTER.md|
+|Coding patterns in detail|docs/conventions.md|
+|How a feature works end to end|docs/business-flows/*.md (login, masters, candidates, evaluation)|
+|Tables and columns|docs/data-model.md|
+|Build, deploy and test details|docs/build-run.md|
+|Known gaps and defects (G numbers)|docs/gaps.md|
+|Unanswered questions (# numbers)|docs/open-questions.md|
+|Upgrade progress and next steps|docs/upgrade-status.md|
+
+> The docs folder in the repository is updated with every change; if it ever differs from this handbook, the repository wins.

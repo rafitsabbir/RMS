@@ -9,14 +9,18 @@
 <c:set var="icons" value="${base}resources/img/icons.svg" />
 <spring:url value="/createcandidate" var="createURL" />
 <spring:url value="/deletecandidate" var="deleteURL" />
+<%-- Hiring Managers see the list read-only; SecurityConfig refuses them the add, edit and delete URLs --%>
+<c:set var="canedit" value="${sessionScope.user.role eq 'SUPER_ADMIN' or sessionScope.user.role eq 'HR'}" />
 <rms:layout title="Candidates" active="candidates" tables="true">
 	<div class="rms-page-header">
 		<div>
 			<h1>Candidates</h1>
 			<p>The people being interviewed, with the position and language they are assessed on.</p>
 		</div>
+		<c:if test="${canedit}">
 		<a class="btn btn-primary d-inline-flex align-items-center gap-2" href="${createURL}">
 			<svg class="rms-icon" aria-hidden="true"><use href="${icons}#plus-lg"/></svg>Add candidate</a>
+		</c:if>
 	</div>
 	<div class="card rms-card">
 		<div class="card-body">
@@ -28,7 +32,9 @@
 						<th>Position</th>
 						<th>Language</th>
 						<th>Status</th>
+						<c:if test="${canedit}">
 						<th class="rms-col-actions text-end" data-orderable="false" data-searchable="false">Actions</th>
+						</c:if>
 					</tr>
 				</thead>
 				<tbody>
@@ -52,6 +58,7 @@
 							</c:otherwise>
 						</c:choose>
 						</td>
+						<c:if test="${canedit}">
 						<td class="text-end text-nowrap">
 							<%-- The ID is free text, so it goes in a query parameter. c:param encodes "+" as %2B; spring:param
 								leaves it, and the server would read it as a space --%>
@@ -68,6 +75,7 @@
 									<svg class="rms-icon" aria-hidden="true"><use href="${icons}#trash"/></svg><span class="rms-btn-label">Delete</span></button>
 							</form:form>
 						</td>
+						</c:if>
 					</tr>
 				</c:forEach>
 				</tbody>

@@ -68,6 +68,15 @@ class LoginControllerTest {
 	}
 
 	@Test
+	void signedOutAfterAnAccountChangeShowsMessage() throws Exception {
+		// rms.config.AccountCheckFilter: deactivated, or the role changed, while logged in
+		mockMvc.perform(get("/login").param("ended", ""))
+				.andExpect(view().name("login"))
+				.andExpect(model().attribute("errorMessage",
+						"You were signed out because your account changed. Please sign in again."));
+	}
+
+	@Test
 	void homeShowsMainViewWithSessionUser() throws Exception {
 		UserInfo user = new UserInfo();
 		MockHttpSession session = new MockHttpSession();

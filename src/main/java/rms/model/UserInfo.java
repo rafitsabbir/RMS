@@ -16,9 +16,13 @@ public class UserInfo implements Serializable {
 	private String phone = null;
 	private String designation = null;
 	private String isinterviewer = null;
-	
+	/** The effective role name (Role.of: admin.role, or the isinterviewer fallback); null for none */
+	private String role = null;
+	/** users.mustchangepassword: 1 after a password reset, until the user sets their own */
+	private int mustchangepassword = 0;
+
 	public UserInfo(){
-		
+
 	}
 
 	public String getIsinterviewer() {
@@ -29,11 +33,34 @@ public class UserInfo implements Serializable {
 		this.isinterviewer = isinterviewer;
 	}
 
+	public String getRole() {
+		return role;
+	}
+
+	public void setRole(String role) {
+		this.role = role;
+	}
+
+	/** The role's display name, or empty for none. */
+	public String getRolelabel() {
+		Role parsed = Role.parse(role);
+		return parsed == null ? "" : parsed.getLabel();
+	}
+
+	public int getMustchangepassword() {
+		return mustchangepassword;
+	}
+
+	public void setMustchangepassword(int mustchangepassword) {
+		this.mustchangepassword = mustchangepassword;
+	}
+
 	@Override
 	public String toString() {
 		return "UserInfo [isactive=" + isactive + ", userid=" + userid + ", username=" + username
 				+ ", firstname=" + firstname + ", lastname=" + lastname + ", email=" + email + ", phone="
-				+ phone + ", designation=" + designation + ", isinterviewer=" + isinterviewer + "]";
+				+ phone + ", designation=" + designation + ", isinterviewer=" + isinterviewer + ", role=" + role
+				+ ", mustchangepassword=" + mustchangepassword + "]";
 	}
 
 	public int getIsactive() {

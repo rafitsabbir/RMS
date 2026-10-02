@@ -2,7 +2,6 @@
 	pageEncoding="ISO-8859-1" isELIgnored="false" trimDirectiveWhitespaces="true"%>
 <%@ taglib uri="http://www.springframework.org/tags" prefix="spring" %>
 <%@ taglib uri="jakarta.tags.core" prefix="c" %>
-<%@ taglib uri="jakarta.tags.functions" prefix="fn" %>
 <%@ taglib prefix="rms" tagdir="/WEB-INF/tags" %>
 <%-- GET /home (LoginController.home). Spring Security already requires a login (SecurityConfig); this is a fallback --%>
 <c:if test="${empty userinfo}">
@@ -10,7 +9,8 @@
 </c:if>
 <spring:url value="/" var="base" htmlEscape="true" />
 <c:set var="icons" value="${base}resources/img/icons.svg" />
-<c:set var="role" value="${fn:toUpperCase(userinfo.isinterviewer)}" />
+<%-- The effective role (rms.model.Role); no role sees only the greeting (G16) --%>
+<c:set var="role" value="${userinfo.role}" />
 <rms:layout title="Home" active="home">
 	<div class="rms-page-header">
 		<div>
@@ -19,7 +19,7 @@
 		</div>
 	</div>
 
-	<c:if test="${role eq 'N'}">
+	<c:if test="${role eq 'SUPER_ADMIN' or role eq 'HR' or role eq 'HIRING_MANAGER'}">
 	<div class="row g-3">
 		<div class="col-sm-6 col-xl-4">
 			<div class="card rms-card rms-tile">
@@ -39,6 +39,7 @@
 				</div>
 			</div>
 		</div>
+		<c:if test="${role eq 'SUPER_ADMIN' or role eq 'HR'}">
 		<div class="col-sm-6 col-xl-4">
 			<div class="card rms-card rms-tile">
 				<div class="card-body">
@@ -57,21 +58,33 @@
 				</div>
 			</div>
 		</div>
+		<c:if test="${role eq 'SUPER_ADMIN'}">
+		<div class="col-sm-6 col-xl-4">
+			<div class="card rms-card rms-tile">
+				<div class="card-body">
+					<span class="rms-tile-icon"><svg class="rms-icon" aria-hidden="true"><use href="${icons}#person-badge"/></svg></span>
+					<h2><a class="stretched-link text-reset text-decoration-none" href="${base}viewuserlist">Users and Roles</a></h2>
+					<p>Who can sign in, with which role; reset passwords.</p>
+				</div>
+			</div>
+		</div>
+		</c:if>
 		<div class="col-12">
 			<div class="card rms-card rms-tile rms-tile-soon">
 				<div class="card-body d-flex align-items-center gap-3">
 					<span class="rms-tile-icon mb-0"><svg class="rms-icon" aria-hidden="true"><use href="${icons}#clock"/></svg></span>
 					<div>
 						<h2 class="mb-1">Coming soon</h2>
-						<p>Interviewers, interview schedules and jobs.</p>
+						<p>Interview schedules and jobs.</p>
 					</div>
 				</div>
 			</div>
 		</div>
+		</c:if>
 	</div>
 	</c:if>
 
-	<c:if test="${role eq 'Y'}">
+	<c:if test="${role eq 'INTERVIEWER'}">
 	<div class="row g-3">
 		<div class="col-12">
 			<div class="card rms-card rms-tile rms-tile-soon">

@@ -9,19 +9,18 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import rms.model.LoginInfo;
+import rms.model.Role;
 import rms.model.UserInfo;
 
 /**
  * The logged-in user Spring Security keeps in the session: the users row plus the admin row (the profile).
- * The role comes from admin.isinterviewer: N is ROLE_ADMIN, Y is ROLE_INTERVIEWER, anything else (including
- * NULL) no role (G16). Spring Security erases the password after the login.
+ * The authority is the profile's role (Role: admin.role, or the isinterviewer fallback), e.g. ROLE_HR; no role
+ * means no authority (G16). Enabled means admin.isactive = 1; SecurityConfig checks it after the password.
+ * Spring Security erases the password after the login.
  */
 public class RmsUserDetails implements UserDetails, CredentialsContainer {
 
 	private static final long serialVersionUID = 1L;
-
-	public static final String ADMIN = "ROLE_ADMIN";
-	public static final String INTERVIEWER = "ROLE_INTERVIEWER";
 
 	private final String userid;
 	private final String username;
@@ -35,18 +34,12 @@ public class RmsUserDetails implements UserDetails, CredentialsContainer {
 		this.username = login.getUsername();
 		this.password = login.getPassword();
 		this.userinfo = userinfo;
-		this.authorities = rolesOf(userinfo);
+		Role role = roleOf(userinfo);
+		this.authorities = role == null ? List.of() : List.of(new SimpleGrantedAuthority(role.getAuthority()));
 	}
 
-	private static List<GrantedAuthority> rolesOf(UserInfo userinfo) {
-		String isinterviewer = userinfo == null ? null : userinfo.getIsinterviewer();
-		if ("N".equalsIgnoreCase(isinterviewer)) {
-			return List.of(new SimpleGrantedAuthority(ADMIN));
-		}
-		if ("Y".equalsIgnoreCase(isinterviewer)) {
-			return List.of(new SimpleGrantedAuthority(INTERVIEWER));
-		}
-		return List.of();
+	private static Role roleOf(UserInfo userinfo) {
+		return userinfo == null ? null : Role.parse(userinfo.getRole());
 	}
 
 	public String getUserid() {
@@ -55,6 +48,11 @@ public class RmsUserDetails implements UserDetails, CredentialsContainer {
 
 	public UserInfo getUserinfo() {
 		return userinfo;
+	}
+
+	/** The role this login was granted, or null. */
+	public Role getRole() {
+		return roleOf(userinfo);
 	}
 
 	@Override
@@ -70,6 +68,12 @@ public class RmsUserDetails implements UserDetails, CredentialsContainer {
 	@Override
 	public String getUsername() {
 		return username;
+	}
+
+	/** admin.isactive = 1. A user without an admin row isn't enabled either. */
+	@Override
+	public boolean isEnabled() {
+		return userinfo != null && userinfo.getIsactive() == 1;
 	}
 
 	@Override

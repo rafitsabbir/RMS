@@ -1,0 +1,12 @@
+flowchart TD
+  L[Open RMS] --> P{Logged in?}
+  P -->|no| F[Login page]
+  F --> C{Password correct, profile exists,<br/>user active, not locked?}
+  C -->|no| F2[Invalid login!] --> F
+  C -->|yes| H[Home page]
+  P -->|yes| H
+  H --> M{Role}
+  M -->|Super Admin| MS[Everything, plus<br/>Users and Roles]
+  M -->|HR| MH[Candidate Status, Candidates,<br/>Positions, Languages]
+  M -->|Hiring Manager| MM[Candidate Status and<br/>Candidates, read-only]
+  M -->|Interviewer| MI[Home and Change password<br/>score entry coming soon]

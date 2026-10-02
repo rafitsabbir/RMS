@@ -23,7 +23,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -48,6 +50,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
@@ -55,14 +58,17 @@ import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.view.InternalResourceViewResolver;
 
+import rms.controller.AccountController;
 import rms.controller.CandidateController;
 import rms.controller.LanguageController;
 import rms.controller.LoginController;
 import rms.controller.MarksController;
 import rms.controller.PositionController;
+import rms.controller.UserController;
 import rms.dao.LoginDao;
 import rms.model.CandidateInfo;
 import rms.model.LoginInfo;
+import rms.model.Role;
 import rms.model.UserInfo;
 import rms.service.CandidateService;
 import rms.service.LanguageService;
@@ -70,12 +76,13 @@ import rms.service.LoginServiceImpl;
 import rms.service.MarksService;
 import rms.service.PositionService;
 import rms.service.RmsUserDetails;
+import rms.service.UserService;
 
 /**
  * The real SecurityConfig in front of the real controllers, with mocked DAO and services (G11, G13, G26, G30,
- * G32). Takes over the access matrix of the former AuthInterceptorTest. Uses WebConfig's view resolver and
- * resource handler, and src/main/webapp as the web root (@SpringJUnitWebConfig's default). Spring's test
- * framework caches the context and resets the @MockitoBean mocks after each test.
+ * G32, G42, roles). Uses WebConfig's view resolver and resource handler, and src/main/webapp as the web root
+ * (@SpringJUnitWebConfig's default). Spring's test framework caches the context and resets the @MockitoBean
+ * mocks after each test; the login lock counts are cleared before each.
  */
 @SpringJUnitWebConfig(classes = { SecurityConfig.class, SecurityConfigTest.TestWebConfig.class })
 class SecurityConfigTest {
@@ -115,6 +122,16 @@ class SecurityConfigTest {
 		}
 
 		@Bean
+		UserController usercontroller() {
+			return new UserController();
+		}
+
+		@Bean
+		AccountController accountcontroller() {
+			return new AccountController();
+		}
+
+		@Bean
 		InternalResourceViewResolver viewResolver() {
 			return new WebConfig().viewResolver();
 		}
@@ -126,8 +143,18 @@ class SecurityConfigTest {
 
 	}
 
+	/** The seed's users (db/test-seed.sql): one per role, plus U6 without a role. */
+	private static final String SUPER_ADMIN_ID = "U1";
+	private static final String INTERVIEWER_ID = "U2";
+	private static final String HR_ID = "U3";
+	private static final String HIRING_MANAGER_ID = "U4";
+	private static final String NO_ROLE_ID = "U6";
+
 	@Autowired
 	WebApplicationContext context;
+
+	@Autowired
+	LoginThrottle throttle;
 
 	@MockitoBean
 	LoginDao logindao;
@@ -144,92 +171,152 @@ class SecurityConfigTest {
 	@MockitoBean
 	CandidateService candidateservice;
 
+	@MockitoBean
+	UserService userservice;
+
 	MockMvc mockMvc;
 
 	@BeforeEach
 	void setUp() {
 		mockMvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
-		givenLogin("U1", "test.admin", "test-only-1", "N");
-		givenLogin("U2", "test.interviewer", "test-only-2", "Y");
+		throttle.clear();
+		givenLogin(SUPER_ADMIN_ID, "test.admin", "test-only-1", Role.SUPER_ADMIN);
+		givenLogin(INTERVIEWER_ID, "test.interviewer", "test-only-2", Role.INTERVIEWER);
+		givenLogin(HR_ID, "test.hr", "{bcrypt}" + new BCryptPasswordEncoder().encode("test-only-3"), Role.HR);
+		givenLogin(HIRING_MANAGER_ID, "test.manager", "test-only-4", Role.HIRING_MANAGER);
+		givenLogin(NO_ROLE_ID, "test.norole", "test-only-6", null);
 	}
 
-	// --- Access: who may open what (was AuthInterceptorTest) ---
+	// --- Access: who may open what ---
+
+	/** One request per page, with the roles allowed to open it; everyone else gets HTTP 403. */
+	private record Page(MockHttpServletRequestBuilder request, Set<Role> allowed) {
+	}
+
+	private static final Set<Role> ALL = EnumSet.allOf(Role.class);
+	private static final Set<Role> STAFF = EnumSet.of(Role.SUPER_ADMIN, Role.HR, Role.HIRING_MANAGER);
+	private static final Set<Role> HR_AND_UP = EnumSet.of(Role.SUPER_ADMIN, Role.HR);
+	private static final Set<Role> SUPER_ADMIN_ONLY = EnumSet.of(Role.SUPER_ADMIN);
+	private static final Set<Role> NOBODY = EnumSet.noneOf(Role.class);
+
+	private static List<Page> pages() {
+		return List.of(
+				new Page(get("/home"), ALL),
+				new Page(get("/changepassword"), ALL),
+				new Page(post("/savepassword").with(csrf()), ALL),
+				new Page(get("/adminviewmarks"), STAFF),
+				new Page(get("/viewcandidatelist"), STAFF),
+				new Page(get("/createcandidate"), HR_AND_UP),
+				new Page(get("/updatecandidate").param("candidateid", "C1"), HR_AND_UP),
+				new Page(post("/savecandidate").with(csrf()), HR_AND_UP),
+				new Page(post("/deletecandidate").with(csrf()).param("candidateid", "C1"), HR_AND_UP),
+				new Page(get("/viewpositionlist"), HR_AND_UP),
+				new Page(get("/createposition"), HR_AND_UP),
+				new Page(get("/updateposition/1"), HR_AND_UP),
+				new Page(post("/saveposition").with(csrf()), HR_AND_UP),
+				new Page(post("/deleteposition/1").with(csrf()), HR_AND_UP),
+				new Page(get("/viewlanguagelist"), HR_AND_UP),
+				new Page(get("/createlanguage"), HR_AND_UP),
+				new Page(get("/updatelanguage/1"), HR_AND_UP),
+				new Page(post("/savelanguage").with(csrf()), HR_AND_UP),
+				new Page(post("/deletelanguage/1").with(csrf()), HR_AND_UP),
+				new Page(get("/viewuserlist"), SUPER_ADMIN_ONLY),
+				new Page(get("/createuser"), SUPER_ADMIN_ONLY),
+				new Page(get("/updateuser").param("userid", "U9"), SUPER_ADMIN_ONLY),
+				new Page(post("/saveuser").with(csrf()), SUPER_ADMIN_ONLY),
+				new Page(post("/deactivateuser").with(csrf()).param("userid", "U9"), SUPER_ADMIN_ONLY),
+				new Page(post("/reactivateuser").with(csrf()).param("userid", "U9"), SUPER_ADMIN_ONLY),
+				new Page(post("/resetpassword").with(csrf()).param("userid", "U9"), SUPER_ADMIN_ONLY),
+				// Deny by default: a page no rule names, even one that doesn't exist
+				new Page(get("/nosuchpage"), NOBODY),
+				new Page(get("/viewpositionlist/"), NOBODY));
+	}
+
+	@Test
+	void eachRoleOpensExactlyItsPages() throws Exception {
+		for (Role role : Role.values()) {
+			for (Page page : pages()) {
+				int status = mockMvc.perform(page.request().with(as(role))).andReturn().getResponse().getStatus();
+				String where = role + " " + page.request().buildRequest(context.getServletContext()).getRequestURI();
+				if (page.allowed().contains(role)) {
+					// Past the security filters: the controller answers (200, a redirect, or 404 for a mocked-out row)
+					assertThat(status).as(where).isNotEqualTo(403);
+				} else {
+					assertThat(status).as(where).isEqualTo(403);
+				}
+			}
+		}
+	}
+
+	@Test
+	void userWithoutRoleOpensOnlyHomeAndChangePassword() throws Exception {
+		for (Page page : pages()) {
+			int status = mockMvc.perform(page.request().with(asUser(NO_ROLE_ID, null))).andReturn().getResponse()
+					.getStatus();
+			String where = page.request().buildRequest(context.getServletContext()).getRequestURI();
+			if (page.allowed() == ALL) {
+				assertThat(status).as(where).isNotEqualTo(403);
+			} else {
+				assertThat(status).as(where).isEqualTo(403);
+			}
+		}
+	}
 
 	@Test
 	void loggedOutRequestsRedirectToLogin() throws Exception {
-		mockMvc.perform(get("/viewpositionlist")).andExpect(redirectsToLogin());
-		mockMvc.perform(post("/saveposition").with(csrf()).param("positionname", "dev ops")).andExpect(redirectsToLogin());
-		mockMvc.perform(post("/deleteposition/1").with(csrf())).andExpect(redirectsToLogin());
-		mockMvc.perform(get("/adminviewmarks")).andExpect(redirectsToLogin());
-		mockMvc.perform(get("/createcandidate")).andExpect(redirectsToLogin());
-		mockMvc.perform(get("/viewcandidatelist")).andExpect(redirectsToLogin());
-		mockMvc.perform(post("/savecandidate").with(csrf()).param("candidateid", "C3")).andExpect(redirectsToLogin());
-		mockMvc.perform(post("/deletecandidate").with(csrf()).param("candidateid", "C1")).andExpect(redirectsToLogin());
-
-		verifyNoInteractions(positionservice, marksservice, candidateservice);
-	}
-
-	@Test
-	void loggedOutHomeRedirectsToLogin() throws Exception {
-		mockMvc.perform(get("/home")).andExpect(redirectsToLogin());
+		for (Page page : pages()) {
+			mockMvc.perform(page.request()).andExpect(redirectsToLogin());
+		}
 		mockMvc.perform(get("/")).andExpect(redirectsToLogin());
 		mockMvc.perform(head("/home")).andExpect(redirectsToLogin());
+
+		verifyNoInteractions(positionservice, marksservice, candidateservice, userservice);
 	}
 
 	@Test
-	void adminSeesAdminPages() throws Exception {
-		mockMvc.perform(get("/viewpositionlist").with(user(userWithRole("N"))))
+	void refusedRequestsDontReachTheServices() throws Exception {
+		mockMvc.perform(get("/viewpositionlist").with(as(Role.INTERVIEWER))).andExpect(status().isForbidden());
+		mockMvc.perform(post("/deletecandidate").with(csrf()).with(as(Role.HIRING_MANAGER)).param("candidateid", "C1"))
+				.andExpect(status().isForbidden());
+		mockMvc.perform(post("/deactivateuser").with(csrf()).with(as(Role.HR)).param("userid", "U1"))
+				.andExpect(status().isForbidden());
+		mockMvc.perform(head("/viewpositionlist").with(as(Role.INTERVIEWER))).andExpect(status().isForbidden());
+
+		verifyNoInteractions(positionservice, candidateservice, userservice);
+	}
+
+	@Test
+	void staffPagesRender() throws Exception {
+		mockMvc.perform(get("/viewpositionlist").with(as(Role.SUPER_ADMIN)))
 				.andExpect(status().isOk())
 				.andExpect(view().name("viewposition"));
-		mockMvc.perform(get("/adminviewmarks").with(user(userWithRole("n"))))
+		mockMvc.perform(get("/adminviewmarks").with(as(Role.HIRING_MANAGER)))
 				.andExpect(status().isOk())
 				.andExpect(view().name("viewmarks"));
-		mockMvc.perform(get("/viewcandidatelist").with(user(userWithRole("N"))))
+		mockMvc.perform(get("/viewcandidatelist").with(as(Role.HR)))
 				.andExpect(status().isOk())
 				.andExpect(view().name("viewcandidate"));
-		mockMvc.perform(get("/createcandidate").with(user(userWithRole("N"))))
-				.andExpect(status().isOk())
-				.andExpect(view().name("createcandidate"));
 		when(candidateservice.findCandidateById("C1")).thenReturn(new CandidateInfo());
-		mockMvc.perform(get("/updatecandidate").param("candidateid", "C1").with(user(userWithRole("N"))))
+		mockMvc.perform(get("/updatecandidate").param("candidateid", "C1").with(as(Role.HR)))
 				.andExpect(status().isOk())
 				.andExpect(view().name("createcandidate"));
-	}
-
-	@Test
-	void interviewerIsRefusedAdminPages() throws Exception {
-		mockMvc.perform(get("/viewpositionlist").with(user(userWithRole("Y")))).andExpect(status().isForbidden());
-		mockMvc.perform(post("/deleteposition/1").with(csrf()).with(user(userWithRole("Y"))))
-				.andExpect(status().isForbidden());
-		mockMvc.perform(get("/adminviewmarks").with(user(userWithRole("Y")))).andExpect(status().isForbidden());
-		mockMvc.perform(head("/viewpositionlist").with(user(userWithRole("Y")))).andExpect(status().isForbidden());
-		mockMvc.perform(get("/viewcandidatelist").with(user(userWithRole("Y")))).andExpect(status().isForbidden());
-		mockMvc.perform(get("/updatecandidate").param("candidateid", "C1").with(user(userWithRole("Y"))))
-				.andExpect(status().isForbidden());
-		mockMvc.perform(post("/deletecandidate").with(csrf()).with(user(userWithRole("Y"))).param("candidateid", "C1"))
-				.andExpect(status().isForbidden());
-		mockMvc.perform(post("/savecandidate").with(csrf()).with(user(userWithRole("Y"))).param("candidateid", "C3"))
-				.andExpect(status().isForbidden());
-
-		verifyNoInteractions(positionservice, marksservice, candidateservice);
-	}
-
-	@Test
-	void userWithoutRoleIsRefusedAdminPages() throws Exception {
-		mockMvc.perform(get("/viewpositionlist").with(user(userWithRole(null)))).andExpect(status().isForbidden());
-		mockMvc.perform(get("/viewpositionlist").with(user(userWithRole("X")))).andExpect(status().isForbidden());
-
-		verifyNoInteractions(positionservice);
+		mockMvc.perform(get("/viewuserlist").with(as(Role.SUPER_ADMIN)))
+				.andExpect(status().isOk())
+				.andExpect(view().name("viewuser"));
+		mockMvc.perform(get("/changepassword").with(as(Role.INTERVIEWER)))
+				.andExpect(status().isOk())
+				.andExpect(view().name("changepassword"));
 	}
 
 	@Test
 	void homeNeedsOnlyALogin() throws Exception {
-		for (String role : new String[] { "Y", "N", null }) {
-			mockMvc.perform(get("/home").with(user(userWithRole(role))))
+		for (Role role : Role.values()) {
+			mockMvc.perform(get("/home").with(as(role)))
 					.andExpect(status().isOk())
 					.andExpect(view().name("main"));
 		}
-		mockMvc.perform(get("/").with(user(userWithRole("Y")))).andExpect(redirectedUrl("/home"));
+		mockMvc.perform(get("/home").with(asUser(NO_ROLE_ID, null))).andExpect(status().isOk());
+		mockMvc.perform(get("/").with(as(Role.INTERVIEWER))).andExpect(redirectedUrl("/home"));
 	}
 
 	@Test
@@ -245,16 +332,16 @@ class SecurityConfigTest {
 	void urlsWithPathParametersAreRejected() throws Exception {
 		// Spring Security's firewall refuses ";" in URLs. Sessions are cookie-only since G41, so the app makes none
 		mockMvc.perform(get("/login;jsessionid=X")).andExpect(status().isBadRequest());
-		mockMvc.perform(get("/viewpositionlist;jsessionid=X").with(user(userWithRole("N"))))
+		mockMvc.perform(get("/viewpositionlist;jsessionid=X").with(as(Role.SUPER_ADMIN)))
 				.andExpect(status().isBadRequest());
 
 		verifyNoInteractions(positionservice);
 	}
 
 	@Test
-	void trailingSlashIsNotAPage() throws Exception {
-		// Spring 6+ doesn't map "/x/" to "/x": 404 for an admin, a login redirect when logged out
-		mockMvc.perform(get("/viewpositionlist/").with(user(userWithRole("N")))).andExpect(status().isNotFound());
+	void trailingSlashIsRefused() throws Exception {
+		// Spring 6+ doesn't map "/x/" to "/x", and no access rule names it: 403 (deny by default), or a login redirect
+		mockMvc.perform(get("/viewpositionlist/").with(as(Role.SUPER_ADMIN))).andExpect(status().isForbidden());
 		mockMvc.perform(get("/viewpositionlist/")).andExpect(redirectsToLogin());
 
 		verifyNoInteractions(positionservice);
@@ -262,9 +349,9 @@ class SecurityConfigTest {
 
 	@Test
 	void pagesBehindTheLoginAreNotCached() throws Exception {
-		mockMvc.perform(get("/home").with(user(userWithRole("Y"))))
+		mockMvc.perform(get("/home").with(as(Role.INTERVIEWER)))
 				.andExpect(header().string("Cache-Control", containsString("no-store")));
-		mockMvc.perform(get("/viewpositionlist").with(user(userWithRole("N"))))
+		mockMvc.perform(get("/viewpositionlist").with(as(Role.SUPER_ADMIN)))
 				.andExpect(header().string("Cache-Control", containsString("no-store")));
 	}
 
@@ -284,7 +371,7 @@ class SecurityConfigTest {
 
 		MvcResult result = mockMvc.perform(login("test.admin", "test-only-1").session(session))
 				.andExpect(redirectedUrl("/home"))
-				.andExpect(authenticated().withRoles("ADMIN"))
+				.andExpect(authenticated().withRoles("SUPER_ADMIN"))
 				.andReturn();
 
 		// The session id changes at login, and the JSPs find the profile under "user"
@@ -294,10 +381,30 @@ class SecurityConfigTest {
 	}
 
 	@Test
-	void interviewerLogsInWithInterviewerRole() throws Exception {
-		mockMvc.perform(login("test.interviewer", "test-only-2"))
-				.andExpect(redirectedUrl("/home"))
-				.andExpect(authenticated().withRoles("INTERVIEWER"));
+	void eachRoleLogsInWithItsAuthority() throws Exception {
+		mockMvc.perform(login("test.interviewer", "test-only-2")).andExpect(authenticated().withRoles("INTERVIEWER"));
+		// A {bcrypt} row
+		mockMvc.perform(login("test.hr", "test-only-3")).andExpect(authenticated().withRoles("HR"));
+		mockMvc.perform(login("test.manager", "test-only-4")).andExpect(authenticated().withRoles("HIRING_MANAGER"));
+		// No role: logged in (Home and Change password), with no ROLE_ authority. Spring Security 7 adds FACTOR_PASSWORD
+		mockMvc.perform(login("test.norole", "test-only-6")).andExpect(authenticated().withAuthentication(
+				authentication -> assertThat(authentication.getAuthorities())
+						.noneMatch(authority -> authority.getAuthority().startsWith("ROLE_"))));
+	}
+
+	@Test
+	void inactiveUserCantLogIn() throws Exception {
+		UserInfo inactive = profile(HR_ID, Role.HR);
+		inactive.setIsactive(0);
+		when(logindao.getUserInfo(HR_ID)).thenReturn(inactive);
+
+		// The same answer as a wrong password, so it doesn't show that the account exists
+		mockMvc.perform(login("test.hr", "test-only-3"))
+				.andExpect(redirectedUrl("/login?error"))
+				.andExpect(unauthenticated());
+		mockMvc.perform(login("test.hr", "wrong"))
+				.andExpect(redirectedUrl("/login?error"))
+				.andExpect(unauthenticated());
 	}
 
 	@Test
@@ -356,10 +463,10 @@ class SecurityConfigTest {
 
 	@Test
 	void bcryptPasswordRowLogsIn() throws Exception {
-		// Ready for the owner's migration (G13): {bcrypt} rows work beside the plain-text ones
+		// {bcrypt} rows work beside the plain-text ones (G13); new and reset passwords are stored this way
 		String hash = "{bcrypt}" + new BCryptPasswordEncoder().encode("test-only-3");
-		when(logindao.findLogins("hashed")).thenReturn(List.of(new LoginInfo("U3", "hashed", hash)));
-		when(logindao.getUserInfo("U3")).thenReturn(profile("U3", "N"));
+		when(logindao.findLogins("hashed")).thenReturn(List.of(new LoginInfo("U7", "hashed", hash)));
+		when(logindao.getUserInfo("U7")).thenReturn(profile("U7", Role.SUPER_ADMIN));
 
 		mockMvc.perform(login("hashed", "test-only-3"))
 				.andExpect(redirectedUrl("/home"))
@@ -391,8 +498,8 @@ class SecurityConfigTest {
 		// bcrypt reads at most 72 bytes; a longer password must still just fail
 		String longPassword = "x".repeat(100);
 		String hash = "{bcrypt}" + new BCryptPasswordEncoder().encode("test-only-3");
-		when(logindao.findLogins("hashed")).thenReturn(List.of(new LoginInfo("U3", "hashed", hash)));
-		when(logindao.getUserInfo("U3")).thenReturn(profile("U3", "N"));
+		when(logindao.findLogins("hashed")).thenReturn(List.of(new LoginInfo("U7", "hashed", hash)));
+		when(logindao.getUserInfo("U7")).thenReturn(profile("U7", Role.SUPER_ADMIN));
 
 		mockMvc.perform(login("nobody", longPassword)).andExpect(redirectedUrl("/login?error"));
 		mockMvc.perform(login("test.admin", longPassword)).andExpect(redirectedUrl("/login?error"));
@@ -407,6 +514,7 @@ class SecurityConfigTest {
 		// Spring Security consider a default provider of its own, without the admin-row check (G26)
 		try (AnnotationConfigApplicationContext app = new AnnotationConfigApplicationContext()) {
 			app.registerBean(NamedParameterJdbcTemplate.class, () -> mock(NamedParameterJdbcTemplate.class));
+			app.registerBean(PasswordEncoder.class, () -> new SecurityConfig().passwordEncoder());
 			app.scan("rms.service", "rms.dao");
 			app.refresh();
 
@@ -426,21 +534,135 @@ class SecurityConfigTest {
 		mockMvc.perform(get("/home").session(session)).andExpect(status().isOk());
 	}
 
+	// --- Login lock (G42) ---
+
+	@Test
+	void fiveFailuresLockTheUsernameForThatAddress() throws Exception {
+		for (int i = 0; i < LoginThrottle.MAX_FAILURES; i++) {
+			mockMvc.perform(login("test.admin", "wrong")).andExpect(redirectedUrl("/login?error"));
+		}
+
+		// Now even the right password is refused there, with the usual message and no password check
+		mockMvc.perform(login("test.admin", "test-only-1"))
+				.andExpect(redirectedUrl("/login?error"))
+				.andExpect(unauthenticated());
+		// Any case of the username counts as the same one (MySQL's default collation finds the row either way)
+		when(logindao.findLogins("TEST.ADMIN")).thenReturn(List.of(new LoginInfo("U1", "test.admin", "test-only-1")));
+		mockMvc.perform(login("TEST.ADMIN", "test-only-1")).andExpect(unauthenticated());
+		// So does an accented spelling, which an accent-insensitive collation also finds
+		String accented = "t" + (char) 0xE9 + "st.admin";
+		when(logindao.findLogins(accented)).thenReturn(List.of(new LoginInfo("U1", "test.admin", "test-only-1")));
+		mockMvc.perform(login(accented, "test-only-1")).andExpect(unauthenticated());
+		// From another address, and for another username, logins still work
+		mockMvc.perform(login("test.admin", "test-only-1").with(from("10.0.0.2"))).andExpect(authenticated());
+		mockMvc.perform(login("test.interviewer", "test-only-2")).andExpect(authenticated());
+	}
+
+	@Test
+	void successfulLoginClearsTheCount() throws Exception {
+		for (int i = 0; i < LoginThrottle.MAX_FAILURES - 1; i++) {
+			mockMvc.perform(login("test.admin", "wrong"));
+		}
+		mockMvc.perform(login("test.admin", "test-only-1")).andExpect(authenticated());
+		for (int i = 0; i < LoginThrottle.MAX_FAILURES - 1; i++) {
+			mockMvc.perform(login("test.admin", "wrong"));
+		}
+
+		mockMvc.perform(login("test.admin", "test-only-1")).andExpect(authenticated());
+	}
+
+	@Test
+	void databaseErrorsDontCountTowardsTheLock() throws Exception {
+		when(logindao.findLogins("test.admin")).thenThrow(new DataAccessResourceFailureException("database down"));
+		for (int i = 0; i < LoginThrottle.MAX_FAILURES; i++) {
+			mockMvc.perform(login("test.admin", "test-only-1")).andExpect(redirectedUrl("/login?unavailable"));
+		}
+
+		assertThat(throttle.isLocked("test.admin", "127.0.0.1")).isFalse();
+	}
+
+	// --- Account changes while logged in (AccountCheckFilter) ---
+
+	@Test
+	void deactivatedUserIsSignedOutAtTheNextRequest() throws Exception {
+		MockHttpSession session = loggedInSession();
+		UserInfo deactivated = profile(SUPER_ADMIN_ID, Role.SUPER_ADMIN);
+		deactivated.setIsactive(0);
+		when(logindao.getUserInfo(SUPER_ADMIN_ID)).thenReturn(deactivated);
+
+		mockMvc.perform(get("/viewpositionlist").session(session)).andExpect(redirectedUrl("/login?ended"));
+
+		assertThat(session.isInvalid()).isTrue();
+		verifyNoInteractions(positionservice);
+	}
+
+	@Test
+	void roleChangeSignsTheUserOut() throws Exception {
+		MockHttpSession session = loggedInSession();
+		when(logindao.getUserInfo(SUPER_ADMIN_ID)).thenReturn(profile(SUPER_ADMIN_ID, Role.HR));
+
+		mockMvc.perform(get("/home").session(session)).andExpect(redirectedUrl("/login?ended"));
+
+		assertThat(session.isInvalid()).isTrue();
+	}
+
+	@Test
+	void removedAdminRowSignsTheUserOut() throws Exception {
+		MockHttpSession session = loggedInSession();
+		when(logindao.getUserInfo(SUPER_ADMIN_ID)).thenReturn(null);
+
+		mockMvc.perform(get("/home").session(session)).andExpect(redirectedUrl("/login?ended"));
+	}
+
+	@Test
+	void profileEditsShowAtTheNextRequest() throws Exception {
+		MockHttpSession session = loggedInSession();
+		UserInfo renamed = profile(SUPER_ADMIN_ID, Role.SUPER_ADMIN);
+		renamed.setFirstname("Renamed");
+		when(logindao.getUserInfo(SUPER_ADMIN_ID)).thenReturn(renamed);
+
+		mockMvc.perform(get("/home").session(session)).andExpect(status().isOk());
+
+		assertThat(((UserInfo) session.getAttribute("user")).getFirstname()).isEqualTo("Renamed");
+	}
+
+	@Test
+	void resetPasswordAllowsOnlyChangePasswordAndLogout() throws Exception {
+		UserInfo mustchange = profile(SUPER_ADMIN_ID, Role.SUPER_ADMIN);
+		mustchange.setMustchangepassword(1);
+		when(logindao.getUserInfo(SUPER_ADMIN_ID)).thenReturn(mustchange);
+		MockHttpSession session = loggedInSession();
+
+		mockMvc.perform(get("/home").session(session)).andExpect(redirectedUrl("/changepassword"));
+		mockMvc.perform(get("/viewuserlist").session(session)).andExpect(redirectedUrl("/changepassword"));
+		mockMvc.perform(post("/saveposition").session(session).with(csrf())).andExpect(redirectedUrl("/changepassword"));
+		mockMvc.perform(get("/changepassword").session(session))
+				.andExpect(status().isOk())
+				.andExpect(view().name("changepassword"));
+		mockMvc.perform(post("/savepassword").session(session).with(csrf())).andExpect(status().isOk());
+		mockMvc.perform(post("/logout").session(session).with(csrf())).andExpect(redirectedUrl("/login"));
+
+		verifyNoInteractions(positionservice);
+	}
+
 	// --- CSRF (G32) and logout ---
 
 	@Test
 	void postWithoutCsrfTokenIsRefused() throws Exception {
-		mockMvc.perform(post("/deleteposition/1").with(user(userWithRole("N")))).andExpect(status().isForbidden());
-		mockMvc.perform(post("/saveposition").param("positionname", "dev ops").with(user(userWithRole("N"))))
+		mockMvc.perform(post("/deleteposition/1").with(as(Role.SUPER_ADMIN))).andExpect(status().isForbidden());
+		mockMvc.perform(post("/saveposition").param("positionname", "dev ops").with(as(Role.SUPER_ADMIN)))
 				.andExpect(status().isForbidden());
-		mockMvc.perform(post("/deleteposition/1").with(csrf().useInvalidToken()).with(user(userWithRole("N"))))
+		mockMvc.perform(post("/deleteposition/1").with(csrf().useInvalidToken()).with(as(Role.SUPER_ADMIN)))
 				.andExpect(status().isForbidden());
-		mockMvc.perform(post("/deletecandidate").param("candidateid", "C1").with(user(userWithRole("N"))))
+		mockMvc.perform(post("/deletecandidate").param("candidateid", "C1").with(as(Role.SUPER_ADMIN)))
 				.andExpect(status().isForbidden());
-		mockMvc.perform(post("/savecandidate").param("candidateid", "C3").with(user(userWithRole("N"))))
+		mockMvc.perform(post("/saveuser").param("username", "new.user").with(as(Role.SUPER_ADMIN)))
 				.andExpect(status().isForbidden());
+		mockMvc.perform(post("/resetpassword").param("userid", "U2").with(as(Role.SUPER_ADMIN)))
+				.andExpect(status().isForbidden());
+		mockMvc.perform(post("/savepassword").with(as(Role.INTERVIEWER))).andExpect(status().isForbidden());
 
-		verifyNoInteractions(positionservice, candidateservice);
+		verifyNoInteractions(positionservice, candidateservice, userservice);
 	}
 
 	@Test
@@ -481,8 +703,8 @@ class SecurityConfigTest {
 	void logoutIsAPostWithToken() throws Exception {
 		MockHttpSession session = loggedInSession();
 
-		// GET /logout is no page (404) and doesn't log out
-		mockMvc.perform(get("/logout").session(session)).andExpect(status().isNotFound());
+		// GET /logout is no page (403: no access rule names it) and doesn't log out
+		mockMvc.perform(get("/logout").session(session)).andExpect(status().isForbidden());
 		mockMvc.perform(post("/logout").session(session)).andExpect(status().isForbidden());
 		mockMvc.perform(get("/home").session(session)).andExpect(status().isOk());
 
@@ -505,17 +727,18 @@ class SecurityConfigTest {
 		assertThat(encoder.matches("", "")).isFalse();
 		assertThat(encoder.matches("x", null)).isFalse();
 
-		// New hashes (not stored by RMS today) are bcrypt
+		// New and reset passwords are stored as {bcrypt}: 68 characters
 		String hash = encoder.encode("test-only-3");
 		assertThat(hash).startsWith("{bcrypt}$2");
+		assertThat(hash).hasSize(68);
 		assertThat(encoder.matches("test-only-3", hash)).isTrue();
 	}
 
 	// --- helpers ---
 
-	private void givenLogin(String userid, String username, String password, String isinterviewer) {
+	private void givenLogin(String userid, String username, String password, Role role) {
 		when(logindao.findLogins(username)).thenReturn(List.of(new LoginInfo(userid, username, password)));
-		when(logindao.getUserInfo(userid)).thenReturn(profile(userid, isinterviewer));
+		when(logindao.getUserInfo(userid)).thenReturn(profile(userid, role));
 	}
 
 	private MockHttpSession loggedInSession() throws Exception {
@@ -527,21 +750,41 @@ class SecurityConfigTest {
 		return post("/welcome").with(csrf()).param("username", username).param("password", password);
 	}
 
-	private static UserInfo profile(String userid, String isinterviewer) {
+	private static RequestPostProcessor from(String address) {
+		return request -> {
+			request.setRemoteAddr(address);
+			return request;
+		};
+	}
+
+	/** An active profile as LoginDaoImpl maps it: role is the effective role's name. */
+	private static UserInfo profile(String userid, Role role) {
 		UserInfo user = new UserInfo();
 		user.setUserid(userid);
-		user.setIsinterviewer(isinterviewer);
+		user.setIsactive(1);
+		user.setRole(role == null ? null : role.name());
 		return user;
 	}
 
-	private static RmsUserDetails userWithRole(String isinterviewer) {
-		return new RmsUserDetails(new LoginInfo("U1", "someone", "test-only"), profile("U1", isinterviewer));
+	/** Logged in as the seed user with this role (whose admin row, stubbed in setUp, the filter re-reads). */
+	private static RequestPostProcessor as(Role role) {
+		String userid = switch (role) {
+			case SUPER_ADMIN -> SUPER_ADMIN_ID;
+			case HR -> HR_ID;
+			case HIRING_MANAGER -> HIRING_MANAGER_ID;
+			case INTERVIEWER -> INTERVIEWER_ID;
+		};
+		return asUser(userid, role);
+	}
+
+	private static RequestPostProcessor asUser(String userid, Role role) {
+		return user(new RmsUserDetails(new LoginInfo(userid, "someone", "test-only"), profile(userid, role)));
 	}
 
 	/** A relative redirect, as the interceptor sent (Spring Security 7's entry point favours relative URIs). */
 	private static ResultMatcher redirectsToLogin() {
 		return result -> {
-			assertThat(result.getResponse().getStatus()).isEqualTo(302);
+			assertThat(result.getResponse().getStatus()).as(result.getRequest().getRequestURI()).isEqualTo(302);
 			assertThat(result.getResponse().getRedirectedUrl()).isEqualTo("/login");
 		};
 	}

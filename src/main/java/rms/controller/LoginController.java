@@ -25,7 +25,8 @@ public class LoginController {
 	@RequestMapping(value = "/login", method = RequestMethod.GET)
 	public ModelAndView loginPage(@RequestParam(value = "error", required = false) String error,
 			@RequestParam(value = "expired", required = false) String expired,
-			@RequestParam(value = "unavailable", required = false) String unavailable) {
+			@RequestParam(value = "unavailable", required = false) String unavailable,
+			@RequestParam(value = "ended", required = false) String ended) {
 		ModelAndView mv = new ModelAndView("login");
 		if (error != null) {
 			mv.addObject("errorMessage", "Invalid login!");
@@ -33,6 +34,9 @@ public class LoginController {
 			mv.addObject("errorMessage", "Your session expired. Please sign in again.");
 		} else if (unavailable != null) {
 			mv.addObject("errorMessage", "Sign-in isn't available right now. Please try again later.");
+		} else if (ended != null) {
+			// AccountCheckFilter: the account was deactivated, or its role changed, while logged in
+			mv.addObject("errorMessage", "You were signed out because your account changed. Please sign in again.");
 		}
 		return mv;
 	}

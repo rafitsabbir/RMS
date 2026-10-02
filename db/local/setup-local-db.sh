@@ -54,4 +54,4 @@ UNION ALL SELECT 'marks', COUNT(*) FROM marks;
 SQL
 } | mysql "${args[@]}"
 
-echo "Done. Expected rows: users 2, admin 2, position 3, language 3, candidate 2, marks 2."
+echo "Done. Expected rows: users 5, admin 5, position 3, language 3, candidate 2, marks 2."

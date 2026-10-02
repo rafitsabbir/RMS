@@ -1,0 +1,166 @@
+# RMS Technical Operations Guide
+@ Recruitment Management System — technology stack, architecture, production requirements, sizing, deployment and security
+@ Describes the version on the dev branch as of 2 October 2026 (roles plan, Phase 1; not yet released). Contains no hostnames, passwords or connection strings.
+
+## 1. At a glance
+|Item|Value|
+|---|---|
+|Application type|Java web application packaged as a WAR file, deployed to Apache Tomcat (no embedded server)|
+|Runtime|Java 21 or later, Tomcat 11 (Servlet 6.1, Jakarta EE 11)|
+|Database|MySQL (5.7 or 8.x) through a Tomcat JNDI connection pool|
+|Integrations|None: no e-mail, message queues, external APIs or batch jobs|
+|Users' browsers|Load Bootstrap, jQuery and DataTables from the public CDN cdn.jsdelivr.net|
+
+RMS is a single, stateful web application with one MySQL database.
+
+## 2. Technology stack and versions
+### Server side
+|Layer|Technology|Version|
+|---|---|---|
+|Language|Java (class files version 65)|21|
+|Web framework|Spring Framework (MVC, JDBC), Java configuration|7.0.9|
+|Security|Spring Security (form login, roles, CSRF, sessions)|7.0.7|
+|Platform API|Jakarta Servlet, provided by Tomcat|6.1|
+|Views|JSP with Jakarta Tags (JSTL), GlassFish implementation|API 3.0.2 / impl 3.0.1|
+|Data access|Spring JDBC NamedParameterJdbcTemplate, no ORM|7.0.9|
+|Database driver|MySQL Connector/J (com.mysql.cj.jdbc.Driver), placed in Tomcat's lib/|8.2.0|
+|Logging|SLF4J API with Logback, console output|2.0.20 / 1.5.38|
+|Build|Maven, through the Maven Wrapper committed in the repository|3.9.16|
+|Tests (not deployed)|JUnit, Mockito, AssertJ, Testcontainers MySQL|6.1.3 / 5.24.0 / 3.27.7 / 1.21.4|
+|CI|GitHub Actions: build and tests on JDK 21; OSV-Scanner dependency scan|—|
+
+### Browser side (loaded from cdn.jsdelivr.net, pinned with integrity hashes)
+|Library|Version|Used on|
+|---|---|---|
+|Bootstrap (CSS and JavaScript bundle)|5.3.8|Every page|
+|jQuery|3.7.1|Table pages|
+|DataTables with Bootstrap 5 integration|2.3.8|Table pages|
+|Bootstrap Icons (SVG sprite served by RMS itself)|1.13.1|Every page|
+
+Supported browsers: current versions of Chrome, Edge, Firefox and Safari. Internet Explorer is not supported.
+
+## 3. Architecture
+### Deployment view
+![Deployment view: browser, proxy, Tomcat with the RMS WAR and connection pool, MySQL](it-deploy.png)
+
+### Inside the application
+![Request path through the application layers](it-inside.png)
+
+- **Layers:** controller → service → DAO (data access) → model. All SQL lives in the DAO classes. No stored procedures, no ORM, no caching layer.
+- **State:** the logged-in user is kept in the server-side HTTP session (cookie JSESSIONID). Sessions are not shared between servers.
+- **Database tables:** users, admin (profiles and roles), position, language, candidate, marks.
+- **No outbound calls** from the server except to MySQL.
+
+## 4. Production prerequisites
+|Item|Requirement|Notes|
+|---|---|---|
+|Operating system|Any OS with a supported JDK 21 (Linux recommended)|Nothing in the application is OS-specific.|
+|Java runtime|JDK or JRE 21 or later (for example Eclipse Temurin 21)|The WAR won't start on Java 17 or older. The organisation's JDK standard is still to be confirmed (section 11).|
+|Servlet container|Apache Tomcat 11.0.x|Tested on 11.0.26. Tomcat 9 or 10 will not run this version.|
+|Database|MySQL 8.0 or later recommended; 5.7 still works with this driver|MySQL 5.7 reached end of life in October 2023. The automated tests run on MySQL 8.0; the earlier Phase 1 release was rehearsed on 5.7.44.|
+|Database driver jar|mysql-connector-j-8.2.0.jar in Tomcat's lib/ folder|Remove any old mysql-connector-java-5.1.x, slf4j or logback jars from lib/.|
+|Database schema changes|Run db/migrations/001-candidate-isactive.sql and 002-user-roles.sql once each, in order, before deploying|001 adds candidate.isactive (without it the Candidates pages fail). 002 adds admin.role and users.mustchangepassword (without them every login fails) and checks that users.password holds 68 characters. Rollback statements are in the files. 002 makes every existing admin a Super Admin: re-assign HR and Hiring Manager roles afterwards on Users and Roles.|
+|Database account|One MySQL account with SELECT, INSERT and UPDATE on the six tables|The application never deletes rows and never changes the schema.|
+|Network|Application server → MySQL (default port 3306). Users → application (HTTPS). Users' browsers → cdn.jsdelivr.net|If the CDN is blocked, pages load without styling and tables lose search and sort.|
+|TLS|HTTPS in front of Tomcat (reverse proxy or Tomcat connector); TLS to MySQL (sslMode=REQUIRED)|See section 8.|
+|Build machine|JDK 21 and internet access to Maven Central|Or use the WAR built by CI (artifact "rms-war").|
+
+## 5. Recommended hardware
+> **These are estimates, not measurements.** No load test has been run. RMS is a small internal tool: a few simple SQL queries per page, no background jobs, no file storage. The figures assume up to about 50 users working at the same time; confirm with a load test if you expect more.
+
+|Setup|vCPU|RAM|Disk|Java heap|
+|---|---|---|---|---|
+|**Application server only** (MySQL elsewhere) — recommended|2|4 GB|20 GB|-Xms512m -Xmx1g|
+|Application and MySQL on one server|4|8 GB|50 GB SSD|-Xms512m -Xmx1g|
+|Minimum (test or demo)|1|2 GB|10 GB|-Xmx512m|
+|MySQL server (if separate)|2|4 GB|20 GB SSD plus backups|—|
+
+- Disk is used mostly by logs, Tomcat and the JDK; the database itself is small (text rows only).
+- The connection pool uses Tomcat's defaults (8 connections). Raise maxTotal in the context file if requests wait for connections under load.
+- For high availability, two Tomcat nodes need sticky sessions at the load balancer, because sessions aren't replicated. Candidate ID generation is protected only within one node, so a database key on candidate.candidateid is advised before running two nodes.
+
+## 6. Deployment
+### Build
+```
+git checkout dev
+./mvnw -B verify          (Windows: mvnw.cmd -B verify)
+Result: target/rmsv2-1.0.1-SNAPSHOT.war
+```
+CI builds the same WAR on every push to the dev and master branches; it can be downloaded from the GitHub Actions run as "rms-war".
+
+### First installation
+1. Install JDK 21 and Tomcat 11. Copy mysql-connector-j-8.2.0.jar into Tomcat's lib/ folder.
+2. Run db/migrations/001-candidate-isactive.sql, then 002-user-roles.sql, on the RMS database (once each). Check them against the real tables first (SHOW CREATE TABLE candidate, users and admin). Do not run 003-hash-passwords without the owner's approval.
+3. Copy deploy/tomcat/rms.xml from the repository, unchanged, to conf/Catalina/localhost/rms.xml. It defines the jdbc/springrms connection pool with placeholders only.
+4. Make Tomcat read the placeholders from the environment: add -Dorg.apache.tomcat.util.digester.PROPERTY_SOURCE=org.apache.tomcat.util.digester.EnvironmentPropertySource to CATALINA_OPTS (for example in bin/setenv.sh).
+5. Provide the three environment variables listed in section 7, through the service manager or a file only the Tomcat user can read.
+6. Deploy the WAR as webapps/rms.war (context path /rms), start Tomcat, and open /rms/login.
+
+### Upgrade and rollback
+- Run any new script in db/migrations/ first, then replace the WAR and restart Tomcat. Users must log in again after a restart.
+- Keep the previous WAR. Rollback means redeploying it; undo a database migration only with the rollback statement in that script.
+- A detailed, rehearsed runbook exists for the Phase 1 release (docs/release-phase1.md in the repository); the runbook for this version is still to be written.
+
+## 7. Configuration
+The application has no properties files and no profiles. All environment-specific settings live in Tomcat.
+
+|Setting|Where|Purpose|
+|---|---|---|
+|RMS_DB_URL|Tomcat environment|JDBC URL of the RMS database; include sslMode=REQUIRED|
+|RMS_DB_USER|Tomcat environment|Database account|
+|RMS_DB_PASSWORD|Tomcat environment (protected)|Database password; never on the command line or in the repository|
+|JNDI name jdbc/springrms|conf/Catalina/localhost/rms.xml|Connection pool the application looks up; validation query SELECT 1|
+|Session timeout|Tomcat conf/web.xml (default 30 minutes)|RMS sets none of its own|
+|Session persistence|Tomcat Manager element (off by default)|If enabled, user profiles are written to Tomcat's work/ folder: treat that folder as personal data|
+|Logging levels|logback.xml inside the WAR|rms at INFO, Spring at WARN; console output|
+
+> **A missing environment variable isn't reported at startup.** Tomcat leaves the placeholder text in place; the first login then fails with HTTP 500 and "Access denied" in the log.
+
+## 8. Security
+### In place
+- Every page except the login page requires a login, and each page is open only to the roles listed for it; anything not listed is refused (Spring Security, four roles).
+- Inactive users can't sign in and are signed out at their next click; role changes apply at once.
+- New, reset and changed passwords are stored as bcrypt hashes; at least 8 characters.
+- 5 failed logins for a username from one address in 15 minutes lock it there for 15 minutes.
+- CSRF tokens protect every form; logout is a POST request.
+- The session id changes at login; sessions use cookies only (HttpOnly, SameSite=Lax), never URLs.
+- Response headers: X-Content-Type-Options nosniff, X-Frame-Options DENY, no caching of logged-in pages, and HSTS on HTTPS requests.
+- All output is HTML-escaped; all SQL uses bound parameters.
+- Log lines can't be forged by user input (line breaks are replaced).
+- Dependency vulnerability scanning (OSV-Scanner) runs in CI.
+
+### Open items for IT and security
+|Item|Risk|Recommendation|
+|---|---|---|
+|Existing passwords are still plain text in users.password (new ones are bcrypt)|Critical|Run db/migrations/003-hash-passwords (a Java program; see its README). The column must hold at least 68 characters. Needs owner sign-off; afterwards older WARs (before Spring Security) can't log anyone in.|
+|The login lock is in memory, per Tomcat node, by client address|Medium|Behind a reverse proxy, configure Tomcat's RemoteIpValve so the real client address is used; otherwise one user's failures lock that username for everyone. A restart clears the counts.|
+|The session cookie isn't marked Secure|Medium|Serve only over HTTPS and mark the cookie secure (Tomcat or proxy).|
+|HSTS includes subdomains|Check|Confirm this suits the production hostname.|
+|The production version (master branch) is old: Spring 4.3, Connector/J 5.1.36|High|GitHub reports 26 security alerts on master. Release the upgraded version.|
+|User ids appear in WARN log lines (refused requests)|Low|Restrict log access if user ids are personal data.|
+
+## 9. Operations
+- **Logs:** written to standard output, so Tomcat captures them in catalina.out (or the service journal). Set up log rotation. Watch for WARN lines from "rms." (refused access, duplicate users) and ERROR lines (database problems).
+- **Health check:** there is no dedicated endpoint. GET /rms/login returning HTTP 200 shows that Tomcat and the application are up; it doesn't touch the database.
+- **Backups:** back up the MySQL database; the application server holds no data.
+- **Restarts** log everyone out (sessions aren't persisted by default).
+- **User administration** is done by a Super Admin on the Users and Roles screen (see the Business Analyst Guide, section 4). If the last Super Admin is locked out, the owner must fix it in the database.
+- **Character set:** forms post ISO-8859-1. Keep WEB-INF/web.xml as shipped; without it Tomcat 11 rejects accented input with HTTP 400.
+
+## 10. Release status
+|Branch|Contents|Runtime|State|
+|---|---|---|---|
+|master|Phase 1 security upgrades (merged 2 October 2026)|Spring 5.3.39, Tomcat 9, JDK 8|Production still runs whatever was last deployed|
+|release/phase1|Security upgrades on Java 8|Spring 5.3.39, Tomcat 9, JDK 8|Tested and rehearsed; not released|
+|dev|Full upgrade, new UI, Spring Security, candidate management, four roles and user management|Spring 7, Tomcat 11, JDK 21|Built and unit-tested; a full run on Tomcat 11 is still due|
+
+**Deadline:** Tomcat 9 support ends on 31 March 2027. Production should move to the dev line (Tomcat 11) before then.
+
+## 11. Decisions needed from IT
+1. Which MySQL version runs in production? It decides whether the driver can move past 8.2.0.
+2. The JDK standard: 21, or an organisational 17 or 25. The build can target 17 with a one-line change.
+3. Who owns the Tomcat server, the JNDI configuration and the runtime? Is a Java Security Manager in use (Tomcat 11 doesn't support it)?
+4. The deployment target: a virtual machine with Tomcat as described, or a container image (planned, not built yet).
+5. Should user sessions survive restarts (session persistence)?
+
+> Detailed sources in the repository: docs/tech-stack.md, docs/build-run.md, docs/config.md and docs/upgrade-status.md.

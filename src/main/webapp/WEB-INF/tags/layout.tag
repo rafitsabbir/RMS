@@ -1,7 +1,7 @@
 <%@ tag language="java" pageEncoding="ISO-8859-1" body-content="scriptless" trimDirectiveWhitespaces="true"
 	description="Page shell for every page behind the login: head, sidebar menu, top bar and content" %>
 <%@ attribute name="title" required="true" description="Page title, shown as 'title - RMS'" %>
-<%@ attribute name="active" required="false" description="Menu key of the current page: home, marks, candidates, positions or languages" %>
+<%@ attribute name="active" required="false" description="Menu key of the current page: home, marks, candidates, positions, languages, users or password" %>
 <%@ attribute name="tables" required="false" type="java.lang.Boolean" description="true loads jQuery and DataTables" %>
 <%@ attribute name="stylesheet" required="false" description="An extra stylesheet in resources/css, for example viewmarks.css" %>
 <%@ taglib uri="jakarta.tags.core" prefix="c" %>
@@ -11,8 +11,8 @@
 <spring:url value="/" var="base" htmlEscape="true" />
 <spring:url value="/logout" var="logoutURL" />
 <c:set var="user" value="${sessionScope.user}" />
-<%-- Same role rule as before: 'N' is an admin, 'Y' an interviewer, anything else sees neither menu (G16) --%>
-<c:set var="role" value="${fn:toUpperCase(user.isinterviewer)}" />
+<%-- The effective role (rms.model.Role: admin.role, or the isinterviewer fallback); no role sees only Home and Account (G16) --%>
+<c:set var="role" value="${user.role}" />
 <c:set var="icons" value="${base}resources/img/icons.svg" />
 <!DOCTYPE html>
 <html lang="en">
@@ -62,7 +62,7 @@
 					<a class="nav-link${active eq 'home' ? ' active' : ''}" href="${base}home"${active eq 'home' ? ' aria-current="page"' : ''}>
 						<svg class="rms-icon" aria-hidden="true"><use href="${icons}#house-door"/></svg>Home</a>
 				</li>
-				<c:if test="${role eq 'N'}">
+				<c:if test="${role eq 'SUPER_ADMIN' or role eq 'HR' or role eq 'HIRING_MANAGER'}">
 				<li class="rms-nav-heading">Recruitment</li>
 				<li class="nav-item">
 					<a class="nav-link${active eq 'marks' ? ' active' : ''}" href="${base}adminviewmarks"${active eq 'marks' ? ' aria-current="page"' : ''}>
@@ -72,6 +72,8 @@
 					<a class="nav-link${active eq 'candidates' ? ' active' : ''}" href="${base}viewcandidatelist"${active eq 'candidates' ? ' aria-current="page"' : ''}>
 						<svg class="rms-icon" aria-hidden="true"><use href="${icons}#people"/></svg>Candidates</a>
 				</li>
+				</c:if>
+				<c:if test="${role eq 'SUPER_ADMIN' or role eq 'HR'}">
 				<li class="rms-nav-heading">Master data</li>
 				<li class="nav-item">
 					<a class="nav-link${active eq 'positions' ? ' active' : ''}" href="${base}viewpositionlist"${active eq 'positions' ? ' aria-current="page"' : ''}>
@@ -81,16 +83,21 @@
 					<a class="nav-link${active eq 'languages' ? ' active' : ''}" href="${base}viewlanguagelist"${active eq 'languages' ? ' aria-current="page"' : ''}>
 						<svg class="rms-icon" aria-hidden="true"><use href="${icons}#code-slash"/></svg>Languages</a>
 				</li>
-				<%-- Modules with no backend yet (G2-G4): shown, but not links --%>
+				<%-- Modules with no backend yet (G3, G4): shown, but not links --%>
 				<li class="rms-nav-heading">Coming soon</li>
-				<li class="nav-item"><span class="nav-link disabled" aria-disabled="true">
-					<svg class="rms-icon" aria-hidden="true"><use href="${icons}#person-badge"/></svg>Interviewers<span class="rms-soon">Soon</span></span></li>
 				<li class="nav-item"><span class="nav-link disabled" aria-disabled="true">
 					<svg class="rms-icon" aria-hidden="true"><use href="${icons}#calendar-event"/></svg>Interview Schedules<span class="rms-soon">Soon</span></span></li>
 				<li class="nav-item"><span class="nav-link disabled" aria-disabled="true">
 					<svg class="rms-icon" aria-hidden="true"><use href="${icons}#megaphone"/></svg>Jobs<span class="rms-soon">Soon</span></span></li>
 				</c:if>
-				<c:if test="${role eq 'Y'}">
+				<c:if test="${role eq 'SUPER_ADMIN'}">
+				<li class="rms-nav-heading">Administration</li>
+				<li class="nav-item">
+					<a class="nav-link${active eq 'users' ? ' active' : ''}" href="${base}viewuserlist"${active eq 'users' ? ' aria-current="page"' : ''}>
+						<svg class="rms-icon" aria-hidden="true"><use href="${icons}#person-badge"/></svg>Users and Roles</a>
+				</li>
+				</c:if>
+				<c:if test="${role eq 'INTERVIEWER'}">
 				<%-- Interviewer score entry has no backend yet (G5-G7) --%>
 				<li class="rms-nav-heading">Coming soon</li>
 				<li class="nav-item"><span class="nav-link disabled" aria-disabled="true">
@@ -98,6 +105,11 @@
 				<li class="nav-item"><span class="nav-link disabled" aria-disabled="true">
 					<svg class="rms-icon" aria-hidden="true"><use href="${icons}#list-check"/></svg>Show Evaluation<span class="rms-soon">Soon</span></span></li>
 				</c:if>
+				<li class="rms-nav-heading">Account</li>
+				<li class="nav-item">
+					<a class="nav-link${active eq 'password' ? ' active' : ''}" href="${base}changepassword"${active eq 'password' ? ' aria-current="page"' : ''}>
+						<svg class="rms-icon" aria-hidden="true"><use href="${icons}#pencil-square"/></svg>Change password</a>
+				</li>
 			</ul>
 		</nav>
 	</aside>

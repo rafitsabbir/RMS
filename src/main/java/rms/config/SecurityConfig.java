@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import jakarta.servlet.DispatcherType;
+import jakarta.servlet.Filter;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -21,26 +22,33 @@ import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.DelegatingPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.CsrfException;
 import org.springframework.security.web.savedrequest.NullRequestCache;
 
+import rms.model.Role;
 import rms.service.LoginService;
 import rms.service.RmsUserDetails;
 
 /**
- * Spring Security 7, in place of the interim AuthInterceptor (G11, G13, G32):
+ * Spring Security 7 (G11, G13, G32, G42):
  * <ul>
  * <li>form login posts to /welcome (login.jsp) and always lands on /home; a failed one goes to /login?error</li>
- * <li>/login is public, / and /home need a login, every other page needs ROLE_ADMIN (isinterviewer = N)</li>
+ * <li>access by role (rms.model.Role), deny by default: a page no rule below names is refused (HTTP 403)</li>
  * <li>every POST needs the CSRF token, which &lt;form:form&gt; adds; logout is POST /logout</li>
- * <li>passwords: {bcrypt} rows, or the legacy plain-text rows compared exactly; nothing is written back</li>
+ * <li>passwords: {bcrypt} rows, or the legacy plain-text rows compared exactly; RMS writes only {bcrypt}</li>
+ * <li>an inactive user (admin.isactive = 0) can't log in, and is signed out on the next request
+ * (AccountCheckFilter)</li>
+ * <li>5 failed logins for a username from one address in 15 minutes lock it there for 15 minutes
+ * (LoginThrottle)</li>
  * </ul>
  */
 @Configuration
@@ -48,6 +56,21 @@ import rms.service.RmsUserDetails;
 public class SecurityConfig {
 
 	private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
+
+	private static final String SUPER_ADMIN = Role.SUPER_ADMIN.name();
+	private static final String HR = Role.HR.name();
+	private static final String HIRING_MANAGER = Role.HIRING_MANAGER.name();
+
+	/** Users and Roles: Super Admin only. */
+	static final String[] USER_ADMIN_PAGES = { "/viewuserlist", "/createuser", "/updateuser", "/saveuser",
+			"/deactivateuser", "/reactivateuser", "/resetpassword" };
+	/** Read-only staff pages: Super Admin, HR and Hiring Manager. */
+	static final String[] STAFF_READ_PAGES = { "/adminviewmarks", "/viewcandidatelist" };
+	/** Candidate changes and master data: Super Admin and HR. */
+	static final String[] HR_PAGES = { "/createcandidate", "/updatecandidate", "/savecandidate",
+			"/deletecandidate", "/viewpositionlist", "/createposition", "/updateposition/*", "/saveposition",
+			"/deleteposition/*", "/viewlanguagelist", "/createlanguage", "/updatelanguage/*", "/savelanguage",
+			"/deletelanguage/*" };
 
 	/** Static resources: public, and without the no-store headers, so browsers keep caching them. */
 	@Bean
@@ -61,34 +84,47 @@ public class SecurityConfig {
 
 	@Bean
 	@Order(2)
-	public SecurityFilterChain appFilterChain(HttpSecurity http) throws Exception {
+	public SecurityFilterChain appFilterChain(HttpSecurity http, LoginThrottle throttle, LoginService loginservice)
+			throws Exception {
 		http.authorizeHttpRequests(auth -> auth
 						// A JSP forward belongs to a request that was already checked
 						.dispatcherTypeMatchers(DispatcherType.FORWARD, DispatcherType.INCLUDE, DispatcherType.ERROR)
 						.permitAll()
 						.requestMatchers("/login", "/welcome").permitAll()
-						.requestMatchers("/", "/home").authenticated()
-						// Everything else is an admin page. Interviewer pages (G5) need a rule above this one
-						.anyRequest().hasRole("ADMIN"))
+						.requestMatchers("/", "/home", "/changepassword", "/savepassword").authenticated()
+						.requestMatchers(USER_ADMIN_PAGES).hasRole(SUPER_ADMIN)
+						.requestMatchers(STAFF_READ_PAGES).hasAnyRole(SUPER_ADMIN, HR, HIRING_MANAGER)
+						.requestMatchers(HR_PAGES).hasAnyRole(SUPER_ADMIN, HR)
+						// Deny by default: a new page needs its own rule above, and cases in SecurityConfigTest
+						.anyRequest().denyAll())
 				.formLogin(form -> form
 						.loginPage("/login")
 						.loginProcessingUrl("/welcome")
 						.usernameParameter("username")
 						.passwordParameter("password")
-						.successHandler(new LoginSuccessHandler())
-						.failureHandler(SecurityConfig::loginFailed))
+						.successHandler(new LoginSuccessHandler(throttle))
+						.failureHandler(loginFailed(throttle)))
 				.logout(logout -> logout
 						.logoutUrl("/logout")
 						.logoutSuccessUrl("/login"))
 				// After a login always /home, as before, so the page that led to the login isn't kept
 				.requestCache(cache -> cache.requestCache(new NullRequestCache()))
-				.exceptionHandling(exceptions -> exceptions.accessDeniedHandler(SecurityConfig::refuse));
+				.exceptionHandling(exceptions -> exceptions.accessDeniedHandler(SecurityConfig::refuse))
+				// After the CSRF check, before the password check: a locked login isn't even tried
+				.addFilterBefore(lockedLoginFilter(throttle), UsernamePasswordAuthenticationFilter.class)
+				.addFilterBefore(new AccountCheckFilter(loginservice), AuthorizationFilter.class);
 		return http.build();
+	}
+
+	@Bean
+	public LoginThrottle loginThrottle() {
+		return new LoginThrottle();
 	}
 
 	/**
 	 * {bcrypt}... rows are checked with bcrypt; a row without an {id} prefix is a legacy plain-text password
-	 * (G13). Nothing is re-hashed or written back: migrating the stored passwords is the owner's call.
+	 * (G13). New and changed passwords are encoded as {bcrypt} (rms.service.UserServiceImpl). Existing rows
+	 * change only through the owner's migration (db/migrations/003-hash-passwords).
 	 */
 	@Bean
 	public PasswordEncoder passwordEncoder() {
@@ -105,26 +141,53 @@ public class SecurityConfig {
 			PasswordEncoder passwordEncoder) {
 		DaoAuthenticationProvider provider = new DaoAuthenticationProvider(loginservice::loadUserByUsername);
 		provider.setPasswordEncoder(passwordEncoder);
-		// After the password check, as before: a users row without an admin row can't log in (G26)
+		// The default checks the account before the password, so an inactive account would answer faster than a
+		// wrong password and show that it exists. Every account check runs after the password check instead
+		provider.setPreAuthenticationChecks(user -> {
+		});
 		provider.setPostAuthenticationChecks(user -> {
 			RmsUserDetails details = (RmsUserDetails) user;
+			// A users row without an admin row can't log in (G26)
 			if (details.getUserinfo() == null) {
 				log.warn("User {} has no admin row; login refused", details.getUserid());
 				throw new DisabledException("No admin row");
+			}
+			if (!details.isEnabled()) {
+				log.info("User {} is inactive; login refused", details.getUserid());
+				throw new DisabledException("Inactive");
 			}
 		});
 		return provider;
 	}
 
+	/** Refuses a login post while its username is locked for the address, with the usual error. */
+	private static Filter lockedLoginFilter(LoginThrottle throttle) {
+		return (servletRequest, servletResponse, chain) -> {
+			HttpServletRequest request = (HttpServletRequest) servletRequest;
+			HttpServletResponse response = (HttpServletResponse) servletResponse;
+			if ("POST".equals(request.getMethod()) && "/welcome".equals(pathOf(request))
+					&& throttle.isLocked(request.getParameter("username"), request.getRemoteAddr())) {
+				response.sendRedirect(request.getContextPath() + "/login?error");
+				return;
+			}
+			chain.doFilter(servletRequest, servletResponse);
+		};
+	}
+
 	/**
 	 * Back to the login page, as a redirect so a refresh doesn't post the login again (G30). The exception isn't
 	 * kept in the session (SimpleUrlAuthenticationFailureHandler would keep it, with the typed password).
+	 * Every failure except a database error counts towards the lock.
 	 */
-	private static void loginFailed(HttpServletRequest request, HttpServletResponse response,
-			AuthenticationException failure) throws IOException {
-		// The database failing isn't a wrong password; Spring Security has logged it at ERROR
-		boolean unavailable = failure instanceof InternalAuthenticationServiceException;
-		response.sendRedirect(request.getContextPath() + (unavailable ? "/login?unavailable" : "/login?error"));
+	private static AuthenticationFailureHandler loginFailed(LoginThrottle throttle) {
+		return (request, response, failure) -> {
+			// The database failing isn't a wrong password; Spring Security has logged it at ERROR
+			boolean unavailable = failure instanceof InternalAuthenticationServiceException;
+			if (!unavailable) {
+				throttle.loginFailed(request.getParameter("username"), request.getRemoteAddr());
+			}
+			response.sendRedirect(request.getContextPath() + (unavailable ? "/login?unavailable" : "/login?error"));
+		};
 	}
 
 	/** HTTP 403, logged. A stale login form, or a form posted after its session expired, goes back to the login page. */
@@ -139,13 +202,13 @@ public class SecurityConfig {
 			}
 			log.warn("Missing or invalid CSRF token; {} {} refused", request.getMethod(), pathOf(request));
 		} else {
-			log.warn("User {} is not an admin; {} refused", currentUserid(), pathOf(request));
+			log.warn("User {} may not open {}; refused", currentUserid(), pathOf(request));
 		}
 		response.sendError(HttpServletResponse.SC_FORBIDDEN);
 	}
 
 	/** The path inside the app, without the query string, which can carry form data. */
-	private static String pathOf(HttpServletRequest request) {
+	static String pathOf(HttpServletRequest request) {
 		String pathInfo = request.getPathInfo();
 		return request.getServletPath() + (pathInfo == null ? "" : pathInfo);
 	}
@@ -162,18 +225,25 @@ public class SecurityConfig {
 		return authentication.getName();
 	}
 
-	/** Puts the profile in the session for the JSPs (sessionScope.user), then redirects to /home. */
+	/**
+	 * Puts the profile in the session for the JSPs (sessionScope.user), clears the failure count, then redirects
+	 * to /home.
+	 */
 	static class LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
-		LoginSuccessHandler() {
+		private final LoginThrottle throttle;
+
+		LoginSuccessHandler(LoginThrottle throttle) {
 			super("/home");
 			setAlwaysUseDefaultTargetUrl(true);
+			this.throttle = throttle;
 		}
 
 		@Override
 		public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
 				Authentication authentication) throws IOException, ServletException {
 			RmsUserDetails user = (RmsUserDetails) authentication.getPrincipal();
+			throttle.loginSucceeded(request.getParameter("username"), request.getRemoteAddr());
 			request.getSession().setAttribute("user", user.getUserinfo());
 			super.onAuthenticationSuccess(request, response, authentication);
 		}

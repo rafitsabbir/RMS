@@ -1,0 +1,8 @@
+flowchart TD
+  A[Admin sets up<br/>Positions and Languages] --> B[Admin adds Candidate<br/>with position and language]
+  B -.-> C[Admin schedules interview<br/>NOT BUILT - G3]
+  C -.-> D[Interviewer enters<br/>10 scores<br/>NOT BUILT - G5-G7]
+  D --> E[Admin reviews<br/>Candidate Status]
+  E -.-> F[Selected / Rejected decision<br/>NOT BUILT - G9]
+  classDef todo fill:#fdf1dc,stroke:#9a5b00,stroke-dasharray: 5 5
+  class C,D,F todo

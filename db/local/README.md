@@ -48,7 +48,7 @@ docker compose up -d
 MySQL runs on `127.0.0.1:3306` (or `RMS_DB_PORT`) with the database `rms_local` already loaded. The load happens on the first start only. To reset it, run `docker compose down -v` and then `docker compose up -d` again.
 
 ## Expected result
-Row counts after loading: `users` 2, `admin` 2, `position` 3, `language` 3, `candidate` 2 and `marks` 2.
+Row counts after loading: `users` 5, `admin` 5, `position` 3, `language` 3, `candidate` 2 and `marks` 2.
 
 ## Databases made before a schema change
 `../schema.sql` always has the current columns, so a fresh setup needs nothing else. A database built earlier needs the numbered scripts in `../migrations/` that came after it, in order, for example:
@@ -60,9 +60,10 @@ mysql -h 127.0.0.1 -u root -p rms_local < db/migrations/001-candidate-isactive.s
 | Script | Since | Needed for |
 |---|---|---|
 | `001-candidate-isactive.sql` | 2026-10-02 | the Candidates pages (soft delete adds `candidate.isactive`) |
+| `002-user-roles.sql` | 2026-10-02 | every login (roles add `admin.role` and `users.mustchangepassword`) |
 
 Re-running the setup script instead also works, but it wipes `rms_local` and reloads the seed.
 
 ## Using it with the app
-- **Seed logins:** `test.admin` (the admin role) and `test.interviewer` (`isinterviewer = 'Y'`). Their throwaway passwords are in `../test-seed.sql`. They are also the values to use for `RMS_SMOKE_USER` and `RMS_SMOKE_PASSWORD` in `SmokeTest`.
+- **Seed logins**, one per role: `test.admin` (Super Admin), `test.hr` (HR), `test.manager` (Hiring Manager), `test.interviewer` (Interviewer), plus `test.former` (an inactive Interviewer, who can't sign in). Their throwaway passwords are in `../test-seed.sql`; `test.admin` and `test.interviewer` are plain-text rows, the others `{bcrypt}`. Use `test.admin` for `RMS_SMOKE_USER` and `RMS_SMOKE_PASSWORD` in `SmokeTest` (the Users and Roles check needs a Super Admin).
 - **App connection:** in your **local** servlet container (Tomcat 11 on JDK 21 for the current code; Tomcat 9 for Phase 1 builds), point the JNDI DataSource `jdbc/springrms` at `rms_local` on your local server, with driver `com.mysql.cj.jdbc.Driver`. Keep that container config out of the repo ([CLAUDE.md](../../CLAUDE.md) rule), and see [docs/build-run.md](../../docs/build-run.md).

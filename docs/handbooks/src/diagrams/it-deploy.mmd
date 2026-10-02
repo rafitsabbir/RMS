@@ -1,0 +1,9 @@
+flowchart TD
+  U[User browser] -->|HTTPS| RP[Reverse proxy / load balancer<br/>TLS termination - recommended]
+  U -.->|CSS and JS| CDN[(cdn.jsdelivr.net)]
+  RP -->|HTTP| T
+  subgraph S[Application server]
+    T[Tomcat 11 on JDK 21<br/>context /rms] --> W[RMS WAR]
+    W --> P[JNDI pool jdbc/springrms<br/>Connector/J 8.2.0]
+  end
+  P -->|TCP 3306, TLS| DB[(MySQL 5.7 / 8.x)]

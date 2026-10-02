@@ -19,9 +19,10 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import rms.dao.LoginDao;
 import rms.model.LoginInfo;
+import rms.model.Role;
 import rms.model.UserInfo;
 
-/** The user Spring Security checks the password against: users row, admin row and role (G16, G26). */
+/** The user Spring Security checks the password against: users row, admin row, role and active flag (G16, G26). */
 @ExtendWith(MockitoExtension.class)
 class LoginServiceImplTest {
 
@@ -32,18 +33,18 @@ class LoginServiceImplTest {
 	LoginServiceImpl service;
 
 	@Test
-	void roleComesFromIsinterviewer() {
-		assertThat(rolesFor("N")).containsExactly(RmsUserDetails.ADMIN);
-		assertThat(rolesFor("n")).containsExactly(RmsUserDetails.ADMIN);
-		assertThat(rolesFor("Y")).containsExactly(RmsUserDetails.INTERVIEWER);
-		assertThat(rolesFor("y")).containsExactly(RmsUserDetails.INTERVIEWER);
+	void authorityComesFromTheProfilesRole() {
+		assertThat(rolesFor("SUPER_ADMIN")).containsExactly("ROLE_SUPER_ADMIN");
+		assertThat(rolesFor("HR")).containsExactly("ROLE_HR");
+		assertThat(rolesFor("HIRING_MANAGER")).containsExactly("ROLE_HIRING_MANAGER");
+		assertThat(rolesFor("INTERVIEWER")).containsExactly("ROLE_INTERVIEWER");
 		assertThat(rolesFor(null)).isEmpty();
 		assertThat(rolesFor("X")).isEmpty();
 	}
 
 	@Test
-	void userCarriesUseridPasswordAndProfile() {
-		UserInfo profile = profile("N");
+	void userCarriesUseridPasswordProfileAndRole() {
+		UserInfo profile = profile("SUPER_ADMIN", 1);
 		when(logindao.findLogins("test.admin")).thenReturn(List.of(new LoginInfo("U1", "test.admin", "test-only-1")));
 		when(logindao.getUserInfo("U1")).thenReturn(profile);
 
@@ -53,8 +54,16 @@ class LoginServiceImplTest {
 		assertThat(user.getUsername()).isEqualTo("test.admin");
 		assertThat(user.getPassword()).isEqualTo("test-only-1");
 		assertThat(user.getUserinfo()).isSameAs(profile);
-		// admin.isactive is still ignored (open question #20)
+		assertThat(user.getRole()).isEqualTo(Role.SUPER_ADMIN);
 		assertThat(user.isEnabled()).isTrue();
+	}
+
+	@Test
+	void inactiveUserIsNotEnabled() {
+		// open question #20 answered by the roles plan: admin.isactive = 0 can't log in (checked in SecurityConfig)
+		RmsUserDetails user = new RmsUserDetails(new LoginInfo("U5", "u", "p"), profile("INTERVIEWER", 0));
+
+		assertThat(user.isEnabled()).isFalse();
 	}
 
 	@Test
@@ -84,11 +93,21 @@ class LoginServiceImplTest {
 
 		assertThat(user.getUserinfo()).isNull();
 		assertThat(user.getAuthorities()).isEmpty();
+		assertThat(user.getRole()).isNull();
+		assertThat(user.isEnabled()).isFalse();
+	}
+
+	@Test
+	void currentProfileReadsTheAdminRowAgain() {
+		UserInfo profile = profile("HR", 1);
+		when(logindao.getUserInfo("U3")).thenReturn(profile);
+
+		assertThat(service.currentProfile("U3")).isSameAs(profile);
 	}
 
 	@Test
 	void eraseCredentialsDropsThePassword() {
-		RmsUserDetails user = new RmsUserDetails(new LoginInfo("U1", "test.admin", "test-only-1"), profile("N"));
+		RmsUserDetails user = new RmsUserDetails(new LoginInfo("U1", "test.admin", "test-only-1"), profile("SUPER_ADMIN", 1));
 
 		user.eraseCredentials();
 
@@ -96,15 +115,16 @@ class LoginServiceImplTest {
 		assertThat(user.toString()).doesNotContain("test-only-1");
 	}
 
-	private static List<String> rolesFor(String isinterviewer) {
-		RmsUserDetails user = new RmsUserDetails(new LoginInfo("U1", "u", "p"), profile(isinterviewer));
+	private static List<String> rolesFor(String role) {
+		RmsUserDetails user = new RmsUserDetails(new LoginInfo("U1", "u", "p"), profile(role, 1));
 		return AuthorityUtils.authorityListToSet(user.getAuthorities()).stream().toList();
 	}
 
-	private static UserInfo profile(String isinterviewer) {
+	private static UserInfo profile(String role, int isactive) {
 		UserInfo user = new UserInfo();
 		user.setUserid("U1");
-		user.setIsinterviewer(isinterviewer);
+		user.setRole(role);
+		user.setIsactive(isactive);
 		return user;
 	}
 

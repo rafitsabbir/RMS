@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import rms.dao.LoginDao;
 import rms.model.LoginInfo;
+import rms.model.UserInfo;
 
 @Service
 public class LoginServiceImpl implements LoginService {
@@ -40,6 +41,10 @@ public class LoginServiceImpl implements LoginService {
 		LoginInfo login = logins.get(0);
 		// May be null (no admin row): refused after the password check, as before (SecurityConfig, G26)
 		return new RmsUserDetails(login, logindao.getUserInfo(login.getUserid()));
+	}
+
+	public UserInfo currentProfile(String userid) {
+		return logindao.getUserInfo(userid);
 	}
 
 }

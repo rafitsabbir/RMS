@@ -1,0 +1,199 @@
+# RMS Business Analyst Guide
+@ Recruitment Management System — roles, screens, permissions, business flows and how to use the system
+@ Describes the version on the dev branch as of 2 October 2026 (roles plan, Phase 1). Prepared from the code and the project documentation.
+
+> **Purpose of this document:** explain what RMS does today, who can use which screen, how each business process works, and what is still missing, so that new features can be analysed and proposed.
+
+## 1. What RMS is
+RMS is a small web application for running interviews. The HR or recruitment side keeps the lists of jobs and skills, registers candidates, and sees how interviewers scored each candidate.
+
+|Topic|Summary|
+|---|---|
+|Who uses it|Super Admins, HR staff, hiring managers and interviewers. Each person has one login and one role.|
+|Where it runs|In a web browser, on desktop or phone. Nothing is installed on the user's computer.|
+|What works today|Login, Users and Roles, Change password, Positions, Languages/skills, Candidates, and the Candidate Status results page.|
+|What is not built yet|Score entry by interviewers, interview schedules, job openings, candidate documents, and the Selected/Rejected decision. They are planned as Phases 2 to 4.|
+
+The menu already shows the full recruitment workflow, but the unbuilt parts are greyed out and marked "Soon". They can't be clicked.
+
+## 2. Roles
+RMS has four roles. A Super Admin sets each person's role on the **Users and Roles** screen.
+
+|Role|Purpose|What they can do today|
+|---|---|---|
+|**Super Admin**|Runs the system: users, roles and everything HR can do.|Everything: Users and Roles, Candidate Status, Candidates, Positions, Languages.|
+|**HR**|Runs recruitment: reference lists, candidates, results.|Candidate Status, Candidates (add, edit, delete), Positions, Languages. No user management.|
+|**Hiring Manager**|Follows recruitment for their team.|Candidate Status and the Candidates list, read-only.|
+|**Interviewer**|Interviews candidates and scores them on 10 criteria.|Home and Change password. Score entry ("Evaluation", "Show Evaluation") comes in Phase 3.|
+|No role|Not intended; a data error.|Can log in, but sees only Home and Change password.|
+
+> **One role per person.** There are no combined roles (for example a hiring manager who also interviews). Someone who needs two roles needs two logins today.
+
+## 3. Who can open which screen
+The menu shows each role only its own entries. Typing a page's address directly doesn't get around this: the server checks the role on every request, and any page not explicitly opened to a role is refused.
+
+|Menu entry / screen|Status|Super Admin|HR|Hiring Manager|Interviewer|
+|---|---|---|---|---|---|
+|Login page|Live|Yes|Yes|Yes|Yes|
+|Home (welcome page)|Live|Yes|Yes|Yes|Yes|
+|Recruitment › Candidate Status|Live|Yes|Yes|Read-only|Refused|
+|Recruitment › Candidates|Live|Yes|Yes|List only|Refused|
+|Master data › Positions|Live|Yes|Yes|Refused|Refused|
+|Master data › Languages|Live|Yes|Yes|Refused|Refused|
+|Administration › Users and Roles|Live|Yes|Refused|Refused|Refused|
+|Account › Change password|Live|Yes|Yes|Yes|Yes|
+|Interview Schedules, Jobs|Coming soon|Greyed out|Greyed out|—|—|
+|Evaluation, Show Evaluation|Coming soon|—|—|—|Greyed out|
+|Log out (top bar)|Live|Yes|Yes|Yes|Yes|
+
+"Refused" means the user sees an "access denied" error page (HTTP 403) and the attempt is written to the server log. Anyone not logged in is sent to the login page.
+
+**The default is "nobody":** any new screen a developer adds is refused to every role until a rule is written that opens it to the right roles.
+
+## 4. How to change permissions
+|I want to…|How it's done|Who|New release needed?|
+|---|---|---|---|
+|Add a new user|Users and Roles › Add user: username, names, optional e-mail, phone and designation, role, and a temporary password. RMS gives the user an ID (U1, U2…). The user must choose their own password at first sign-in.|Super Admin|No|
+|Change someone's role|Users and Roles › Edit › Role. It applies at once: the person is signed out at their next click and signs in with the new role.|Super Admin|No|
+|Remove someone's access|Users and Roles › Deactivate. They can't sign in and are signed out at once. Nothing they did is removed, and Reactivate restores everything.|Super Admin|No|
+|Reset a forgotten password|Users and Roles › Edit › Reset password, with a temporary password. The user must change it at their next page.|Super Admin|No|
+|Change my own password|Account › Change password.|Everyone|No|
+|Open a screen to another role|A developer adds an access rule and the menu entry for that role; the application is then rebuilt and redeployed.|Developer, then IT|Yes|
+|Give one specific user extra rights|Not possible. Rights belong to the role, not to the person.|—|New feature|
+|Create a new role|Not possible without development: new role value, access rules and menu.|Developer|New feature|
+
+> **Safety rules:** a Super Admin can't deactivate, demote or reset themselves on this screen, and the last active Super Admin can't be deactivated or demoted.
+
+## 5. Features in detail
+### Login and session
+- Users sign in with username and password. A wrong password, an unknown user or a deactivated user all show "Invalid login!". If the database is unavailable, the page says sign-in isn't available right now.
+- **Lock:** after 5 wrong passwords for one username from one computer within 15 minutes, that username is locked there for 15 minutes. The message stays "Invalid login!".
+- After login everyone lands on **Home**, which greets the user and shows the tiles for their role. The top bar shows their initials, name and designation.
+- **Log out** is in the top bar. After a period of inactivity the session expires (normally 30 minutes). A form left open too long shows "Your session expired. Please sign in again."
+- If a Super Admin deactivates someone or changes their role while they are signed in, their next click shows "You were signed out because your account changed."
+- There is no "forgot password" link and no self-registration: a Super Admin resets passwords.
+
+### Users and Roles (Super Admin)
+- A list of every user, active or not, with ID, name, username, role, designation and status. "Must change password" marks users with a temporary password.
+- Usernames: 3 to 100 letters, digits or . _ @ -; each username can be used once, also counting deactivated users. The ID and username can't be changed later.
+- Passwords: at least 8 characters. They are stored scrambled (bcrypt), never as readable text.
+
+### Change password (everyone)
+- Current password, then the new one twice. The new one must differ from the current one.
+- After 5 wrong current passwords in 15 minutes the page refuses for 15 minutes.
+
+### Positions (master data)
+- The list of job positions candidates apply for, for example "SOFTWARE ENGINEER".
+- Super Admin and HR can add, rename and delete. Names are saved in capital letters and must be unique among active positions; a duplicate shows "Position NAME already exists."
+- Delete is a soft delete: the position disappears from lists and dropdowns but stays in the database, so past candidates keep it. Adding the same name again brings the old one back.
+
+### Languages (master data)
+- The languages or skills candidates are assessed on, for example "JAVA". Works exactly like Positions.
+
+### Candidates
+- Super Admin and HR can add, list, edit and delete candidates. Hiring Managers see the list only. Each candidate has a first name, a last name, one position and one language.
+- RMS gives each new candidate an ID automatically: C1, C2, C3… The ID can't be changed and is never reused, even after a delete.
+- Only active positions and languages can be chosen. If a candidate's position is deleted later, the candidate keeps it (shown as "NAME (deleted)" when editing).
+- Delete is a soft delete: the candidate leaves the Candidates list, but their scores still appear on Candidate Status (until Phase 3, which hides them there).
+- The list shows each candidate's status: Selected, Rejected or Pending.
+
+### Candidate Status (results)
+- A read-only table of every score sheet: candidate name, position, language, the 10 scores, the total and the status.
+- The total is the plain sum of the 10 scores (no weighting).
+- The table can be searched, sorted and paged.
+- Scores and statuses can't be entered or changed in RMS yet; Phase 3 adds score entry, averages across interviewers and the decision.
+
+## 6. Business flows
+### End-to-end recruitment process
+The intended process. Dashed, orange steps are not built yet.
+![Recruitment process: built steps in blue, missing steps in orange](ba-process.png)
+
+### Login and role-based menu
+![Login flow](ba-login.png)
+
+### Maintaining a list (Positions, Languages, Candidates)
+![Add, edit and delete pattern shared by the list screens](ba-lists.png)
+
+## 7. How to use RMS
+### Super Admin: set up users
+1. Sign in, open **Users and Roles**, then **Add user**.
+2. Enter the username, names and role, and a temporary password twice. Save, then give the person the username and temporary password.
+3. At their first sign-in they must choose their own password.
+4. To change a role, click **Edit**. To remove access, click **Deactivate** and confirm.
+
+### Super Admin or HR: first-time setup
+1. Open **Positions** and add each job you recruit for: Add position, type the name, Save.
+2. Open **Languages** and add each language or skill you assess.
+
+### Super Admin or HR: register a candidate
+1. Open **Candidates**, then **Add candidate**.
+2. Enter the first and last name, choose a position and a language, then **Save**. RMS assigns the next ID (for example C3).
+3. To correct details later, click **Edit** on the candidate's row. To remove a candidate, click **Delete** and confirm.
+
+### Super Admin, HR or Hiring Manager: review results
+1. Open **Candidate Status**.
+2. Use the search box to find a candidate, or click a column heading to sort (for example by Total Score).
+
+### Interviewer
+1. Sign in. Home shows your profile. Score entry will appear under "Evaluation" in Phase 3.
+
+### Everyone
+- Change your password under **Account › Change password**.
+- Use **Log out** in the top bar when you finish, especially on a shared computer.
+- On a phone, open the menu with the button at the top left.
+
+## 8. Business data
+|Business object|What it holds|Maintained in RMS?|
+|---|---|---|
+|User login|User ID (U1, U2…), username, password (scrambled), "must change password" flag|Yes (Users and Roles, Change password)|
+|User profile|First and last name, e-mail, phone, designation, role, active flag|Yes (Users and Roles)|
+|Position|Name (capitals), active flag|Yes|
+|Language / skill|Name (capitals), active flag|Yes|
+|Candidate|ID (C1, C2…), first and last name, position, language, status (S/R/empty), active flag|Yes, except the status|
+|Score sheet|Interviewer, candidate and 10 scores|No (score entry is Phase 3)|
+
+### The 10 scoring criteria
+Work Experience, Technical Knowledge, Leadership Skill, Decision Making, Problem Solving Skill, Stress Tolerance, Educational Background, Communication Skill, Attitude, Personality. Total = the sum of all ten.
+
+### Candidate status
+|Shown as|Stored as|
+|---|---|
+|Selected|S|
+|Rejected|R|
+|Pending|anything else, including empty (new candidates start as Pending)|
+
+## 9. Business rules enforced by the system
+- Position and language names are stored in capitals, trimmed, and must be unique among active entries.
+- Deleting a position, language or candidate, or deactivating a user, hides or blocks it; nothing is physically removed, so history stays intact.
+- Candidate IDs (C…) and user IDs (U…) are generated and never reused.
+- A candidate needs a first name, a last name, an active position and an active language.
+- Passwords must match exactly, including upper and lower case. An empty password never works. New and changed passwords are at least 8 characters and stored scrambled.
+- A deactivated user can't sign in. A username that appears twice in the database can't log in. A user with a login but no profile can't log in.
+- 5 wrong passwords in 15 minutes lock that username on that computer for 15 minutes.
+- Every change (save, delete, log out) must come from an RMS page; requests forged from other websites are refused.
+
+## 10. What is missing or partial
+|Ref|Capability|State|Business impact|
+|---|---|---|---|
+|G5–G7|Interviewers entering and viewing their scores|Planned: Phase 3|High: the core interview step can't be done in RMS.|
+|G9|Selected / Rejected / On hold decision|Planned: Phase 3|High: nothing sets a candidate's status.|
+|—|Candidate profile and documents (CV, certificates)|Planned: Phase 2|Medium.|
+|G4|Job openings|Planned: Phase 2|Medium.|
+|G3|Interview schedules and a dashboard|Planned: Phase 4|Medium.|
+|G34|Names in non-Latin scripts (for example Bengali, Cyrillic)|Partial|Such names are stored as codes and display incorrectly.|
+|—|Reports or export (Excel, PDF)|Not built|Results can only be viewed on screen.|
+|—|Audit trail (who changed what, when)|Not built|Changes can't be traced, except user changes in the server log.|
+
+## 11. Decisions made (2 October 2026)
+1. **Scoring:** each of the 10 criteria is scored 1–10 (total up to 100). Several interviewers can score one candidate; the result is the average of all evaluations, per criterion and in total. Interviewers can add comments.
+2. **Selection:** Selected, Rejected or On hold is decided manually by a Super Admin or HR, never automatically.
+3. **Jobs:** a Job is an opening built on a Position, with vacancies, a closing date and an open/closed status.
+4. **Deleted candidates** will be hidden on the Phase 3 Candidate Status.
+5. **Inactive users** can't sign in (built).
+
+## 12. Open business questions
+1. **One role per user:** is a second login acceptable for someone who both manages and interviews, or should a user hold several roles later?
+2. **Schedules:** are e-mail notifications needed for interviews?
+3. **Reports:** which exports or counts are needed first?
+
+> Gap references (G…) and question numbers match the project's docs/gaps.md and docs/open-questions.md, so the development team can trace each item.

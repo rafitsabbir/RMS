@@ -1,0 +1,16 @@
+sequenceDiagram
+  participant B as Browser
+  participant S as Security
+  participant C as Controller
+  participant V as Service
+  participant D as DAO
+  participant DB as MySQL
+  B->>S: POST /saveposition + _csrf
+  S->>S: logged in? role allowed? token ok?
+  S->>C: save(PositionInfo)
+  C->>C: validate input
+  C->>V: addPosition(info)
+  V->>D: addPosition(info)
+  D->>DB: count, then insert
+  D-->>C: true, or false if duplicate
+  C-->>B: redirect to list, or form + error
