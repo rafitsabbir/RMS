@@ -6,7 +6,6 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -26,18 +25,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.util.List;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.FileSystemResourceLoader;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.mock.web.MockHttpSession;
-import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
@@ -46,12 +42,14 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.WebAttributes;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.junit.jupiter.web.SpringJUnitWebConfig;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
+import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -76,9 +74,10 @@ import rms.service.RmsUserDetails;
 /**
  * The real SecurityConfig in front of the real controllers, with mocked DAO and services (G11, G13, G26, G30,
  * G32). Takes over the access matrix of the former AuthInterceptorTest. Uses WebConfig's view resolver and
- * resource handler, and src/main/webapp as the web root. The context is built by hand: spring-test 7's
- * SpringExtension needs JUnit 6, and this project is on JUnit 5.
+ * resource handler, and src/main/webapp as the web root (@SpringJUnitWebConfig's default). Spring's test
+ * framework caches the context and resets the @MockitoBean mocks after each test.
  */
+@SpringJUnitWebConfig(classes = { SecurityConfig.class, SecurityConfigTest.TestWebConfig.class })
 class SecurityConfigTest {
 
 	@Configuration
@@ -86,33 +85,8 @@ class SecurityConfigTest {
 	static class TestWebConfig implements WebMvcConfigurer {
 
 		@Bean
-		LoginDao logindao() {
-			return mock(LoginDao.class);
-		}
-
-		@Bean
 		LoginServiceImpl loginservice() {
 			return new LoginServiceImpl();
-		}
-
-		@Bean
-		PositionService positionservice() {
-			return mock(PositionService.class);
-		}
-
-		@Bean
-		LanguageService languageservice() {
-			return mock(LanguageService.class);
-		}
-
-		@Bean
-		CandidateService candidateservice() {
-			return mock(CandidateService.class);
-		}
-
-		@Bean
-		MarksService marksservice() {
-			return mock(MarksService.class);
 		}
 
 		@Bean
@@ -152,38 +126,28 @@ class SecurityConfigTest {
 
 	}
 
-	static AnnotationConfigWebApplicationContext context;
+	@Autowired
+	WebApplicationContext context;
 
+	@MockitoBean
 	LoginDao logindao;
 
+	@MockitoBean
 	PositionService positionservice;
 
+	@MockitoBean
+	LanguageService languageservice;
+
+	@MockitoBean
 	MarksService marksservice;
 
+	@MockitoBean
 	CandidateService candidateservice;
 
 	MockMvc mockMvc;
 
-	@BeforeAll
-	static void startContext() {
-		context = new AnnotationConfigWebApplicationContext();
-		context.setServletContext(new MockServletContext("src/main/webapp", new FileSystemResourceLoader()));
-		context.register(SecurityConfig.class, TestWebConfig.class);
-		context.refresh();
-	}
-
-	@AfterAll
-	static void closeContext() {
-		context.close();
-	}
-
 	@BeforeEach
 	void setUp() {
-		logindao = context.getBean(LoginDao.class);
-		positionservice = context.getBean(PositionService.class);
-		marksservice = context.getBean(MarksService.class);
-		candidateservice = context.getBean(CandidateService.class);
-		reset(logindao, positionservice, marksservice, candidateservice);
 		mockMvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
 		givenLogin("U1", "test.admin", "test-only-1", "N");
 		givenLogin("U2", "test.interviewer", "test-only-2", "Y");

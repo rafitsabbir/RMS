@@ -43,7 +43,7 @@ Evidence: `src/main/java/rms/config/WebInitializer.java`, `rms/config/WebConfig.
 7. **UI shell:** every page behind the login is a normal page wrapped in the `layout.tag` tag file, which renders the sidebar menu, the top bar and the content area (`WEB-INF/tags/layout.tag`). Menu items are plain links, so back, refresh and bookmarks work. `main.jsp` is the home page with quick links per role. Until the 2026-10-01 redesign, `main.jsp` was a frame that loaded each page into an `<object>` element.
 
 ## Cross-cutting concerns
-- **Transactions:** none managed. There's no `@Transactional` or transaction manager, and none is needed: each write is a single statement (G19, closed as not a gap). `spring-tx` is declared on purpose, because the DAOs use its `DataAccessException` hierarchy (`pom.xml:82-86`).
+- **Transactions:** none managed. There's no `@Transactional` or transaction manager, and none is needed: each write is a single statement (G19, closed as not a gap). `spring-tx` is declared on purpose, because the DAOs use its `DataAccessException` hierarchy (`pom.xml:83-87`).
 - **Error handling:** no `@ExceptionHandler` or `@ControllerAdvice`.
   - The DAOs catch `EmptyResultDataAccessException` and return `null`: `LoginDaoImpl.getUserInfo`, `PositionDaoImpl.findPositionById` (`:109-111`), `LanguageDaoImpl.findLanguageById` (`:92-94`).
   - A `null` from the finders becomes HTTP 404 through `ResponseStatusException` in the controllers (`PositionController.java:46-50,78-80`, `LanguageController.java:55-59,78-80`).
