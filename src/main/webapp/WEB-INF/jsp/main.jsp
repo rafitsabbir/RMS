@@ -33,6 +33,15 @@
 		<div class="col-sm-6 col-xl-4">
 			<div class="card rms-card rms-tile">
 				<div class="card-body">
+					<span class="rms-tile-icon"><svg class="rms-icon" aria-hidden="true"><use href="${icons}#people"/></svg></span>
+					<h2><a class="stretched-link text-reset text-decoration-none" href="${base}viewcandidatelist">Candidates</a></h2>
+					<p>The people being interviewed, with their position and language.</p>
+				</div>
+			</div>
+		</div>
+		<div class="col-sm-6 col-xl-4">
+			<div class="card rms-card rms-tile">
+				<div class="card-body">
 					<span class="rms-tile-icon"><svg class="rms-icon" aria-hidden="true"><use href="${icons}#briefcase"/></svg></span>
 					<h2><a class="stretched-link text-reset text-decoration-none" href="${base}viewpositionlist">Positions</a></h2>
 					<p>The job positions candidates are interviewed for.</p>
@@ -54,7 +63,7 @@
 					<span class="rms-tile-icon mb-0"><svg class="rms-icon" aria-hidden="true"><use href="${icons}#clock"/></svg></span>
 					<div>
 						<h2 class="mb-1">Coming soon</h2>
-						<p>Candidates, interviewers, interview schedules and jobs.</p>
+						<p>Interviewers, interview schedules and jobs.</p>
 					</div>
 				</div>
 			</div>

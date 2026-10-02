@@ -1,7 +1,7 @@
 # Acceptance Results
 
 Purpose: Results of the acceptance checklist ([modernization-plan.md](../modernization-plan.md), section 6) and the browser check per upgrade phase, with the Phase 0 baseline screenshots that later phases are compared against.
-Last updated: 2026-10-01 (UI redesign noted: no run covers it yet). 2026-10-01 (small fixes batch: results, intended checklist differences, and notes on behaviour that changed since the older runs). 2026-10-01 (Phase 3 on Tomcat 11, rerun after the code review; merged into `dev`). 2026-09-30
+Last updated: 2026-10-02 (checks for candidate management, G1; not run yet). 2026-10-01 (UI redesign noted: no run covers it yet). 2026-10-01 (small fixes batch: results, intended checklist differences, and notes on behaviour that changed since the older runs). 2026-10-01 (Phase 3 on Tomcat 11, rerun after the code review; merged into `dev`). 2026-09-30
 Read this when: you're signing off a phase, re-running the checklist after an upgrade, or comparing screens with the baseline.
 
 The sections are chronological and keep their results as history. Some behaviour they describe changed on 2026-10-01 (silent duplicate skip, GET delete links, `GET /` showing `index.jsp`, the login-page JavaScript error). The last section, *Small fixes batch*, lists what a checklist run should expect now. None of the runs below covers the 2026-10-01 UI redesign (`bb569c4`, `f826830`, `0aaf836`): their screenshots and page details (the `<object>` menu, Bootstrap 3/4, the status images) show the old UI. The redesign still needs its own run ([upgrade-status.md](../upgrade-status.md)). They also predate Spring Security 7 (2026-10-01): their access checks ran against the interim `AuthInterceptor`, and their logins posted no CSRF token.
@@ -203,3 +203,15 @@ The sections are chronological and keep their results as history. Some behaviour
 
 - **Screenshots:** the login, list and create pages differ from the earlier screenshots by design (Delete button, DataTables layout, no page error). A pixel comparison for this batch wasn't reported, so the `phase0/` and `after-g40/` screenshots remain the references for Candidate Status only.
 - **Not covered:** MySQL 5.7 with this batch, the real container, the production collation (open question #22) and a browser other than Chromium. The crafted-context-path login (G27) was reported to get a 302 to `/home`; it wasn't re-run for this section.
+
+## Candidate management (G1, 2026-10-02): checks for the next run
+Not run yet: this machine has no Tomcat or Docker ([upgrade-status.md](../upgrade-status.md)). The next checklist run, together with the UI redesign and Spring Security, should add:
+
+| Check | Expected |
+|---|---|
+| Menu and home | Admins see *Candidates* under *Recruitment* and a Candidates tile; it is no longer under *Coming soon*. Interviewers don't see it, and `/viewcandidatelist` gives them 403 |
+| List | C1 Carla Candidate (SOFTWARE ENGINEER, JAVA, Selected) and C2 Cody Candidate (QA ENGINEER, PYTHON, Rejected) from the seed; DataTables search and sort work |
+| Add | "C3", "Dana", "Doe", a position and a language → back on the list with Pending. An existing ID shows "Candidate ID C3 already exists." with the typed values kept. A blank ID, name, or no position or language shows the matching message. Deleted positions and languages aren't offered |
+| Edit | The ID is read-only; changing a name, position or language saves. Delete a position used by a candidate, then edit that candidate: the position shows as "NAME (deleted)" and saving keeps it |
+| Awkward IDs | Add IDs with `+`, `&`, a space and `<b>`; each Edit link opens the right candidate, and the list shows the ID as text |
+| Layout | The two dropdowns and the first and last name fields line up on desktop and stack on a phone width |

@@ -57,13 +57,16 @@ import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.view.InternalResourceViewResolver;
 
+import rms.controller.CandidateController;
 import rms.controller.LanguageController;
 import rms.controller.LoginController;
 import rms.controller.MarksController;
 import rms.controller.PositionController;
 import rms.dao.LoginDao;
+import rms.model.CandidateInfo;
 import rms.model.LoginInfo;
 import rms.model.UserInfo;
+import rms.service.CandidateService;
 import rms.service.LanguageService;
 import rms.service.LoginServiceImpl;
 import rms.service.MarksService;
@@ -103,6 +106,11 @@ class SecurityConfigTest {
 		}
 
 		@Bean
+		CandidateService candidateservice() {
+			return mock(CandidateService.class);
+		}
+
+		@Bean
 		MarksService marksservice() {
 			return mock(MarksService.class);
 		}
@@ -128,6 +136,11 @@ class SecurityConfigTest {
 		}
 
 		@Bean
+		CandidateController candidatecontroller() {
+			return new CandidateController();
+		}
+
+		@Bean
 		InternalResourceViewResolver viewResolver() {
 			return new WebConfig().viewResolver();
 		}
@@ -146,6 +159,8 @@ class SecurityConfigTest {
 	PositionService positionservice;
 
 	MarksService marksservice;
+
+	CandidateService candidateservice;
 
 	MockMvc mockMvc;
 
@@ -167,7 +182,8 @@ class SecurityConfigTest {
 		logindao = context.getBean(LoginDao.class);
 		positionservice = context.getBean(PositionService.class);
 		marksservice = context.getBean(MarksService.class);
-		reset(logindao, positionservice, marksservice);
+		candidateservice = context.getBean(CandidateService.class);
+		reset(logindao, positionservice, marksservice, candidateservice);
 		mockMvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
 		givenLogin("U1", "test.admin", "test-only-1", "N");
 		givenLogin("U2", "test.interviewer", "test-only-2", "Y");
@@ -182,8 +198,10 @@ class SecurityConfigTest {
 		mockMvc.perform(post("/deleteposition/1").with(csrf())).andExpect(redirectsToLogin());
 		mockMvc.perform(get("/adminviewmarks")).andExpect(redirectsToLogin());
 		mockMvc.perform(get("/createcandidate")).andExpect(redirectsToLogin());
+		mockMvc.perform(get("/viewcandidatelist")).andExpect(redirectsToLogin());
+		mockMvc.perform(post("/savecandidate").with(csrf()).param("candidateid", "C3")).andExpect(redirectsToLogin());
 
-		verifyNoInteractions(positionservice, marksservice);
+		verifyNoInteractions(positionservice, marksservice, candidateservice);
 	}
 
 	@Test
@@ -201,6 +219,16 @@ class SecurityConfigTest {
 		mockMvc.perform(get("/adminviewmarks").with(user(userWithRole("n"))))
 				.andExpect(status().isOk())
 				.andExpect(view().name("viewmarks"));
+		mockMvc.perform(get("/viewcandidatelist").with(user(userWithRole("N"))))
+				.andExpect(status().isOk())
+				.andExpect(view().name("viewcandidate"));
+		mockMvc.perform(get("/createcandidate").with(user(userWithRole("N"))))
+				.andExpect(status().isOk())
+				.andExpect(view().name("createcandidate"));
+		when(candidateservice.findCandidateById("C1")).thenReturn(new CandidateInfo());
+		mockMvc.perform(get("/updatecandidate").param("candidateid", "C1").with(user(userWithRole("N"))))
+				.andExpect(status().isOk())
+				.andExpect(view().name("createcandidate"));
 	}
 
 	@Test
@@ -210,8 +238,13 @@ class SecurityConfigTest {
 				.andExpect(status().isForbidden());
 		mockMvc.perform(get("/adminviewmarks").with(user(userWithRole("Y")))).andExpect(status().isForbidden());
 		mockMvc.perform(head("/viewpositionlist").with(user(userWithRole("Y")))).andExpect(status().isForbidden());
+		mockMvc.perform(get("/viewcandidatelist").with(user(userWithRole("Y")))).andExpect(status().isForbidden());
+		mockMvc.perform(get("/updatecandidate").param("candidateid", "C1").with(user(userWithRole("Y"))))
+				.andExpect(status().isForbidden());
+		mockMvc.perform(post("/savecandidate").with(csrf()).with(user(userWithRole("Y"))).param("candidateid", "C3"))
+				.andExpect(status().isForbidden());
 
-		verifyNoInteractions(positionservice, marksservice);
+		verifyNoInteractions(positionservice, marksservice, candidateservice);
 	}
 
 	@Test
@@ -435,8 +468,10 @@ class SecurityConfigTest {
 				.andExpect(status().isForbidden());
 		mockMvc.perform(post("/deleteposition/1").with(csrf().useInvalidToken()).with(user(userWithRole("N"))))
 				.andExpect(status().isForbidden());
+		mockMvc.perform(post("/savecandidate").param("candidateid", "C3").with(user(userWithRole("N"))))
+				.andExpect(status().isForbidden());
 
-		verifyNoInteractions(positionservice);
+		verifyNoInteractions(positionservice, candidateservice);
 	}
 
 	@Test

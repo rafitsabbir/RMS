@@ -1,7 +1,7 @@
 # Architecture
 
 Purpose: How RMS is layered and how a request moves through it.
-Last updated: 2026-10-01 (Spring Security 7 replaces AuthInterceptor: filter chain, login, CSRF, logout, password check in Java). 2026-10-01 (UI redesign: layout tag replaces the `<object>` menu frame). 2026-10-01 (small fixes batch: login redirects to `/home`, two interceptor registrations, 404 handling, soft delete, cookie-only sessions). 2026-09-30 (G11 login check; G27 output escaping)
+Last updated: 2026-10-02 (Candidate controller added, G1). 2026-10-01 (Spring Security 7 replaces AuthInterceptor: filter chain, login, CSRF, logout, password check in Java). 2026-10-01 (UI redesign: layout tag replaces the `<object>` menu frame). 2026-10-01 (small fixes batch: login redirects to `/home`, two interceptor registrations, 404 handling, soft delete, cookie-only sessions). 2026-09-30 (G11 login check; G27 output escaping)
 Read this when: you need the overall picture before changing code, or you're deciding which layer a change belongs in.
 
 ## Overall diagram
@@ -10,7 +10,7 @@ flowchart TB
   U[Browser] -->|HTTP| SEC["Spring Security filter chain (SecurityInitializer, SecurityConfig): login, roles, CSRF, logout"]
   SEC --> DS["DispatcherServlet mapped to / (WebInitializer)"]
   DS --> CTL
-  CTL["rms.controller: Login, Position, Language, Marks"] --> SVC["rms.service: *ServiceImpl (pass-through)"]
+  CTL["rms.controller: Login, Position, Language, Candidate, Marks"] --> SVC["rms.service: *ServiceImpl (pass-through)"]
   SEC -->|loadUserByUsername| SVC
   SVC --> DAO["rms.dao: *DaoImpl with NamedParameterJdbcTemplate"]
   DAO --> DB[("MySQL: users, admin, position, language, marks, candidate")]

@@ -1,7 +1,7 @@
 <%@ tag language="java" pageEncoding="ISO-8859-1" body-content="scriptless" trimDirectiveWhitespaces="true"
 	description="Page shell for every page behind the login: head, sidebar menu, top bar and content" %>
 <%@ attribute name="title" required="true" description="Page title, shown as 'title - RMS'" %>
-<%@ attribute name="active" required="false" description="Menu key of the current page: home, marks, positions or languages" %>
+<%@ attribute name="active" required="false" description="Menu key of the current page: home, marks, candidates, positions or languages" %>
 <%@ attribute name="tables" required="false" type="java.lang.Boolean" description="true loads jQuery and DataTables" %>
 <%@ attribute name="stylesheet" required="false" description="An extra stylesheet in resources/css, for example viewmarks.css" %>
 <%@ taglib uri="jakarta.tags.core" prefix="c" %>
@@ -68,6 +68,10 @@
 					<a class="nav-link${active eq 'marks' ? ' active' : ''}" href="${base}adminviewmarks"${active eq 'marks' ? ' aria-current="page"' : ''}>
 						<svg class="rms-icon" aria-hidden="true"><use href="${icons}#clipboard-data"/></svg>Candidate Status</a>
 				</li>
+				<li class="nav-item">
+					<a class="nav-link${active eq 'candidates' ? ' active' : ''}" href="${base}viewcandidatelist"${active eq 'candidates' ? ' aria-current="page"' : ''}>
+						<svg class="rms-icon" aria-hidden="true"><use href="${icons}#people"/></svg>Candidates</a>
+				</li>
 				<li class="rms-nav-heading">Master data</li>
 				<li class="nav-item">
 					<a class="nav-link${active eq 'positions' ? ' active' : ''}" href="${base}viewpositionlist"${active eq 'positions' ? ' aria-current="page"' : ''}>
@@ -77,10 +81,8 @@
 					<a class="nav-link${active eq 'languages' ? ' active' : ''}" href="${base}viewlanguagelist"${active eq 'languages' ? ' aria-current="page"' : ''}>
 						<svg class="rms-icon" aria-hidden="true"><use href="${icons}#code-slash"/></svg>Languages</a>
 				</li>
-				<%-- Modules with no backend yet (G1-G4): shown, but not links --%>
+				<%-- Modules with no backend yet (G2-G4): shown, but not links --%>
 				<li class="rms-nav-heading">Coming soon</li>
-				<li class="nav-item"><span class="nav-link disabled" aria-disabled="true">
-					<svg class="rms-icon" aria-hidden="true"><use href="${icons}#people"/></svg>Candidates<span class="rms-soon">Soon</span></span></li>
 				<li class="nav-item"><span class="nav-link disabled" aria-disabled="true">
 					<svg class="rms-icon" aria-hidden="true"><use href="${icons}#person-badge"/></svg>Interviewers<span class="rms-soon">Soon</span></span></li>
 				<li class="nav-item"><span class="nav-link disabled" aria-disabled="true">

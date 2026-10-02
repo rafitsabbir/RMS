@@ -114,6 +114,28 @@ class SmokeTest {
 	@Test
 	@EnabledIfEnvironmentVariable(named = "RMS_SMOKE_USER", matches = ".+")
 	@EnabledIfEnvironmentVariable(named = "RMS_SMOKE_PASSWORD", matches = ".+")
+	void candidatePagesRender() throws IOException {
+		HttpURLConnection login = postLogin(System.getenv("RMS_SMOKE_USER"), System.getenv("RMS_SMOKE_PASSWORD"));
+		String cookie = sessionCookie(login);
+
+		HttpURLConnection list = open("/viewcandidatelist", cookie);
+		assertThat(list.getResponseCode()).isEqualTo(200);
+		String body = read(list);
+		assertThat(body).contains("<title>Candidates - RMS</title>");
+		assertThat(body).contains("id=\"candidatetable\"");
+
+		// G1: the add form, with the position and language choices and the CSRF token
+		HttpURLConnection form = open("/createcandidate", cookie);
+		assertThat(form.getResponseCode()).isEqualTo(200);
+		body = read(form);
+		assertThat(body).contains("id=\"positionkey\"");
+		assertThat(body).contains("id=\"languagekey\"");
+		assertThat(CSRF_FIELD.matcher(body).find()).isTrue();
+	}
+
+	@Test
+	@EnabledIfEnvironmentVariable(named = "RMS_SMOKE_USER", matches = ".+")
+	@EnabledIfEnvironmentVariable(named = "RMS_SMOKE_PASSWORD", matches = ".+")
 	void logoutEndsTheSession() throws IOException {
 		HttpURLConnection login = postLogin(System.getenv("RMS_SMOKE_USER"), System.getenv("RMS_SMOKE_PASSWORD"));
 		String cookie = sessionCookie(login);

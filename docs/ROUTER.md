@@ -1,15 +1,15 @@
 # Docs Router
 
 Purpose: Points each kind of task to the minimum set of docs and code to read.
-Last updated: 2026-10-01 (Spring Security 7 replaces AuthInterceptor). 2026-10-01 (UI redesign: `layout.tag` replaces the `main.jsp` menu shell; new UI row). 2026-10-01 (CI workflows and the Tomcat context template). 2026-10-01 (Phase 1 release runbook; Phase 3: `jakarta.servlet`)
+Last updated: 2026-10-02 (candidate management, G1: flow file and CRUD template). 2026-10-01 (Spring Security 7 replaces AuthInterceptor). 2026-10-01 (UI redesign: `layout.tag` replaces the `main.jsp` menu shell; new UI row). 2026-10-01 (CI workflows and the Tomcat context template). 2026-10-01 (Phase 1 release runbook; Phase 3: `jakarta.servlet`)
 Read this when: you're starting any task. Start here, not with every doc.
 
 **Rule:** read only the files listed for your task. Open other docs only if those files point you there, or the task clearly spans categories.
 
 | Task / Question type | Read these files | Key entry points in code |
 |---|---|---|
-| Fixing a bug in a business flow | [business-flows/README.md](business-flows/README.md), then the one module file ([login](business-flows/login.md), [masters](business-flows/masters.md), [evaluation](business-flows/evaluation.md)); [open-questions.md](open-questions.md) if the area is marked partial | `rms/controller/<X>Controller.java` → `rms/service/<X>ServiceImpl.java` → `rms/dao/<X>DaoImpl.java`, `WEB-INF/jsp/<view>.jsp`, `src/test/java/rms/**/<X>*Test.java` |
-| Adding a new feature or screen | [conventions.md](conventions.md), [business-flows/masters.md](business-flows/masters.md) (template pattern), [architecture.md](architecture.md) | `PositionController.java` (CRUD template), `WEB-INF/tags/layout.tag` (sidebar menu; `active` key per page), `main.jsp` (home tiles) |
+| Fixing a bug in a business flow | [business-flows/README.md](business-flows/README.md), then the one module file ([login](business-flows/login.md), [masters](business-flows/masters.md), [candidates](business-flows/candidates.md), [evaluation](business-flows/evaluation.md)); [open-questions.md](open-questions.md) if the area is marked partial | `rms/controller/<X>Controller.java` → `rms/service/<X>ServiceImpl.java` → `rms/dao/<X>DaoImpl.java`, `WEB-INF/jsp/<view>.jsp`, `src/test/java/rms/**/<X>*Test.java` |
+| Adding a new feature or screen | [conventions.md](conventions.md), [business-flows/masters.md](business-flows/masters.md) (template pattern), [architecture.md](architecture.md) | `PositionController.java` (CRUD template; `CandidateController.java` for a free-text key and dropdowns), `WEB-INF/tags/layout.tag` (sidebar menu; `active` key per page), `main.jsp` (home tiles) |
 | DB / SQL change | [data-model.md](data-model.md), then the affected module in business-flows/ | `rms/dao/*DaoImpl.java` (SQL string fields and `RowMapper`s), `rms/model/*Info.java`, `db/schema.sql` (inferred), `db/local/` (local DB setup), `src/test/java/rms/dao/` |
 | Build, deploy or environment issue | [build-run.md](build-run.md), [tech-stack.md](tech-stack.md) | `pom.xml`, `mvnw`, `.mvn/wrapper/`, `.github/workflows/`, `deploy/tomcat/rms.xml`, `rms/config/WebInitializer.java`, `WebConfig.getDataSource` |
 | Config or integration change | [config.md](config.md) | `rms/config/WebConfig.java`, `src/main/webapp/WEB-INF/web.xml` |
