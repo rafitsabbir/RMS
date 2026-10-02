@@ -14,4 +14,7 @@ public interface CandidateDao {
 	public List<CandidateInfo> getAllCandidate();
 
 	public CandidateInfo findCandidateById(String candidateid);
+
+	/** Soft delete: sets isactive=0; the row and its marks stay. */
+	public void deleteCandidate(String candidateid);
 }

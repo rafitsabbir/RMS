@@ -5,7 +5,7 @@ Use subagents in .claude/agents/ — see ROUTER.md.
 
 ## Summary
 - RMS is a small recruitment management web app (`README.md`) with two roles: admin and interviewer, chosen by `isinterviewer` (`WEB-INF/tags/layout.tag`).
-- Admins maintain candidates (add, list, edit; IDs generated as C1, C2, …) and the job-position and language/skill lists, and view candidates' scores on 10 criteria with a total and a selected/rejected status (`rms/controller/*`, `viewmarks.jsp`).
+- Admins maintain candidates (add, list, edit, soft delete; IDs generated as C1, C2, …) and the job-position and language/skill lists, and view candidates' scores on 10 criteria with a total and a selected/rejected status (`rms/controller/*`, `viewmarks.jsp`).
 - Interviewer, job and schedule modules, and interviewer score entry, show only as disabled "Coming soon" menu entries, with no backend (`layout.tag`, `MarksDaoImpl.java`).
 
 **Stack:**
@@ -50,6 +50,7 @@ src/main/webapp/
 src/test/java/rms/            controller, security, service, DAO (Testcontainers) and smoke tests
 db/                           schema.sql (inferred), test-seed.sql (synthetic)
   local/                      local MySQL setup: create DB + load schema and seed (README.md)
+  migrations/                 numbered changes for existing databases, run by the owner (001: candidate.isactive)
 mvnw, .mvn/wrapper/           Maven Wrapper
 .github/workflows/            CI: build + tests (JDK 21, Testcontainers), OSV-Scanner
 deploy/tomcat/rms.xml         JNDI context template (env-var placeholders only)

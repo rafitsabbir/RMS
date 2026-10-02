@@ -25,16 +25,20 @@ public class CandidateDaoImpl implements CandidateDao {
 	private String selectcandidate = "select c.candidateid, c.firstname, c.lastname, c.positionkey, c.languagekey, "
 			+ "c.candidatestatus, p.positionname, l.languagename from candidate c "
 			+ "left join position p on p.positionkey=c.positionkey left join language l on l.languagekey=c.languagekey";
-	// Shorter IDs first, so C2 comes before C10
-	private String allcandidate = selectcandidate + " order by length(c.candidateid), c.candidateid";
-	private String findcandidatebyid = selectcandidate + " where c.candidateid=:candidateid";
-	// The highest number among IDs of the form C<number> (up to 9 digits); 0 when there is none
+	// Active candidates only (deleted ones keep isactive=0); shorter IDs first, so C2 comes before C10
+	private String allcandidate = selectcandidate + " where c.isactive=1 order by length(c.candidateid), c.candidateid";
+	private String findcandidatebyid = selectcandidate + " where c.candidateid=:candidateid and c.isactive=1";
+	// The highest number among IDs of the form C<number> (up to 9 digits), deleted ones included so an ID is
+	// never reused; 0 when there is none
 	private String lastnumber = "select coalesce(max(cast(substring(candidateid, 2) as unsigned)), 0) from candidate "
 			+ "where candidateid regexp '^C[0-9]{1,9}$'";
-	private String savecandidate = "insert into candidate (candidateid, firstname, lastname, positionkey, languagekey) "
-			+ "VALUES (:candidateid, :firstname, :lastname, :positionkey, :languagekey)";
+	private String savecandidate = "insert into candidate "
+			+ "(isactive, candidateid, firstname, lastname, positionkey, languagekey) "
+			+ "VALUES (1, :candidateid, :firstname, :lastname, :positionkey, :languagekey)";
 	private String updatecandidate = "update candidate set firstname=:firstname, lastname=:lastname, "
-			+ "positionkey=:positionkey, languagekey=:languagekey where candidateid=:candidateid";
+			+ "positionkey=:positionkey, languagekey=:languagekey where candidateid=:candidateid and isactive=1";
+	// Soft delete (owner decision 2026-10-02): the row and its marks stay
+	private String deletecandidate = "update candidate set isactive=0 where candidateid=:candidateid";
 
 	NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
@@ -104,6 +108,14 @@ public class CandidateDaoImpl implements CandidateDao {
 		List<CandidateInfo> list = namedParameterJdbcTemplate.query(findcandidatebyid, paramMap,
 				new CandidateMapper());
 		return list.isEmpty() ? null : list.get(0);
+	}
+
+	@Override
+	public void deleteCandidate(String candidateid) {
+		Map<String, Object> paramMap = new HashMap<String, Object>();
+		paramMap.put("candidateid", candidateid);
+
+		namedParameterJdbcTemplate.update(deletecandidate, paramMap);
 	}
 
 	/** The id (null for a new candidate) and names trimmed; the names are stored as typed, not upper-cased. */

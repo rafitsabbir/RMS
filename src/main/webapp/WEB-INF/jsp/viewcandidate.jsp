@@ -1,5 +1,6 @@
 <%@ page language="java" contentType="text/html; charset=ISO-8859-1"
 	pageEncoding="ISO-8859-1" isELIgnored="false" trimDirectiveWhitespaces="true"%>
+<%@ taglib uri="http://www.springframework.org/tags/form" prefix="form" %>
 <%@ taglib uri="http://www.springframework.org/tags" prefix="spring" %>
 <%@ taglib uri="jakarta.tags.core" prefix="c" %>
 <%@ taglib uri="jakarta.tags.functions" prefix="fn" %>
@@ -7,6 +8,7 @@
 <spring:url value="/" var="base" htmlEscape="true" />
 <c:set var="icons" value="${base}resources/img/icons.svg" />
 <spring:url value="/createcandidate" var="createURL" />
+<spring:url value="/deletecandidate" var="deleteURL" />
 <rms:layout title="Candidates" active="candidates" tables="true">
 	<div class="rms-page-header">
 		<div>
@@ -58,6 +60,13 @@
 							</c:url>
 							<a class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1" href="<c:out value='${updateURL}'/>">
 								<svg class="rms-icon" aria-hidden="true"><use href="${icons}#pencil"/></svg><span class="rms-btn-label">Edit</span></a>
+							<%-- The ID is posted as a form field, not in the URL, for the same reason --%>
+							<form:form id="delete-${row.index}" method="post" action="${deleteURL}" cssClass="d-inline"
+								data-rms-confirm="Delete this candidate? Their scores stay on Candidate Status.">
+								<input type="hidden" name="candidateid" value="<c:out value='${candidate.candidateid}'/>"/>
+								<button type="submit" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1">
+									<svg class="rms-icon" aria-hidden="true"><use href="${icons}#trash"/></svg><span class="rms-btn-label">Delete</span></button>
+							</form:form>
 						</td>
 					</tr>
 				</c:forEach>

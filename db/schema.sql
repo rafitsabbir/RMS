@@ -10,6 +10,8 @@
 --   * marks column ORDER: m.* fills result columns 5-17; MarksMapper reads 5 and 8-17
 --     by position (MarksDaoImpl.java:44-55), so marks must have exactly 13 columns in this order.
 --     Columns 6-7 are not read; interviewerid/candidateid are assumed there.
+--   * candidate.isactive is NEW (2026-10-02, candidate soft delete): production needs
+--     db/migrations/001-candidate-isactive.sql before a WAR with the candidate delete.
 --   * Types, lengths, keys and NULL rules: guessed. No unique index on names,
 --     which keeps the current duplicate behaviour (G33).
 -- Used only by the Testcontainers DAO tests (src/test/java/rms/dao).
@@ -55,6 +57,7 @@ CREATE TABLE candidate (
 	positionkey INT,
 	languagekey INT,
 	candidatestatus CHAR(1),
+	isactive TINYINT NOT NULL DEFAULT 1,
 	PRIMARY KEY (candidateid)
 );
 

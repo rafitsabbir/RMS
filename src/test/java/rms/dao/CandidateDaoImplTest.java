@@ -115,6 +115,44 @@ class CandidateDaoImplTest extends MySqlContainerSupport {
 		assertThat(dao.findCandidateById("C1").getLastname()).isEqualTo("Candidate");
 	}
 
+	@Test
+	void deleteHidesTheCandidateButKeepsTheRow() {
+		dao.deleteCandidate("C2");
+
+		assertThat(dao.getAllCandidate()).extracting(CandidateInfo::getCandidateid).containsExactly("C1");
+		assertThat(dao.findCandidateById("C2")).isNull();
+		assertThat(jdbcTemplate.queryForObject("select isactive from candidate where candidateid='C2'", Integer.class))
+				.isEqualTo(0);
+		assertThat(jdbcTemplate.queryForObject("select count(*) from marks where candidateid='C2'", Integer.class))
+				.isEqualTo(1);
+	}
+
+	@Test
+	void deletedIdsAreNotReused() {
+		dao.addCandidate(candidate(null, "Dana", "Doe", 1, 1));
+		dao.deleteCandidate("C3");
+
+		assertThat(dao.addCandidate(candidate(null, "Eve", "Doe", 1, 1))).isEqualTo("C4");
+	}
+
+	@Test
+	void updateLeavesADeletedCandidate() {
+		dao.deleteCandidate("C2");
+
+		dao.updateCandidate(candidate("C2", "New", "Name", 1, 1));
+
+		assertThat(jdbcTemplate.queryForObject("select firstname from candidate where candidateid='C2'", String.class))
+				.isEqualTo("Cody");
+	}
+
+	@Test
+	void newCandidatesAreActive() {
+		dao.addCandidate(candidate(null, "Dana", "Doe", 1, 1));
+
+		assertThat(jdbcTemplate.queryForObject("select isactive from candidate where candidateid='C3'", Integer.class))
+				.isEqualTo(1);
+	}
+
 	private static CandidateInfo candidate(String id, String first, String last, int positionkey, int languagekey) {
 		CandidateInfo candidate = new CandidateInfo();
 		candidate.setCandidateid(id);

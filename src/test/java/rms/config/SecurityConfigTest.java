@@ -200,6 +200,7 @@ class SecurityConfigTest {
 		mockMvc.perform(get("/createcandidate")).andExpect(redirectsToLogin());
 		mockMvc.perform(get("/viewcandidatelist")).andExpect(redirectsToLogin());
 		mockMvc.perform(post("/savecandidate").with(csrf()).param("candidateid", "C3")).andExpect(redirectsToLogin());
+		mockMvc.perform(post("/deletecandidate").with(csrf()).param("candidateid", "C1")).andExpect(redirectsToLogin());
 
 		verifyNoInteractions(positionservice, marksservice, candidateservice);
 	}
@@ -240,6 +241,8 @@ class SecurityConfigTest {
 		mockMvc.perform(head("/viewpositionlist").with(user(userWithRole("Y")))).andExpect(status().isForbidden());
 		mockMvc.perform(get("/viewcandidatelist").with(user(userWithRole("Y")))).andExpect(status().isForbidden());
 		mockMvc.perform(get("/updatecandidate").param("candidateid", "C1").with(user(userWithRole("Y"))))
+				.andExpect(status().isForbidden());
+		mockMvc.perform(post("/deletecandidate").with(csrf()).with(user(userWithRole("Y"))).param("candidateid", "C1"))
 				.andExpect(status().isForbidden());
 		mockMvc.perform(post("/savecandidate").with(csrf()).with(user(userWithRole("Y"))).param("candidateid", "C3"))
 				.andExpect(status().isForbidden());
@@ -467,6 +470,8 @@ class SecurityConfigTest {
 		mockMvc.perform(post("/saveposition").param("positionname", "dev ops").with(user(userWithRole("N"))))
 				.andExpect(status().isForbidden());
 		mockMvc.perform(post("/deleteposition/1").with(csrf().useInvalidToken()).with(user(userWithRole("N"))))
+				.andExpect(status().isForbidden());
+		mockMvc.perform(post("/deletecandidate").param("candidateid", "C1").with(user(userWithRole("N"))))
 				.andExpect(status().isForbidden());
 		mockMvc.perform(post("/savecandidate").param("candidateid", "C3").with(user(userWithRole("N"))))
 				.andExpect(status().isForbidden());

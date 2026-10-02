@@ -67,4 +67,15 @@ class MarksDaoImplTest extends MySqlContainerSupport {
 		assertThat(first.getLanguage()).isEqualTo("JAVA");
 	}
 
+	@Test
+	void deletedCandidateStillShowsWithTheirScores() {
+		// Candidate delete is a soft delete too (2026-10-02), and this query doesn't filter on candidate.isactive
+		CandidateDaoImpl candidates = new CandidateDaoImpl();
+		candidates.setNamedParameterJdbcTemplate(namedParameterJdbcTemplate);
+		candidates.deleteCandidate("C2");
+
+		assertThat(dao.getAllMarksByAdmin()).extracting(MarksInfo::getCandidateid)
+				.containsExactly("Carla Candidate", "Cody Candidate");
+	}
+
 }

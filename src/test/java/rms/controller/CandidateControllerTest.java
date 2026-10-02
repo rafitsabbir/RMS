@@ -238,6 +238,22 @@ class CandidateControllerTest {
 		verify(candidateservice, never()).addCandidate(any(CandidateInfo.class));
 	}
 
+	@Test
+	void deleteSoftDeletesAndRedirectsToList() throws Exception {
+		mockMvc.perform(post("/deletecandidate").param("candidateid", "C2"))
+				.andExpect(redirectedUrl("/viewcandidatelist"));
+
+		verify(candidateservice).deleteCandidate("C2");
+	}
+
+	@Test
+	void deleteIsPostOnly() throws Exception {
+		mockMvc.perform(get("/deletecandidate").param("candidateid", "C2"))
+				.andExpect(status().isMethodNotAllowed());
+
+		verify(candidateservice, never()).deleteCandidate(any());
+	}
+
 	private void expectError(MockHttpServletRequestBuilder request, String errorMessage) throws Exception {
 		mockMvc.perform(request)
 				.andExpect(status().isOk())

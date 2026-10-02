@@ -21,8 +21,8 @@ import rms.service.LanguageService;
 import rms.service.PositionService;
 
 /**
- * Candidate management (G1): add, list and edit. RMS generates the candidate ID (C1, C2, ...; owner decision
- * 2026-10-02). There is no delete, because the candidate table has no known isactive column (open question #26).
+ * Candidate management (G1): add, list, edit and soft delete. RMS generates the candidate ID (C1, C2, ...).
+ * Both the generated IDs and the soft delete are owner decisions of 2026-10-02.
  */
 @Controller
 @RequestMapping(value = "/")
@@ -90,6 +90,15 @@ public class CandidateController {
 			throw new ResponseStatusException(HttpStatus.NOT_FOUND);
 		}
 		return form(candidateinfo, candidateinfo, null);
+	}
+
+	/** Soft delete; the ID is a form field, not in the path, because older IDs may be any text. */
+	@RequestMapping(value = "/deletecandidate", method = RequestMethod.POST)
+	public ModelAndView delete(@RequestParam("candidateid") String candidateid) {
+
+		candidateservice.deleteCandidate(candidateid);
+
+		return new ModelAndView("redirect:/viewcandidatelist");
 	}
 
 	/** The first problem with the entered values, or null. stored is the saved candidate when editing. */

@@ -1,7 +1,7 @@
 # Business Flows — Index
 
 Purpose: The business capabilities RMS implements, and which code implements each one.
-Last updated: 2026-10-02 (candidate management, G1). 2026-10-01 (Spring Security 7: login, roles, logout). 2026-10-01 (UI redesign: menu in `layout.tag`). 2026-10-01 (entry points `GET /`, `GET /home`; deletes are POST). 2026-09-25
+Last updated: 2026-10-02 (candidate management, G1, with soft delete). 2026-10-01 (Spring Security 7: login, roles, logout). 2026-10-01 (UI redesign: menu in `layout.tag`). 2026-10-01 (entry points `GET /`, `GET /home`; deletes are POST). 2026-09-25
 Read this when: you're working on a feature and need to find its flow file. Open only the module file you need.
 
 - RMS is a recruitment management system (`README.md`).
@@ -15,7 +15,7 @@ Read this when: you're working on a feature and need to find its flow file. Open
 | Login / session | Checks the username and password (Spring Security), loads the profile, enforces the role on every page, and shows the menu for the user's role | `GET /` (→ `/home`), `GET /login`, `POST /welcome` (→ `GET /home` or `/login?error`), `POST /logout` | `SecurityConfig`, `LoginController`, `LoginServiceImpl`, `RmsUserDetails`, `LoginDaoImpl`, `LoginInfo`, `UserInfo` | `users`, `admin` | [login.md](login.md) |
 | Position master | Create, list, rename and delete (soft, `POST`) job positions | `/createposition`, `/saveposition`, `/viewpositionlist`, `/updateposition/{k}`, `POST /deleteposition/{k}` | `PositionController`, `PositionServiceImpl`, `PositionDaoImpl`, `PositionInfo` | `position` | [masters.md](masters.md) |
 | Language master | Create, list, rename and delete (soft, `POST`) the languages/skills candidates are assessed on | `/createlanguage`, `/savelanguage`, `/viewlanguagelist`, `/updatelanguage/{k}`, `POST /deletelanguage/{k}` | `LanguageController`, `LanguageServiceImpl`, `LanguageDaoImpl`, `LanguageInfo` | `language` | [masters.md](masters.md) |
-| Candidate management | Add, list and edit candidates, each with a position and a language; no delete yet (G1, #26) | `/viewcandidatelist`, `/createcandidate`, `POST /savecandidate`, `/updatecandidate?candidateid=…` | `CandidateController`, `CandidateServiceImpl`, `CandidateDaoImpl`, `CandidateInfo` | `candidate` (reads `position`, `language`) | [candidates.md](candidates.md) |
+| Candidate management | Add, list, edit and delete (soft, `POST`) candidates, each with a position and a language; IDs generated as C1, C2, … | `/viewcandidatelist`, `/createcandidate`, `POST /savecandidate`, `/updatecandidate?candidateid=…`, `POST /deletecandidate` | `CandidateController`, `CandidateServiceImpl`, `CandidateDaoImpl`, `CandidateInfo` | `candidate` (reads `position`, `language`) | [candidates.md](candidates.md) |
 | Candidate results (admin, read-only) | Lists every candidate's 10 scores, the total and the S/R status | `GET /adminviewmarks` | `MarksController`, `MarksServiceImpl`, `MarksDaoImpl`, `MarksInfo` | `marks`, `candidate`, `position`, `language`, `admin` | [evaluation.md](evaluation.md) |
 
 ## Business ↔ Tech map

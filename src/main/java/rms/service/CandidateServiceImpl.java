@@ -38,4 +38,9 @@ public class CandidateServiceImpl implements CandidateService {
 		return candidatedao.findCandidateById(candidateid);
 	}
 
+	@Override
+	public void deleteCandidate(String candidateid) {
+		candidatedao.deleteCandidate(candidateid);
+	}
+
 }

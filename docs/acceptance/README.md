@@ -1,7 +1,7 @@
 # Acceptance Results
 
 Purpose: Results of the acceptance checklist ([modernization-plan.md](../modernization-plan.md), section 6) and the browser check per upgrade phase, with the Phase 0 baseline screenshots that later phases are compared against.
-Last updated: 2026-10-02 (checks for candidate management, G1; not run yet). 2026-10-01 (UI redesign noted: no run covers it yet). 2026-10-01 (small fixes batch: results, intended checklist differences, and notes on behaviour that changed since the older runs). 2026-10-01 (Phase 3 on Tomcat 11, rerun after the code review; merged into `dev`). 2026-09-30
+Last updated: 2026-10-02 (candidate delete check added). 2026-10-02 (checks for candidate management, G1; not run yet). 2026-10-01 (UI redesign noted: no run covers it yet). 2026-10-01 (small fixes batch: results, intended checklist differences, and notes on behaviour that changed since the older runs). 2026-10-01 (Phase 3 on Tomcat 11, rerun after the code review; merged into `dev`). 2026-09-30
 Read this when: you're signing off a phase, re-running the checklist after an upgrade, or comparing screens with the baseline.
 
 The sections are chronological and keep their results as history. Some behaviour they describe changed on 2026-10-01 (silent duplicate skip, GET delete links, `GET /` showing `index.jsp`, the login-page JavaScript error). The last section, *Small fixes batch*, lists what a checklist run should expect now. None of the runs below covers the 2026-10-01 UI redesign (`bb569c4`, `f826830`, `0aaf836`): their screenshots and page details (the `<object>` menu, Bootstrap 3/4, the status images) show the old UI. The redesign still needs its own run ([upgrade-status.md](../upgrade-status.md)). They also predate Spring Security 7 (2026-10-01): their access checks ran against the interim `AuthInterceptor`, and their logins posted no CSRF token.
@@ -215,4 +215,5 @@ Not run yet: this machine has no Tomcat or Docker ([upgrade-status.md](../upgrad
 | Edit | The ID is read-only; changing a name, position or language saves. Delete a position used by a candidate, then edit that candidate: the position shows as "NAME (deleted)" and saving keeps it |
 | Older IDs | Insert test rows with IDs such as `A+B`, `X&Y`, `two words` and `<b>` straight into the local test database; each Edit link opens the right candidate, the list shows the ID as text, and a new candidate still gets the next C-number |
 | Order | With C2 and C10 present, the list and the ID column sort C2 before C10 |
+| Delete | Delete asks for confirmation, then C2 leaves the Candidates list; `/updatecandidate?candidateid=C2` gives 404; Candidate Status still shows Cody Candidate's scores; the next new candidate does not get C2. Before the run, a local database made before 2026-10-02 needs `db/migrations/001-candidate-isactive.sql` |
 | Layout | The two dropdowns and the first and last name fields line up on desktop and stack on a phone width |

@@ -9,5 +9,6 @@ public interface CandidateService {
 	public void updateCandidate(CandidateInfo candidateinfo);
 	public List<CandidateInfo> getAllCandidate();
 	public CandidateInfo findCandidateById(String candidateid);
+	public void deleteCandidate(String candidateid);
 
 }
