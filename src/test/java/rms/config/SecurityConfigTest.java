@@ -3,6 +3,7 @@ package rms.config;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -63,8 +64,10 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.view.InternalResourceViewResolver;
 
 import rms.controller.AccountController;
+import rms.controller.AssignmentController;
 import rms.controller.CandidateController;
 import rms.controller.DocumentController;
+import rms.controller.EvaluationController;
 import rms.controller.JobController;
 import rms.controller.LanguageController;
 import rms.controller.LoginController;
@@ -73,10 +76,13 @@ import rms.controller.PositionController;
 import rms.controller.UserController;
 import rms.dao.LoginDao;
 import rms.model.CandidateInfo;
+import rms.model.DocumentInfo;
 import rms.model.LoginInfo;
 import rms.model.Role;
 import rms.model.UserInfo;
+import rms.service.AssignmentService;
 import rms.service.CandidateService;
+import rms.service.DecisionService;
 import rms.service.DocumentService;
 import rms.service.JobService;
 import rms.service.LanguageService;
@@ -140,6 +146,16 @@ class SecurityConfigTest {
 		}
 
 		@Bean
+		EvaluationController evaluationcontroller() {
+			return new EvaluationController();
+		}
+
+		@Bean
+		AssignmentController assignmentcontroller() {
+			return new AssignmentController();
+		}
+
+		@Bean
 		UserController usercontroller() {
 			return new UserController();
 		}
@@ -196,6 +212,12 @@ class SecurityConfigTest {
 	DocumentService documentservice;
 
 	@MockitoBean
+	AssignmentService assignmentservice;
+
+	@MockitoBean
+	DecisionService decisionservice;
+
+	@MockitoBean
 	UserService userservice;
 
 	MockMvc mockMvc;
@@ -222,6 +244,9 @@ class SecurityConfigTest {
 	private static final Set<Role> HR_AND_UP = EnumSet.of(Role.SUPER_ADMIN, Role.HR);
 	private static final Set<Role> SUPER_ADMIN_ONLY = EnumSet.of(Role.SUPER_ADMIN);
 	private static final Set<Role> NOBODY = EnumSet.noneOf(Role.class);
+	/** Every role, but not a user without one (a separate set from ALL, which userWithoutRole... compares by identity). */
+	private static final Set<Role> EVERY_ROLE = EnumSet.allOf(Role.class);
+	private static final Set<Role> INTERVIEWER_ONLY = EnumSet.of(Role.INTERVIEWER);
 
 	private static List<Page> pages() {
 		return List.of(
@@ -234,7 +259,7 @@ class SecurityConfigTest {
 				new Page(get("/updatecandidate").param("candidateid", "C1"), HR_AND_UP),
 				new Page(post("/savecandidate").with(csrf()), HR_AND_UP),
 				new Page(post("/deletecandidate").with(csrf()).param("candidateid", "C1"), HR_AND_UP),
-				new Page(get("/viewcandidate").param("candidateid", "C1"), STAFF),
+				new Page(get("/viewcandidate").param("candidateid", "C1"), EVERY_ROLE),
 				new Page(get("/viewjoblist"), STAFF),
 				new Page(get("/createjob"), HR_AND_UP),
 				new Page(get("/updatejob/1"), HR_AND_UP),
@@ -242,7 +267,14 @@ class SecurityConfigTest {
 				new Page(post("/deletejob/1").with(csrf()), HR_AND_UP),
 				new Page(multipart("/uploaddocument").file(new MockMultipartFile("file", "cv.pdf", "application/pdf",
 						"%PDF-1".getBytes())).with(csrf()).param("candidateid", "C1").param("doctype", "CV"), HR_AND_UP),
-				new Page(get("/downloaddocument/1"), STAFF),
+				new Page(get("/downloaddocument/1"), EVERY_ROLE),
+				new Page(get("/viewevaluations").param("candidateid", "C1"), STAFF),
+				new Page(post("/assigninterviewer").with(csrf()).param("candidateid", "C1"), HR_AND_UP),
+				new Page(post("/unassigninterviewer").with(csrf()).param("candidateid", "C1"), HR_AND_UP),
+				new Page(post("/savedecision").with(csrf()), HR_AND_UP),
+				new Page(get("/myevaluations"), INTERVIEWER_ONLY),
+				new Page(get("/evaluate").param("candidateid", "C1"), INTERVIEWER_ONLY),
+				new Page(post("/saveevaluation").with(csrf()), INTERVIEWER_ONLY),
 				new Page(post("/deletedocument/1").with(csrf()), HR_AND_UP),
 				new Page(post("/purgedocuments").with(csrf()).param("candidateid", "C1").param("reason", "x"),
 						SUPER_ADMIN_ONLY),
@@ -306,7 +338,8 @@ class SecurityConfigTest {
 		mockMvc.perform(get("/")).andExpect(redirectsToLogin());
 		mockMvc.perform(head("/home")).andExpect(redirectsToLogin());
 
-		verifyNoInteractions(positionservice, marksservice, candidateservice, userservice, jobservice, documentservice);
+		verifyNoInteractions(positionservice, marksservice, candidateservice, userservice, jobservice, documentservice,
+				assignmentservice, decisionservice);
 	}
 
 	@Test
@@ -643,12 +676,38 @@ class SecurityConfigTest {
 				.andExpect(status().isForbidden());
 		mockMvc.perform(post("/purgedocuments").with(csrf()).with(as(Role.HR)).param("candidateid", "C1")
 				.param("reason", "x")).andExpect(status().isForbidden());
-		// Interviewers get their assigned candidates' documents in Phase 3; until then none
-		mockMvc.perform(get("/downloaddocument/1").with(as(Role.INTERVIEWER))).andExpect(status().isForbidden());
-		mockMvc.perform(get("/viewcandidate").param("candidateid", "C1").with(as(Role.INTERVIEWER)))
-				.andExpect(status().isForbidden());
 
 		verifyNoInteractions(documentservice, jobservice);
+	}
+
+	@Test
+	void interviewersReachOnlyTheirAssignedCandidates() throws Exception {
+		// Phase 3: the URL rule lets interviewers in; the controllers check the assignment
+		CandidateInfo carla = new CandidateInfo();
+		carla.setCandidateid("C1");
+		when(candidateservice.findCandidateById("C1")).thenReturn(carla);
+		DocumentInfo cv = new DocumentInfo();
+		cv.setDocumentkey(1);
+		cv.setCandidateid("C1");
+		when(documentservice.findDocument(1)).thenReturn(cv);
+
+		when(assignmentservice.isAssigned("C1", INTERVIEWER_ID)).thenReturn(false);
+		mockMvc.perform(get("/viewcandidate").param("candidateid", "C1").with(as(Role.INTERVIEWER)))
+				.andExpect(status().isForbidden());
+		mockMvc.perform(get("/downloaddocument/1").with(as(Role.INTERVIEWER))).andExpect(status().isForbidden());
+
+		when(assignmentservice.isAssigned("C1", INTERVIEWER_ID)).thenReturn(true);
+		mockMvc.perform(get("/viewcandidate").param("candidateid", "C1").with(as(Role.INTERVIEWER)))
+				.andExpect(status().isOk());
+		verify(documentservice, never()).findFile(any());
+
+		// The staff-only evaluation and decision pages stay closed to them
+		mockMvc.perform(get("/viewevaluations").param("candidateid", "C1").with(as(Role.INTERVIEWER)))
+				.andExpect(status().isForbidden());
+		mockMvc.perform(post("/savedecision").with(csrf()).with(as(Role.INTERVIEWER)).param("candidateid", "C1"))
+				.andExpect(status().isForbidden());
+		// And staff can't evaluate
+		mockMvc.perform(get("/evaluate").param("candidateid", "C1").with(as(Role.HR))).andExpect(status().isForbidden());
 	}
 
 	// --- Login lock (G42) ---

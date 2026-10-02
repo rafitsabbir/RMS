@@ -29,15 +29,16 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import rms.model.DocumentInfo;
 import rms.model.DocumentUpload;
-import rms.model.UserInfo;
+import rms.service.AssignmentService;
 import rms.service.CandidateService;
-import rms.service.DocumentOutcome;
+import rms.service.Outcome;
 import rms.service.DocumentService;
 
 /**
  * Candidate documents (Phase 2 of the roles plan), on the candidate profile. Uploads, deletes and the permanent
  * delete answer with a redirect back to the profile and a message. Who may call what is in SecurityConfig:
- * uploading and deleting for Super Admin and HR, downloading for staff, the permanent delete for Super Admin.
+ * uploading and deleting for Super Admin and HR, downloading for staff and (Phase 3) for interviewers assigned to the
+ * candidate, checked here; the permanent delete for Super Admin.
  * Files are only ever sent through downloadDocument, never from a static URL.
  */
 @Controller
@@ -51,6 +52,9 @@ public class DocumentController {
 	@Autowired
 	CandidateService candidateservice;
 
+	@Autowired
+	AssignmentService assignmentservice;
+
 	/**
 	 * The candidate ID is in the form's URL as well as its body, so SecurityConfig can send an upload that was too
 	 * large for the server back to the right profile (the body isn't read then).
@@ -63,12 +67,12 @@ public class DocumentController {
 			@RequestParam(value = "issueyear", required = false) String issueyear,
 			@RequestParam(value = "file", required = false) MultipartFile file, HttpSession session,
 			RedirectAttributes redirect) throws IOException {
-		String userid = actingUserid(session);
+		String userid = CurrentUser.requireUserid(session);
 		requireCandidate(candidateid);
 
-		DocumentOutcome outcome;
+		Outcome outcome;
 		if (file == null || file.isEmpty()) {
-			outcome = new DocumentOutcome(false, "Please choose a file.");
+			outcome = new Outcome(false, "Please choose a file.");
 		} else {
 			DocumentUpload upload = new DocumentUpload(candidateid, doctype, title, issuer, issueyear,
 					file.getOriginalFilename(), file.getContentType(), file.getBytes());
@@ -85,12 +89,19 @@ public class DocumentController {
 		if (document == null) {
 			throw new ResponseStatusException(HttpStatus.NOT_FOUND);
 		}
+		// Interviewers (Phase 3): only documents of candidates they are assigned to
+		if (!CurrentUser.isStaff(session)
+				&& !assignmentservice.isAssigned(document.getCandidateid(), CurrentUser.userid(session))) {
+			log.warn("Document {}: user {} isn't assigned to its candidate; download refused", documentkey,
+					CurrentUser.userid(session));
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+		}
 		if (!documentservice.isStorageConfigured()) {
 			throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Document storage isn't configured");
 		}
 		Path path = documentservice.findFile(document);
 		if (path == null) {
-			log.warn("Document {} has no stored file; download by {} refused", documentkey, currentUserid(session));
+			log.warn("Document {} has no stored file; download by {} refused", documentkey, CurrentUser.userid(session));
 			throw new ResponseStatusException(HttpStatus.NOT_FOUND);
 		}
 
@@ -99,7 +110,7 @@ public class DocumentController {
 		headers.setContentDisposition(ContentDisposition.attachment()
 				.filename(document.getOriginalname(), StandardCharsets.UTF_8).build());
 		headers.set("X-Content-Type-Options", "nosniff");
-		log.info("Document {} downloaded by {}", documentkey, currentUserid(session));
+		log.info("Document {} downloaded by {}", documentkey, CurrentUser.userid(session));
 		return ResponseEntity.ok().headers(headers).contentType(MediaType.parseMediaType(document.getContenttype()))
 				.body(new FileSystemResource(path));
 	}
@@ -108,7 +119,7 @@ public class DocumentController {
 	@RequestMapping(value = "/deletedocument/{documentkey}", method = RequestMethod.POST)
 	public ModelAndView delete(@PathVariable("documentkey") int documentkey, HttpSession session,
 			RedirectAttributes redirect) {
-		String userid = actingUserid(session);
+		String userid = CurrentUser.requireUserid(session);
 		DocumentInfo document = documentservice.findDocument(documentkey);
 		if (document == null) {
 			throw new ResponseStatusException(HttpStatus.NOT_FOUND);
@@ -130,9 +141,9 @@ public class DocumentController {
 	public ModelAndView purge(@RequestParam("candidateid") String candidateid,
 			@RequestParam(value = "reason", required = false) String reason, HttpSession session,
 			RedirectAttributes redirect) {
-		String userid = actingUserid(session);
+		String userid = CurrentUser.requireUserid(session);
 		requireCandidate(candidateid);
-		DocumentOutcome outcome = documentservice.purge(candidateid, reason, userid);
+		Outcome outcome = documentservice.purge(candidateid, reason, userid);
 		redirect.addFlashAttribute(outcome.done() ? "documentMessage" : "documentError", outcome.message());
 		return profile(candidateid, null);
 	}
@@ -150,20 +161,5 @@ public class DocumentController {
 			url += "&doctype=" + URLEncoder.encode(doctype, StandardCharsets.UTF_8);
 		}
 		return new ModelAndView("redirect:" + url);
-	}
-
-	/** The logged-in user, from the session profile SecurityConfig and AccountCheckFilter keep there, or null. */
-	private static String currentUserid(HttpSession session) {
-		Object user = session.getAttribute("user");
-		return user instanceof UserInfo ? ((UserInfo) user).getUserid() : null;
-	}
-
-	/** The logged-in user's ID, recorded on the rows; HTTP 403 without one. */
-	private static String actingUserid(HttpSession session) {
-		String userid = currentUserid(session);
-		if (userid == null) {
-			throw new ResponseStatusException(HttpStatus.FORBIDDEN);
-		}
-		return userid;
 	}
 }

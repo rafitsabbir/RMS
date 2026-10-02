@@ -1,7 +1,7 @@
 # Flow: Candidate Profile and Documents
 
 Purpose: Traces the candidate profile page and the candidate documents: upload, replace, download, delete and the Super Admin's permanent delete.
-Last updated: 2026-10-02 (Phase 2 of the roles plan: first version; migration 004, `RMS_DOC_DIR`)
+Last updated: 2026-10-02 (Phase 3: interviewers download their assigned candidates' documents). 2026-10-02 (Phase 2 of the roles plan: first version; migration 004, `RMS_DOC_DIR`)
 Read this when: you're changing the candidate profile, document rules or storage, or anything that reads or serves an uploaded file.
 
 Evidence: `rms/controller/CandidateController.java` (`profile`), `rms/controller/DocumentController.java`, `rms/service/DocumentServiceImpl.java`, `rms/service/DocumentRules.java`, `rms/dao/DocumentDaoImpl.java`, `rms/dao/DocumentFileStore.java`, `rms/model/DocumentType.java`, `DocumentInfo.java`, `DocumentUpload.java`, `rms/config/WebInitializer.java` (multipart limits), `rms/config/SecurityConfig.java` (access, `tooLargeUpload`), `WEB-INF/jsp/candidateprofile.jsp`, `viewcandidate.jsp` (completeness column). Tests: `DocumentRulesTest`, `DocumentFileStoreTest`, `DocumentServiceImplTest`, `DocumentControllerTest`, `CandidateControllerTest` (profile), `SecurityConfigTest` (access, oversize upload), `DocumentDaoImplTest` (needs Docker), `SmokeTest.jobAndProfilePagesRender`.
@@ -39,13 +39,13 @@ sequenceDiagram
 ## Endpoints
 | Action | URL | Who (`SecurityConfig`) | Handler |
 |---|---|---|---|
-| Profile | `GET /viewcandidate?candidateid=…` (optional `doctype=` preselects the upload kind; `toolarge` shows the size message) | Super Admin, HR, Hiring Manager | `CandidateController.profile` → `candidateprofile.jsp`; 404 for a missing or deleted candidate |
+| Profile | `GET /viewcandidate?candidateid=…` (optional `doctype=` preselects the upload kind; `toolarge` shows the size message) | Super Admin, HR, Hiring Manager; Interviewers for assigned candidates (Phase 3) | `CandidateController.profile` → `candidateprofile.jsp`; 404 for a missing or deleted candidate |
 | Upload / replace | `POST /uploaddocument` (multipart; `candidateid` in the URL and the body) | Super Admin, HR | `DocumentController.upload` → redirect to the profile with `documentMessage` or `documentError` |
-| Download | `GET /downloaddocument/{documentkey}` | Super Admin, HR, Hiring Manager | `DocumentController.download`; 404 for an unknown or inactive document, a deleted candidate or a missing file; 503 without storage |
+| Download | `GET /downloaddocument/{documentkey}` | Super Admin, HR, Hiring Manager; Interviewers for assigned candidates (Phase 3) | `DocumentController.download`; 404 for an unknown or inactive document, a deleted candidate or a missing file; 503 without storage |
 | Delete (soft) | `POST /deletedocument/{documentkey}` | Super Admin, HR | `DocumentController.delete` → redirect to the profile |
 | Permanent delete | `POST /purgedocuments` (`candidateid`, `reason`) | Super Admin | `DocumentController.purge` → redirect to the profile |
 
-Interviewers get no document or profile access in Phase 2; Phase 3 opens their assigned candidates.
+Since Phase 3 interviewers can open the profile and download the documents of candidates assigned to them (checked in `CandidateController.profile` and `DocumentController.download`; 403 and a WARN with keys otherwise), and the evaluation form lists the documents too. They never see the upload, delete or permanent-delete controls.
 
 ## The profile page (`candidateprofile.jsp`)
 - **Details:** e-mail, phone, position, language, job (with "open", "closed" or "deleted"), source, applied date, status.

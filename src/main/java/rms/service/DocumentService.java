@@ -21,7 +21,7 @@ public interface DocumentService {
 	public Path findFile(DocumentInfo document);
 
 	/** Checks and saves an upload for an active candidate (the caller checks the candidate). */
-	public DocumentOutcome upload(DocumentUpload upload, String userid);
+	public Outcome upload(DocumentUpload upload, String userid);
 
 	/** Soft delete; the file stays. False when the document isn't active. */
 	public boolean deleteDocument(int documentkey, String userid);
@@ -30,5 +30,5 @@ public interface DocumentService {
 	 * Super Admin's permanent delete: removes the files of all the candidate's documents (active, replaced and
 	 * deleted) from RMS_DOC_DIR and marks their rows. A reason is required.
 	 */
-	public DocumentOutcome purge(String candidateid, String reason, String userid);
+	public Outcome purge(String candidateid, String reason, String userid);
 }

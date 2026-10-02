@@ -7,9 +7,8 @@
 -- What is confirmed by code and what is guessed:
 --   * Table and column names: confirmed by the SQL in rms/dao/*DaoImpl.java.
 --   * positionkey / languagekey are AUTO_INCREMENT: the inserts omit them.
---   * marks column ORDER: m.* fills result columns 5-17; MarksMapper reads 5 and 8-17
---     by position (MarksDaoImpl.java:44-55), so marks must have exactly 13 columns in this order.
---     Columns 6-7 are not read; interviewerid/candidateid are assumed there.
+--   * marks column ORDER: until Phase 3, MarksMapper read m.* by position (5 and 8-17), so the first 13 columns
+--     must stay in this order for older WARs. Since Phase 3 RMS reads marks by column name.
 --   * candidate.isactive is NEW (2026-10-02, candidate soft delete): production needs
 --     db/migrations/001-candidate-isactive.sql before a WAR with the candidate delete.
 --   * admin.role and users.mustchangepassword are NEW (2026-10-02, roles and password security):
@@ -18,6 +17,10 @@
 --   * candidate.email, phone, source, applieddate and jobkey, and the tables job and candidate_document are NEW
 --     (2026-10-02, candidate profile, documents and jobs): production needs
 --     db/migrations/004-candidate-documents-jobs.sql before a WAR with them.
+--   * marks.markkey, comments, the 10 per-criterion comments, createdat and updatedat (added at the END of marks),
+--     candidate.decisionreason, decisiondate and decidedby, and the tables candidate_interviewer and
+--     candidate_decision are NEW (2026-10-02, assignment, evaluation and decision): production needs
+--     db/migrations/005-assignment-evaluation-decision.sql, checked against SHOW CREATE TABLE marks first.
 --   * Types, lengths, keys and NULL rules: guessed. No unique index on names,
 --     which keeps the current duplicate behaviour (G33).
 -- Used only by the Testcontainers DAO tests (src/test/java/rms/dao).
@@ -71,6 +74,9 @@ CREATE TABLE candidate (
 	source VARCHAR(20),
 	applieddate DATE,
 	jobkey INT,
+	decisionreason VARCHAR(500),
+	decisiondate DATE,
+	decidedby VARCHAR(50),
 	PRIMARY KEY (candidateid)
 );
 
@@ -87,7 +93,24 @@ CREATE TABLE marks (
 	education INT NOT NULL DEFAULT 0,
 	comskill INT NOT NULL DEFAULT 0,
 	attitude INT NOT NULL DEFAULT 0,
-	personality INT NOT NULL DEFAULT 0
+	personality INT NOT NULL DEFAULT 0,
+	-- New 2026-10-02 (roles plan Phase 3, migration 005), all at the end so the old column order stays
+	markkey INT NOT NULL AUTO_INCREMENT,
+	comments VARCHAR(1000),
+	workexpcomment VARCHAR(255),
+	techknowledgecomment VARCHAR(255),
+	leadershipcomment VARCHAR(255),
+	decisioncomment VARCHAR(255),
+	probsolvingcomment VARCHAR(255),
+	stresscomment VARCHAR(255),
+	educationcomment VARCHAR(255),
+	comskillcomment VARCHAR(255),
+	attitudecomment VARCHAR(255),
+	personalitycomment VARCHAR(255),
+	createdat DATETIME,
+	updatedat DATETIME,
+	UNIQUE KEY marks_markkey (markkey),
+	KEY marks_candidate (candidateid, interviewerid)
 );
 
 -- A job opening built on a position (Phase 2 of the roles plan). status is OPEN or CLOSED, set by HR; a
@@ -128,4 +151,34 @@ CREATE TABLE candidate_document (
 	PRIMARY KEY (documentkey),
 	UNIQUE KEY candidate_document_storedname (storedname),
 	KEY candidate_document_candidate (candidateid, isactive)
+) ENGINE=InnoDB;
+
+-- Which interviewers are assigned to a candidate (Phase 3). One active row per candidate and interviewer;
+-- unassigning sets isactive=0 (unassignedby/at). The interviewer's evaluation stays and still counts.
+CREATE TABLE candidate_interviewer (
+	assignmentkey INT NOT NULL AUTO_INCREMENT,
+	candidateid VARCHAR(50) NOT NULL,
+	interviewerid VARCHAR(50) NOT NULL,
+	assignedby VARCHAR(50) NOT NULL,
+	assignedat DATETIME NOT NULL,
+	isactive TINYINT NOT NULL DEFAULT 1,
+	unassignedby VARCHAR(50),
+	unassignedat DATETIME,
+	PRIMARY KEY (assignmentkey),
+	KEY candidate_interviewer_candidate (candidateid, isactive),
+	KEY candidate_interviewer_interviewer (interviewerid, isactive)
+) ENGINE=InnoDB;
+
+-- Every decision on a candidate, newest last (Phase 3); candidate.candidatestatus, decisionreason, decisiondate
+-- and decidedby hold the latest. status is S (Selected), R (Rejected) or H (On hold).
+CREATE TABLE candidate_decision (
+	decisionkey INT NOT NULL AUTO_INCREMENT,
+	candidateid VARCHAR(50) NOT NULL,
+	status CHAR(1) NOT NULL,
+	reason VARCHAR(500) NOT NULL,
+	decisiondate DATE NOT NULL,
+	decidedby VARCHAR(50) NOT NULL,
+	decidedat DATETIME NOT NULL,
+	PRIMARY KEY (decisionkey),
+	KEY candidate_decision_candidate (candidateid)
 ) ENGINE=InnoDB;

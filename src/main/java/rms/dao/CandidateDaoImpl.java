@@ -33,6 +33,8 @@ public class CandidateDaoImpl implements CandidateDao {
 	// of the six single-slot types (CV included), and professional certificates
 	private String selectcandidate = "select c.candidateid, c.firstname, c.lastname, c.positionkey, c.languagekey, "
 			+ "c.candidatestatus, c.email, c.phone, c.source, c.applieddate, c.jobkey, p.positionname, l.languagename, "
+			+ "c.decisionreason, c.decisiondate, c.decidedby, (select min(concat_ws(' ', a.firstname, a.lastname)) "
+			+ "from admin a where a.userid=c.decidedby) as decidedbyname, "
 			+ "(case when j.isactive=1 then j.status end) as jobstatus, "
 			+ "(select count(*) from candidate_document d where d.candidateid=c.candidateid and d.isactive=1 "
 			+ "and d.doctype='CV') as cvcount, "
@@ -90,6 +92,10 @@ public class CandidateDaoImpl implements CandidateDao {
 			candidate.setCvcount(rs.getInt("cvcount"));
 			candidate.setSlotcount(rs.getInt("slotcount"));
 			candidate.setProfessionalcount(rs.getInt("professionalcount"));
+			candidate.setDecisionreason(rs.getString("decisionreason"));
+			candidate.setDecisiondate(rs.getObject("decisiondate", LocalDate.class));
+			candidate.setDecidedby(rs.getString("decidedby"));
+			candidate.setDecidedbyname(rs.getString("decidedbyname"));
 			return candidate;
 		}
 	}

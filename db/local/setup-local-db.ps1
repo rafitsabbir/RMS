@@ -42,7 +42,9 @@ UNION ALL SELECT 'language', COUNT(*) FROM language
 UNION ALL SELECT 'candidate', COUNT(*) FROM candidate
 UNION ALL SELECT 'marks', COUNT(*) FROM marks
 UNION ALL SELECT 'job', COUNT(*) FROM job
-UNION ALL SELECT 'candidate_document', COUNT(*) FROM candidate_document;
+UNION ALL SELECT 'candidate_document', COUNT(*) FROM candidate_document
+UNION ALL SELECT 'candidate_interviewer', COUNT(*) FROM candidate_interviewer
+UNION ALL SELECT 'candidate_decision', COUNT(*) FROM candidate_decision;
 '@
 
 $sql = (($files | ForEach-Object { Get-Content -Raw -Encoding UTF8 $_ }) + $counts) -join "`n"

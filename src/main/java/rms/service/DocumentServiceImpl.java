@@ -66,13 +66,13 @@ public class DocumentServiceImpl implements DocumentService {
 	}
 
 	@Override
-	public DocumentOutcome upload(DocumentUpload upload, String userid) {
+	public Outcome upload(DocumentUpload upload, String userid) {
 		if (!filestore.isConfigured()) {
-			return DocumentOutcome.refused(NOT_CONFIGURED);
+			return Outcome.refused(NOT_CONFIGURED);
 		}
 		DocumentType type = DocumentType.parse(upload.doctype());
 		if (type == null) {
-			return DocumentOutcome.refused("Please choose the kind of document.");
+			return Outcome.refused("Please choose the kind of document.");
 		}
 
 		DocumentInfo document = new DocumentInfo();
@@ -82,14 +82,14 @@ public class DocumentServiceImpl implements DocumentService {
 		if (type == DocumentType.PROFESSIONAL) {
 			String problem = professionalDetails(upload, document);
 			if (problem != null) {
-				return DocumentOutcome.refused(problem);
+				return Outcome.refused(problem);
 			}
 		}
 
 		String name = DocumentRules.displayName(upload.originalname());
 		String problem = DocumentRules.problem(name, upload.declaredtype(), upload.content());
 		if (problem != null) {
-			return DocumentOutcome.refused(problem);
+			return Outcome.refused(problem);
 		}
 		document.setOriginalname(name);
 		// The kind the checks agreed on, not the browser's text
@@ -99,7 +99,7 @@ public class DocumentServiceImpl implements DocumentService {
 		// Counted before the file is written, and again with the insert (DocumentDaoImpl.addDocument)
 		int active = documentdao.countDocuments(upload.candidateid(), type.name());
 		if (!type.isSingleSlot() && active >= type.getMaxActive()) {
-			return DocumentOutcome.refused(tooMany(type));
+			return Outcome.refused(tooMany(type));
 		}
 
 		try {
@@ -107,7 +107,7 @@ public class DocumentServiceImpl implements DocumentService {
 		} catch (IOException e) {
 			log.error("A document for candidate {} couldn't be written to {} (by {})", upload.candidateid(),
 					DocumentFileStore.ENVIRONMENT_VARIABLE, userid, e);
-			return DocumentOutcome.refused("The file couldn't be saved. Please try again, or tell IT.");
+			return Outcome.refused("The file couldn't be saved. Please try again, or tell IT.");
 		}
 
 		int documentkey;
@@ -119,15 +119,15 @@ public class DocumentServiceImpl implements DocumentService {
 		}
 		if (documentkey == 0) {
 			removeQuietly(document.getStoredname());
-			return DocumentOutcome.refused(tooMany(type));
+			return Outcome.refused(tooMany(type));
 		}
 
 		log.info("Document {} uploaded by {}", documentkey, userid);
 		if (type.isSingleSlot() && active > 0) {
-			return DocumentOutcome.ok(type.getLabel() + " replaced. The previous file is kept until a Super Admin "
+			return Outcome.ok(type.getLabel() + " replaced. The previous file is kept until a Super Admin "
 					+ "deletes the candidate's documents permanently.");
 		}
-		return DocumentOutcome.ok(type.getLabel() + " uploaded.");
+		return Outcome.ok(type.getLabel() + " uploaded.");
 	}
 
 	/** Checks a professional certificate's title, issuer and year into the document; the problem, or null. */
@@ -170,16 +170,16 @@ public class DocumentServiceImpl implements DocumentService {
 	}
 
 	@Override
-	public DocumentOutcome purge(String candidateid, String reason, String userid) {
+	public Outcome purge(String candidateid, String reason, String userid) {
 		String why = trim(reason);
 		if (why.isEmpty()) {
-			return DocumentOutcome.refused("Please give the reason for deleting the documents permanently.");
+			return Outcome.refused("Please give the reason for deleting the documents permanently.");
 		}
 		if (why.length() > MAX_REASON) {
-			return DocumentOutcome.refused("The reason can have at most " + MAX_REASON + " characters.");
+			return Outcome.refused("The reason can have at most " + MAX_REASON + " characters.");
 		}
 		if (!filestore.isConfigured()) {
-			return DocumentOutcome.refused(NOT_CONFIGURED);
+			return Outcome.refused(NOT_CONFIGURED);
 		}
 
 		int purged = 0;
@@ -207,14 +207,14 @@ public class DocumentServiceImpl implements DocumentService {
 		if (failed > 0) {
 			log.error("Documents of candidate {}: {} files couldn't be removed from {}", candidateid, failed,
 					DocumentFileStore.ENVIRONMENT_VARIABLE);
-			return DocumentOutcome.refused(purged + " " + files(purged) + " deleted permanently, but " + failed + " "
+			return Outcome.refused(purged + " " + files(purged) + " deleted permanently, but " + failed + " "
 					+ files(failed) + " couldn't be removed and " + (failed == 1 ? "is" : "are")
 					+ " kept. Please tell IT.");
 		}
 		if (purged == 0) {
-			return DocumentOutcome.ok("There were no stored files to delete.");
+			return Outcome.ok("There were no stored files to delete.");
 		}
-		return DocumentOutcome.ok(purged + " " + files(purged) + " deleted permanently.");
+		return Outcome.ok(purged + " " + files(purged) + " deleted permanently.");
 	}
 
 	private static String files(int count) {

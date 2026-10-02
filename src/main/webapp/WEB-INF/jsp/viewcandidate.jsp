@@ -3,7 +3,6 @@
 <%@ taglib uri="http://www.springframework.org/tags/form" prefix="form" %>
 <%@ taglib uri="http://www.springframework.org/tags" prefix="spring" %>
 <%@ taglib uri="jakarta.tags.core" prefix="c" %>
-<%@ taglib uri="jakarta.tags.functions" prefix="fn" %>
 <%@ taglib prefix="rms" tagdir="/WEB-INF/tags" %>
 <spring:url value="/" var="base" htmlEscape="true" />
 <c:set var="icons" value="${base}resources/img/icons.svg" />
@@ -58,19 +57,7 @@
 							</c:choose>
 							&middot; ${candidate.slotcount}/${candidate.slottypes}
 						</td>
-						<td>
-						<c:choose>
-							<c:when test="${fn:toUpperCase(candidate.candidatestatus) eq 'S'}">
-								<span class="badge rounded-pill text-bg-success rms-status"><svg class="rms-icon" aria-hidden="true"><use href="${icons}#check-circle-fill"/></svg>Selected</span>
-							</c:when>
-							<c:when test="${fn:toUpperCase(candidate.candidatestatus) eq 'R'}">
-								<span class="badge rounded-pill text-bg-danger rms-status"><svg class="rms-icon" aria-hidden="true"><use href="${icons}#x-circle-fill"/></svg>Rejected</span>
-							</c:when>
-							<c:otherwise>
-								<span class="badge rounded-pill text-bg-secondary rms-status"><svg class="rms-icon" aria-hidden="true"><use href="${icons}#hourglass-split"/></svg>Pending</span>
-							</c:otherwise>
-						</c:choose>
-						</td>
+						<td><rms:status value="${candidate.candidatestatus}" icons="${icons}"/></td>
 						<c:if test="${canedit}">
 						<td class="text-end text-nowrap">
 							<%-- The ID is free text, so it goes in a query parameter. c:param encodes "+" as %2B; spring:param

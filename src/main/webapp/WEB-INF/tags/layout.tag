@@ -1,7 +1,7 @@
 <%@ tag language="java" pageEncoding="ISO-8859-1" body-content="scriptless" trimDirectiveWhitespaces="true"
 	description="Page shell for every page behind the login: head, sidebar menu, top bar and content" %>
 <%@ attribute name="title" required="true" description="Page title, shown as 'title - RMS'" %>
-<%@ attribute name="active" required="false" description="Menu key of the current page: home, marks, candidates, jobs, positions, languages, users or password" %>
+<%@ attribute name="active" required="false" description="Menu key of the current page: home, marks, candidates, jobs, positions, languages, users, evaluations or password" %>
 <%@ attribute name="tables" required="false" type="java.lang.Boolean" description="true loads jQuery and DataTables" %>
 <%@ attribute name="stylesheet" required="false" description="An extra stylesheet in resources/css, for example viewmarks.css" %>
 <%@ taglib uri="jakarta.tags.core" prefix="c" %>
@@ -100,12 +100,11 @@
 				</li>
 				</c:if>
 				<c:if test="${role eq 'INTERVIEWER'}">
-				<%-- Interviewer score entry has no backend yet (G5-G7) --%>
-				<li class="rms-nav-heading">Coming soon</li>
-				<li class="nav-item"><span class="nav-link disabled" aria-disabled="true">
-					<svg class="rms-icon" aria-hidden="true"><use href="${icons}#pencil-square"/></svg>Evaluation<span class="rms-soon">Soon</span></span></li>
-				<li class="nav-item"><span class="nav-link disabled" aria-disabled="true">
-					<svg class="rms-icon" aria-hidden="true"><use href="${icons}#list-check"/></svg>Show Evaluation<span class="rms-soon">Soon</span></span></li>
+				<li class="rms-nav-heading">Interviews</li>
+				<li class="nav-item">
+					<a class="nav-link${active eq 'evaluations' ? ' active' : ''}" href="${base}myevaluations"${active eq 'evaluations' ? ' aria-current="page"' : ''}>
+						<svg class="rms-icon" aria-hidden="true"><use href="${icons}#pencil-square"/></svg>My Evaluations</a>
+				</li>
 				</c:if>
 				<li class="rms-nav-heading">Account</li>
 				<li class="nav-item">

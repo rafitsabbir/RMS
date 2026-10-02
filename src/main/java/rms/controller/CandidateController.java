@@ -7,6 +7,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import jakarta.servlet.http.HttpSession;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -27,6 +32,7 @@ import rms.model.DocumentType;
 import rms.model.JobInfo;
 import rms.model.LanguageInfo;
 import rms.model.PositionInfo;
+import rms.service.AssignmentService;
 import rms.service.CandidateService;
 import rms.service.DocumentService;
 import rms.service.JobService;
@@ -42,6 +48,7 @@ import rms.service.PositionService;
 @Controller
 @RequestMapping(value = "/")
 public class CandidateController {
+	private static final Logger log = LoggerFactory.getLogger(CandidateController.class);
 
 	@Autowired
 	CandidateService candidateservice;
@@ -57,6 +64,9 @@ public class CandidateController {
 
 	@Autowired
 	DocumentService documentservice;
+
+	@Autowired
+	AssignmentService assignmentservice;
 
 	static final int MAX_EMAIL = 150;
 	static final int MAX_PHONE = 30;
@@ -146,13 +156,27 @@ public class CandidateController {
 	@RequestMapping(value = "/viewcandidate", method = RequestMethod.GET)
 	public ModelAndView profile(@RequestParam("candidateid") String candidateid,
 			@RequestParam(value = "doctype", required = false) String doctype,
-			@RequestParam(value = "toolarge", required = false) String toolarge) {
+			@RequestParam(value = "toolarge", required = false) String toolarge, HttpSession session) {
 		CandidateInfo candidateinfo = candidateservice.findCandidateById(candidateid);
 		if (candidateinfo == null) {
 			throw new ResponseStatusException(HttpStatus.NOT_FOUND);
 		}
+		// Interviewers (Phase 3): only candidates they are assigned to
+		boolean staff = CurrentUser.isStaff(session);
+		if (!staff && !assignmentservice.isAssigned(candidateinfo.getCandidateid(), CurrentUser.userid(session))) {
+			log.warn("User {} isn't assigned to candidate {}; profile refused", CurrentUser.userid(session),
+					candidateinfo.getCandidateid());
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+		}
 		ModelAndView mv = new ModelAndView("candidateprofile");
 		mv.addObject("candidate", candidateinfo);
+		if (staff) {
+			// Interviewers and the decision are for staff; an interviewer sees details and documents
+			mv.addObject("assignments", assignmentservice.getAssignments(candidateinfo.getCandidateid()));
+			if (CurrentUser.canEdit(session)) {
+				mv.addObject("assignable", assignmentservice.getAssignableInterviewers(candidateinfo.getCandidateid()));
+			}
+		}
 
 		// Grouped by kind, in the kinds' order; a kind this version doesn't know isn't shown
 		Map<DocumentType, List<DocumentInfo>> documents = new EnumMap<DocumentType, List<DocumentInfo>>(

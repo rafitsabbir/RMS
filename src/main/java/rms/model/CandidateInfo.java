@@ -6,8 +6,8 @@ import org.springframework.format.annotation.DateTimeFormat;
 
 /**
  * A row of the candidate table. positionname, languagename and the job's status are read through joins for
- * display; candidatestatus is only read (G9). The document counts are read through subqueries on
- * candidate_document (active documents only).
+ * display. candidatestatus and the decision fields are written only by a decision (DecisionDaoImpl, Phase 3). The
+ * document counts are read through subqueries on candidate_document (active documents only).
  */
 public class CandidateInfo {
 
@@ -32,6 +32,11 @@ public class CandidateInfo {
 	/** How many of the six single-slot types (CV included) have an active document. */
 	private int slotcount = 0;
 	private int professionalcount = 0;
+	/** The latest decision (Phase 3): reason, date and who made it; the status is candidatestatus. */
+	private String decisionreason = null;
+	private LocalDate decisiondate = null;
+	private String decidedby = null;
+	private String decidedbyname = null;
 
 	/** No names, e-mail or phone: they are personal data. */
 	@Override
@@ -44,6 +49,16 @@ public class CandidateInfo {
 	public String getSourcelabel() {
 		CandidateSource parsed = CandidateSource.parse(source);
 		return parsed == null ? source : parsed.getLabel();
+	}
+
+	/** Selected, Rejected, On hold or Pending (rms.model.DecisionStatus). */
+	public String getStatuslabel() {
+		return DecisionStatus.labelOf(candidatestatus);
+	}
+
+	/** Selected or Rejected: the candidate's evaluations can't be changed. */
+	public boolean isLocked() {
+		return DecisionStatus.locks(candidatestatus);
 	}
 
 	/** False only for a source text this version doesn't know (the form offers it so saving keeps it). */
@@ -193,6 +208,38 @@ public class CandidateInfo {
 
 	public void setProfessionalcount(int professionalcount) {
 		this.professionalcount = professionalcount;
+	}
+
+	public String getDecisionreason() {
+		return decisionreason;
+	}
+
+	public void setDecisionreason(String decisionreason) {
+		this.decisionreason = decisionreason;
+	}
+
+	public LocalDate getDecisiondate() {
+		return decisiondate;
+	}
+
+	public void setDecisiondate(LocalDate decisiondate) {
+		this.decisiondate = decisiondate;
+	}
+
+	public String getDecidedby() {
+		return decidedby;
+	}
+
+	public void setDecidedby(String decidedby) {
+		this.decidedby = decidedby;
+	}
+
+	public String getDecidedbyname() {
+		return decidedbyname;
+	}
+
+	public void setDecidedbyname(String decidedbyname) {
+		this.decidedbyname = decidedbyname;
 	}
 
 }

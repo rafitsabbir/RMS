@@ -1,6 +1,6 @@
 # RMS Technical Operations Guide
 @ Recruitment Management System — technology stack, architecture, production requirements, sizing, deployment and security
-@ Describes the version on the dev branch as of 2 October 2026 (roles plan, Phase 2; not yet released). Contains no hostnames, passwords or connection strings.
+@ Describes the version on the dev branch as of 2 October 2026 (roles plan, Phase 3; not yet released). Contains no hostnames, passwords or connection strings.
 
 ## 1. At a glance
 |Item|Value|
@@ -59,7 +59,7 @@ Supported browsers: current versions of Chrome, Edge, Firefox and Safari. Intern
 |Servlet container|Apache Tomcat 11.0.x|Tested on 11.0.26. Tomcat 9 or 10 will not run this version.|
 |Database|MySQL 8.0 or later recommended; 5.7 still works with this driver|MySQL 5.7 reached end of life in October 2023. The automated tests run on MySQL 8.0; the earlier Phase 1 release was rehearsed on 5.7.44.|
 |Database driver jar|mysql-connector-j-8.2.0.jar in Tomcat's lib/ folder|Remove any old mysql-connector-java-5.1.x, slf4j or logback jars from lib/.|
-|Database schema changes|Run db/migrations/001-candidate-isactive.sql, 002-user-roles.sql and 004-candidate-documents-jobs.sql once each, in order, before deploying|001 adds candidate.isactive (without it the Candidates pages fail). 002 adds admin.role and users.mustchangepassword (without them every login fails) and checks that users.password holds 68 characters. Rollback statements are in the files. 002 makes every existing admin a Super Admin: re-assign HR and Hiring Manager roles afterwards on Users and Roles. 004 adds five candidate columns and the tables job and candidate_document (InnoDB); check candidate's collation and engine first, as the script describes.|
+|Database schema changes|Run db/migrations/001-candidate-isactive.sql, 002-user-roles.sql, 004-candidate-documents-jobs.sql and 005-assignment-evaluation-decision.sql once each, in order, before deploying|005 is a draft: the owner first compares it with SHOW CREATE TABLE marks (the checks are at the top of the script). It adds columns at the end of marks (which rebuilds that table and blocks writes while it runs), decision columns on candidate, and two tables. After 005, an older WAR shows every status as Pending until 005's rollback lines are run. 001 adds candidate.isactive (without it the Candidates pages fail). 002 adds admin.role and users.mustchangepassword (without them every login fails) and checks that users.password holds 68 characters. Rollback statements are in the files. 002 makes every existing admin a Super Admin: re-assign HR and Hiring Manager roles afterwards on Users and Roles. 004 adds five candidate columns and the tables job and candidate_document (InnoDB); check candidate's collation and engine first, as the script describes.|
 |Document storage|A folder outside Tomcat's webapps and any web root, given to Tomcat as the environment variable RMS_DOC_DIR|Tomcat needs read, write and delete rights on it. Without it RMS starts but refuses uploads and downloads (an ERROR at startup). See sections 5, 7 and 9.|
 |Database account|One MySQL account with SELECT, INSERT and UPDATE on the eight tables|The application never deletes rows and never changes the schema. (Uploads lock a candidate row with SELECT … FOR UPDATE, which these rights cover.)|
 |Network|Application server → MySQL (default port 3306). Users → application (HTTPS). Users' browsers → cdn.jsdelivr.net|If the CDN is blocked, pages load without styling and tables lose search and sort.|
@@ -92,7 +92,7 @@ CI builds the same WAR on every push to the dev and master branches; it can be d
 
 ### First installation
 1. Install JDK 21 and Tomcat 11. Copy mysql-connector-j-8.2.0.jar into Tomcat's lib/ folder.
-2. Run db/migrations/001-candidate-isactive.sql, then 002-user-roles.sql, then 004-candidate-documents-jobs.sql, on the RMS database (once each). Check them against the real tables first (SHOW CREATE TABLE candidate, users and admin). Create the document folder (outside webapps), owned by the Tomcat user, and add RMS_DOC_DIR to the environment variables of step 5. Do not run 003-hash-passwords without the owner's approval.
+2. Run db/migrations/001-candidate-isactive.sql, then 002-user-roles.sql, then 004-candidate-documents-jobs.sql, then 005-assignment-evaluation-decision.sql (after the owner's checks), on the RMS database (once each). Check them against the real tables first (SHOW CREATE TABLE candidate, users and admin). Create the document folder (outside webapps), owned by the Tomcat user, and add RMS_DOC_DIR to the environment variables of step 5. Do not run 003-hash-passwords without the owner's approval.
 3. Copy deploy/tomcat/rms.xml from the repository, unchanged, to conf/Catalina/localhost/rms.xml. It defines the jdbc/springrms connection pool with placeholders only.
 4. Make Tomcat read the placeholders from the environment: add -Dorg.apache.tomcat.util.digester.PROPERTY_SOURCE=org.apache.tomcat.util.digester.EnvironmentPropertySource to CATALINA_OPTS (for example in bin/setenv.sh).
 5. Provide the four environment variables listed in section 7, through the service manager or a file only the Tomcat user can read.
@@ -160,7 +160,7 @@ The application has no properties files and no profiles. All environment-specifi
 |---|---|---|---|
 |master|Phase 1 security upgrades (merged 2 October 2026)|Spring 5.3.39, Tomcat 9, JDK 8|Production still runs whatever was last deployed|
 |release/phase1|Security upgrades on Java 8|Spring 5.3.39, Tomcat 9, JDK 8|Tested and rehearsed; not released|
-|dev|Full upgrade, new UI, Spring Security, candidate management, four roles and user management, candidate documents and jobs|Spring 7, Tomcat 11, JDK 21|Built and unit-tested; a full run on Tomcat 11 is still due|
+|dev|Full upgrade, new UI, Spring Security, candidate management, four roles and user management, candidate documents and jobs, interviewer assignment, evaluations and decisions|Spring 7, Tomcat 11, JDK 21|Built and unit-tested; a full run on Tomcat 11 is still due|
 
 **Deadline:** Tomcat 9 support ends on 31 March 2027. Production should move to the dev line (Tomcat 11) before then.
 
@@ -169,7 +169,8 @@ The application has no properties files and no profiles. All environment-specifi
 2. The JDK standard: 21, or an organisational 17 or 25. The build can target 17 with a one-line change.
 3. Who owns the Tomcat server, the JNDI configuration and the runtime? Is a Java Security Manager in use (Tomcat 11 doesn't support it)?
 4. The deployment target: a virtual machine with Tomcat as described, or a container image (planned, not built yet).
-. Where should RMS_DOC_DIR live (local disk or a network share), how is it backed up together with the database, and is a virus scanner available for it?
+5. Should user sessions survive restarts (session persistence)?
+6. Where should RMS_DOC_DIR live (local disk or a network share), how is it backed up together with the database, and is a virus scanner available for it?
 7. Should Tomcat's maxSwallowSize be raised so very large uploads get a clear message?
 
 > Detailed sources in the repository: docs/tech-stack.md, docs/build-run.md, docs/config.md and docs/upgrade-status.md.

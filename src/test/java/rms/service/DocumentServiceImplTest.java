@@ -59,9 +59,9 @@ class DocumentServiceImplTest {
 	void uploadStoresTheFileAndSavesTheRow() throws IOException {
 		when(documentdao.addDocument(any(DocumentInfo.class), eq(1))).thenReturn(7);
 
-		DocumentOutcome outcome = service.upload(upload("CV", "cv.pdf", "application/pdf", PDF), "U3");
+		Outcome outcome = service.upload(upload("CV", "cv.pdf", "application/pdf", PDF), "U3");
 
-		assertThat(outcome).isEqualTo(new DocumentOutcome(true, "CV uploaded."));
+		assertThat(outcome).isEqualTo(new Outcome(true, "CV uploaded."));
 		DocumentInfo saved = savedDocument(1);
 		assertThat(saved.getCandidateid()).isEqualTo("C1");
 		assertThat(saved.getDoctype()).isEqualTo("CV");
@@ -78,7 +78,7 @@ class DocumentServiceImplTest {
 		when(documentdao.countDocuments("C1", "SSC")).thenReturn(1);
 		when(documentdao.addDocument(any(DocumentInfo.class), eq(1))).thenReturn(8);
 
-		DocumentOutcome outcome = service.upload(upload("SSC", "ssc.png", "image/png", PNG), "U3");
+		Outcome outcome = service.upload(upload("SSC", "ssc.png", "image/png", PNG), "U3");
 
 		assertThat(outcome.done()).isTrue();
 		assertThat(outcome.message()).startsWith("SSC certificate replaced. The previous file is kept");
@@ -90,10 +90,10 @@ class DocumentServiceImplTest {
 	void professionalCertificateNeedsATitleAndKeepsIssuerAndYear() {
 		when(documentdao.addDocument(any(DocumentInfo.class), eq(5))).thenReturn(9);
 
-		DocumentOutcome outcome = service.upload(new DocumentUpload("C1", "PROFESSIONAL", " PMP ", " Example Institute ",
+		Outcome outcome = service.upload(new DocumentUpload("C1", "PROFESSIONAL", " PMP ", " Example Institute ",
 				"2024", "pmp.pdf", "application/pdf", PDF), "U1");
 
-		assertThat(outcome).isEqualTo(new DocumentOutcome(true, "Professional certificate uploaded."));
+		assertThat(outcome).isEqualTo(new Outcome(true, "Professional certificate uploaded."));
 		DocumentInfo saved = savedDocument(5);
 		assertThat(saved.getTitle()).isEqualTo("PMP");
 		assertThat(saved.getIssuer()).isEqualTo("Example Institute");
@@ -120,9 +120,9 @@ class DocumentServiceImplTest {
 	void sixthProfessionalCertificateIsRefusedBeforeTheFileIsWritten() throws IOException {
 		when(documentdao.countDocuments("C1", "PROFESSIONAL")).thenReturn(5);
 
-		DocumentOutcome outcome = service.upload(professional("PMP", "", ""), "U3");
+		Outcome outcome = service.upload(professional("PMP", "", ""), "U3");
 
-		assertThat(outcome).isEqualTo(new DocumentOutcome(false,
+		assertThat(outcome).isEqualTo(new Outcome(false,
 				"This candidate already has 5 professional certificates. Delete one before adding another."));
 		verify(documentdao, never()).addDocument(any(DocumentInfo.class), anyInt());
 		assertThat(storedFiles()).isEmpty();
@@ -134,7 +134,7 @@ class DocumentServiceImplTest {
 		when(documentdao.countDocuments("C1", "PROFESSIONAL")).thenReturn(4);
 		when(documentdao.addDocument(any(DocumentInfo.class), eq(5))).thenReturn(0);
 
-		DocumentOutcome outcome = service.upload(professional("PMP", "", ""), "U3");
+		Outcome outcome = service.upload(professional("PMP", "", ""), "U3");
 
 		assertThat(outcome.done()).isFalse();
 		assertThat(outcome.message()).startsWith("This candidate already has 5 professional certificates.");
@@ -190,7 +190,7 @@ class DocumentServiceImplTest {
 		assertThat(service.isStorageConfigured()).isFalse();
 		expectRefused(upload("CV", "cv.pdf", "application/pdf", PDF), DocumentServiceImpl.NOT_CONFIGURED);
 		assertThat(service.purge("C1", "Retention period ended", "U1"))
-				.isEqualTo(new DocumentOutcome(false, DocumentServiceImpl.NOT_CONFIGURED));
+				.isEqualTo(new Outcome(false, DocumentServiceImpl.NOT_CONFIGURED));
 		verify(documentdao, never()).getUnpurgedDocuments(anyString());
 	}
 
@@ -222,9 +222,9 @@ class DocumentServiceImplTest {
 				// A row whose file is already gone (a seed row) is marked too
 				document(5, "a0000000000000000000000000000005")));
 
-		DocumentOutcome outcome = service.purge("C1", "  Retention period ended  ", "U1");
+		Outcome outcome = service.purge("C1", "  Retention period ended  ", "U1");
 
-		assertThat(outcome).isEqualTo(new DocumentOutcome(true, "3 files deleted permanently."));
+		assertThat(outcome).isEqualTo(new Outcome(true, "3 files deleted permanently."));
 		assertThat(storedFiles()).isEmpty();
 		verify(documentdao).markPurged(1, "U1", "Retention period ended");
 		verify(documentdao).markPurged(4, "U1", "Retention period ended");
@@ -234,10 +234,10 @@ class DocumentServiceImplTest {
 	@Test
 	void purgeNeedsAReason() {
 		assertThat(service.purge("C1", " ", "U1")).isEqualTo(
-				new DocumentOutcome(false, "Please give the reason for deleting the documents permanently."));
+				new Outcome(false, "Please give the reason for deleting the documents permanently."));
 		assertThat(service.purge("C1", null, "U1").done()).isFalse();
 		assertThat(service.purge("C1", "x".repeat(256), "U1"))
-				.isEqualTo(new DocumentOutcome(false, "The reason can have at most 255 characters."));
+				.isEqualTo(new Outcome(false, "The reason can have at most 255 characters."));
 
 		verify(documentdao, never()).getUnpurgedDocuments(anyString());
 	}
@@ -247,7 +247,7 @@ class DocumentServiceImplTest {
 		when(documentdao.getUnpurgedDocuments("C2")).thenReturn(List.of());
 
 		assertThat(service.purge("C2", "Retention period ended", "U1"))
-				.isEqualTo(new DocumentOutcome(true, "There were no stored files to delete."));
+				.isEqualTo(new Outcome(true, "There were no stored files to delete."));
 	}
 
 	@Test
@@ -259,9 +259,9 @@ class DocumentServiceImplTest {
 		Files.createDirectories(folder.resolve("b0").resolve(stuck).resolve("inside"));
 		when(documentdao.getUnpurgedDocuments("C1")).thenReturn(List.of(document(1, removable), document(2, stuck)));
 
-		DocumentOutcome outcome = service.purge("C1", "Retention period ended", "U1");
+		Outcome outcome = service.purge("C1", "Retention period ended", "U1");
 
-		assertThat(outcome).isEqualTo(new DocumentOutcome(false,
+		assertThat(outcome).isEqualTo(new Outcome(false,
 				"1 file deleted permanently, but 1 file couldn't be removed and is kept. Please tell IT."));
 		verify(documentdao).markPurged(1, "U1", "Retention period ended");
 		verify(documentdao, never()).markPurged(eq(2), anyString(), anyString());
@@ -276,7 +276,7 @@ class DocumentServiceImplTest {
 		lenient().doThrow(new QueryTimeoutException("timeout")).when(documentdao)
 				.markPurged(2, "U1", "Retention period ended");
 
-		DocumentOutcome outcome = service.purge("C1", "Retention period ended", "U1");
+		Outcome outcome = service.purge("C1", "Retention period ended", "U1");
 
 		assertThat(outcome.done()).isFalse();
 		assertThat(outcome.message()).startsWith("1 file deleted permanently, but 1 file");
@@ -285,7 +285,7 @@ class DocumentServiceImplTest {
 	}
 
 	private void expectRefused(DocumentUpload upload, String message) {
-		assertThat(service.upload(upload, "U3")).isEqualTo(new DocumentOutcome(false, message));
+		assertThat(service.upload(upload, "U3")).isEqualTo(new Outcome(false, message));
 		verify(documentdao, never()).addDocument(any(DocumentInfo.class), anyInt());
 	}
 

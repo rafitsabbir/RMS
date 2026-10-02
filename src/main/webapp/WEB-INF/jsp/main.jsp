@@ -26,7 +26,7 @@
 				<div class="card-body">
 					<span class="rms-tile-icon"><svg class="rms-icon" aria-hidden="true"><use href="${icons}#clipboard-data"/></svg></span>
 					<h2><a class="stretched-link text-reset text-decoration-none" href="${base}adminviewmarks">Candidate Status</a></h2>
-					<p>Scores on 10 criteria, with each candidate's total and selection status.</p>
+					<p>Average scores on 10 criteria over all evaluations, with each candidate's total and decision.</p>
 				</div>
 			</div>
 		</div>
@@ -95,14 +95,12 @@
 
 	<c:if test="${role eq 'INTERVIEWER'}">
 	<div class="row g-3">
-		<div class="col-12">
-			<div class="card rms-card rms-tile rms-tile-soon">
-				<div class="card-body d-flex align-items-center gap-3">
-					<span class="rms-tile-icon mb-0"><svg class="rms-icon" aria-hidden="true"><use href="${icons}#pencil-square"/></svg></span>
-					<div>
-						<h2 class="mb-1">Evaluations are coming soon</h2>
-						<p>You will enter and review your candidate scores here.</p>
-					</div>
+		<div class="col-sm-6 col-xl-4">
+			<div class="card rms-card rms-tile">
+				<div class="card-body">
+					<span class="rms-tile-icon"><svg class="rms-icon" aria-hidden="true"><use href="${icons}#pencil-square"/></svg></span>
+					<h2><a class="stretched-link text-reset text-decoration-none" href="${base}myevaluations">My Evaluations</a></h2>
+					<p>The candidates assigned to you: score them on 10 criteria, from 1 to 10, with comments.</p>
 				</div>
 			</div>
 		</div>

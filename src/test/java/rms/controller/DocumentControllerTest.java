@@ -39,9 +39,11 @@ import rms.config.WebConfig;
 import rms.model.CandidateInfo;
 import rms.model.DocumentInfo;
 import rms.model.DocumentUpload;
+import rms.model.Role;
 import rms.model.UserInfo;
+import rms.service.AssignmentService;
 import rms.service.CandidateService;
-import rms.service.DocumentOutcome;
+import rms.service.Outcome;
 import rms.service.DocumentService;
 
 /** Uploads, downloads, deletes and the permanent delete, through the controller (the checks are in the service). */
@@ -59,6 +61,9 @@ class DocumentControllerTest {
 	@Mock
 	CandidateService candidateservice;
 
+	@Mock
+	AssignmentService assignmentservice;
+
 	@InjectMocks
 	DocumentController controller;
 
@@ -72,6 +77,7 @@ class DocumentControllerTest {
 				.setViewResolvers(new WebConfig().viewResolver()).build();
 		UserInfo user = new UserInfo();
 		user.setUserid("U3");
+		user.setRole(Role.HR.name());
 		session = new MockHttpSession();
 		session.setAttribute("user", user);
 	}
@@ -79,7 +85,7 @@ class DocumentControllerTest {
 	@Test
 	void uploadPassesTheFileToTheServiceAndReturnsToTheProfile() throws Exception {
 		givenCandidate("C1");
-		when(documentservice.upload(any(DocumentUpload.class), any())).thenReturn(new DocumentOutcome(true, "CV uploaded."));
+		when(documentservice.upload(any(DocumentUpload.class), any())).thenReturn(new Outcome(true, "CV uploaded."));
 
 		mockMvc.perform(upload("C1", "CV", new MockMultipartFile("file", "cv.pdf", "application/pdf", PDF)))
 				.andExpect(redirectedUrl("/viewcandidate?candidateid=C1"))
@@ -100,7 +106,7 @@ class DocumentControllerTest {
 	void uploadAsTheBrowserSendsItWithTheIdOnlyInTheUrl() throws Exception {
 		// candidateprofile.jsp: the ID is in the form's action, not also a hidden field (that would read "C1,C1")
 		givenCandidate("C1");
-		when(documentservice.upload(any(DocumentUpload.class), any())).thenReturn(new DocumentOutcome(true, "CV uploaded."));
+		when(documentservice.upload(any(DocumentUpload.class), any())).thenReturn(new Outcome(true, "CV uploaded."));
 
 		mockMvc.perform(multipart("/uploaddocument?candidateid=C1")
 				.file(new MockMultipartFile("file", "cv.pdf", "application/pdf", PDF)).param("doctype", "CV")
@@ -116,7 +122,7 @@ class DocumentControllerTest {
 	void refusedUploadShowsTheMessageAndKeepsTheKind() throws Exception {
 		givenCandidate("C1");
 		when(documentservice.upload(any(DocumentUpload.class), any()))
-				.thenReturn(new DocumentOutcome(false, "Only PDF, JPG and PNG files can be uploaded."));
+				.thenReturn(new Outcome(false, "Only PDF, JPG and PNG files can be uploaded."));
 
 		mockMvc.perform(upload("C1", "SSC", new MockMultipartFile("file", "ssc.gif", "image/gif", PDF)))
 				.andExpect(redirectedUrl("/viewcandidate?candidateid=C1&doctype=SSC"))
@@ -160,7 +166,7 @@ class DocumentControllerTest {
 	@Test
 	void redirectEncodesTheCandidateId() throws Exception {
 		givenCandidate("C 1+2");
-		when(documentservice.upload(any(DocumentUpload.class), any())).thenReturn(new DocumentOutcome(true, "CV uploaded."));
+		when(documentservice.upload(any(DocumentUpload.class), any())).thenReturn(new Outcome(true, "CV uploaded."));
 
 		mockMvc.perform(upload("C 1+2", "CV", new MockMultipartFile("file", "cv.pdf", "application/pdf", PDF)))
 				.andExpect(redirectedUrl("/viewcandidate?candidateid=C+1%2B2"));
@@ -181,6 +187,24 @@ class DocumentControllerTest {
 				.andExpect(header().string("Content-Disposition", containsString("attachment")))
 				.andExpect(header().string("Content-Disposition",
 						containsString("filename*=UTF-8''Carla%20CV%20%28final%29.pdf")))
+				.andExpect(content().bytes(PDF));
+	}
+
+	@Test
+	void anInterviewerDownloadsOnlyAssignedCandidatesDocuments() throws Exception {
+		Path file = Files.write(folder.resolve("stored"), PDF);
+		DocumentInfo document = document(1, "C1", "cv.pdf", "application/pdf");
+		when(documentservice.findDocument(1)).thenReturn(document);
+		MockHttpSession interviewer = EvaluationControllerTest.session("U2", Role.INTERVIEWER);
+
+		when(assignmentservice.isAssigned("C1", "U2")).thenReturn(false);
+		mockMvc.perform(get("/downloaddocument/1").session(interviewer)).andExpect(status().isForbidden());
+		verify(documentservice, never()).findFile(any(DocumentInfo.class));
+
+		when(assignmentservice.isAssigned("C1", "U2")).thenReturn(true);
+		when(documentservice.isStorageConfigured()).thenReturn(true);
+		when(documentservice.findFile(document)).thenReturn(file);
+		mockMvc.perform(get("/downloaddocument/1").session(interviewer)).andExpect(status().isOk())
 				.andExpect(content().bytes(PDF));
 	}
 
@@ -243,7 +267,7 @@ class DocumentControllerTest {
 	void purgePassesTheReasonAndShowsTheOutcome() throws Exception {
 		givenCandidate("C1");
 		when(documentservice.purge("C1", "Retention period ended", "U3"))
-				.thenReturn(new DocumentOutcome(true, "3 files deleted permanently."));
+				.thenReturn(new Outcome(true, "3 files deleted permanently."));
 
 		mockMvc.perform(post("/purgedocuments").session(session).param("candidateid", "C1")
 				.param("reason", "Retention period ended"))
@@ -255,7 +279,7 @@ class DocumentControllerTest {
 	void refusedPurgeShowsTheError() throws Exception {
 		givenCandidate("C1");
 		when(documentservice.purge("C1", null, "U3"))
-				.thenReturn(new DocumentOutcome(false, "Please give the reason for deleting the documents permanently."));
+				.thenReturn(new Outcome(false, "Please give the reason for deleting the documents permanently."));
 
 		mockMvc.perform(post("/purgedocuments").session(session).param("candidateid", "C1"))
 				.andExpect(flash().attribute("documentError",

@@ -29,6 +29,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -38,8 +39,10 @@ import rms.model.CandidateInfo;
 import rms.model.DocumentInfo;
 import rms.model.DocumentType;
 import rms.model.JobInfo;
+import rms.model.Role;
 import rms.model.LanguageInfo;
 import rms.model.PositionInfo;
+import rms.service.AssignmentService;
 import rms.service.CandidateService;
 import rms.service.DocumentService;
 import rms.service.JobService;
@@ -64,6 +67,11 @@ class CandidateControllerTest {
 
 	@Mock
 	DocumentService documentservice;
+
+	@Mock
+	AssignmentService assignmentservice;
+
+	MockHttpSession staff = EvaluationControllerTest.session("U1", Role.SUPER_ADMIN);
 
 	@InjectMocks
 	CandidateController controller;
@@ -413,7 +421,7 @@ class CandidateControllerTest {
 		when(documentservice.isStorageConfigured()).thenReturn(true);
 
 		Map<DocumentType, List<DocumentInfo>> documents = (Map<DocumentType, List<DocumentInfo>>) mockMvc
-				.perform(get("/viewcandidate").param("candidateid", "C1"))
+				.perform(get("/viewcandidate").session(staff).param("candidateid", "C1"))
 				.andExpect(status().isOk())
 				.andExpect(view().name("candidateprofile"))
 				.andExpect(model().attribute("storageready", true))
@@ -433,17 +441,17 @@ class CandidateControllerTest {
 	void profilePreselectsTheKindAndShowsTheSizeMessage() throws Exception {
 		when(candidateservice.findCandidateById("C1")).thenReturn(candidate("C1", 1, 1));
 
-		mockMvc.perform(get("/viewcandidate").param("candidateid", "C1").param("doctype", "PHD").param("toolarge", ""))
+		mockMvc.perform(get("/viewcandidate").session(staff).param("candidateid", "C1").param("doctype", "PHD").param("toolarge", ""))
 				.andExpect(model().attribute("selecteddoctype", "PHD"))
 				.andExpect(model().attribute("storageready", false))
 				.andExpect(model().attribute("documentError", "The file is larger than 5 MB."));
-		mockMvc.perform(get("/viewcandidate").param("candidateid", "C1").param("doctype", "../etc"))
+		mockMvc.perform(get("/viewcandidate").session(staff).param("candidateid", "C1").param("doctype", "../etc"))
 				.andExpect(model().attribute("selecteddoctype", "CV"));
 	}
 
 	@Test
 	void profileOfAMissingOrDeletedCandidateIs404() throws Exception {
-		mockMvc.perform(get("/viewcandidate").param("candidateid", "C9")).andExpect(status().isNotFound());
+		mockMvc.perform(get("/viewcandidate").session(staff).param("candidateid", "C9")).andExpect(status().isNotFound());
 
 		verify(documentservice, never()).getDocuments(any());
 	}
@@ -454,12 +462,48 @@ class CandidateControllerTest {
 		when(candidateservice.findCandidateById("C2")).thenReturn(candidate("C2", 2, 2));
 
 		Map<DocumentType, List<DocumentInfo>> documents = (Map<DocumentType, List<DocumentInfo>>) mockMvc
-				.perform(get("/viewcandidate").param("candidateid", "C2"))
+				.perform(get("/viewcandidate").session(staff).param("candidateid", "C2"))
 				.andExpect(model().attribute("doctypes", DocumentType.values()))
 				.andReturn().getModelAndView().getModel().get("documents");
 
 		assertThat(documents).containsOnlyKeys(DocumentType.values());
 		assertThat(documents.values()).allMatch(List::isEmpty);
+	}
+
+	// --- Phase 3: interviewers on the profile ---
+
+	@Test
+	void staffSeeTheAssignmentsAndHrCanAssign() throws Exception {
+		when(candidateservice.findCandidateById("C1")).thenReturn(candidate("C1", 1, 1));
+		List<rms.model.AssignmentInfo> assignments = List.of(new rms.model.AssignmentInfo());
+		when(assignmentservice.getAssignments("C1")).thenReturn(assignments);
+		when(assignmentservice.getAssignableInterviewers("C1")).thenReturn(List.of());
+
+		mockMvc.perform(get("/viewcandidate").session(staff).param("candidateid", "C1"))
+				.andExpect(model().attribute("assignments", assignments))
+				.andExpect(model().attributeExists("assignable"));
+		// A Hiring Manager sees them but can't assign
+		mockMvc.perform(get("/viewcandidate").param("candidateid", "C1")
+				.session(EvaluationControllerTest.session("U4", Role.HIRING_MANAGER)))
+				.andExpect(model().attribute("assignments", assignments))
+				.andExpect(model().attributeDoesNotExist("assignable"));
+	}
+
+	@Test
+	void anInterviewerSeesOnlyAssignedCandidatesWithoutTheAssignments() throws Exception {
+		when(candidateservice.findCandidateById("C1")).thenReturn(candidate("C1", 1, 1));
+		MockHttpSession interviewer = EvaluationControllerTest.session("U2", Role.INTERVIEWER);
+		when(assignmentservice.isAssigned("C1", "U2")).thenReturn(true);
+
+		mockMvc.perform(get("/viewcandidate").session(interviewer).param("candidateid", "C1"))
+				.andExpect(status().isOk())
+				.andExpect(model().attributeDoesNotExist("assignments", "assignable"));
+
+		when(assignmentservice.isAssigned("C1", "U2")).thenReturn(false);
+		mockMvc.perform(get("/viewcandidate").session(interviewer).param("candidateid", "C1"))
+				.andExpect(status().isForbidden());
+		// No role at all: refused too (fails closed)
+		mockMvc.perform(get("/viewcandidate").param("candidateid", "C1")).andExpect(status().isForbidden());
 	}
 
 	private CandidateInfo added() {

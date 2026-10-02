@@ -3,19 +3,23 @@
 <%@ taglib uri="http://www.springframework.org/tags/form" prefix="form" %>
 <%@ taglib uri="http://www.springframework.org/tags" prefix="spring" %>
 <%@ taglib uri="jakarta.tags.core" prefix="c" %>
-<%@ taglib uri="jakarta.tags.functions" prefix="fn" %>
 <%@ taglib prefix="rms" tagdir="/WEB-INF/tags" %>
-<%-- GET /viewcandidate?candidateid= (CandidateController.profile): details, job and documents --%>
+<%-- GET /viewcandidate?candidateid= (CandidateController.profile): details, job, documents and, for staff, the interviewers.
+	An interviewer sees only the details and documents of a candidate assigned to them --%>
 <spring:url value="/" var="base" htmlEscape="true" />
 <c:set var="icons" value="${base}resources/img/icons.svg" />
 <spring:url value="/viewcandidatelist" var="listURL" />
 <spring:url value="/purgedocuments" var="purgeURL" />
+<spring:url value="/assigninterviewer" var="assignURL" />
+<spring:url value="/unassigninterviewer" var="unassignURL" />
 <%-- Super Admin and HR change documents; Hiring Managers only download (SecurityConfig refuses them the rest) --%>
 <c:set var="role" value="${sessionScope.user.role}" />
 <c:set var="canedit" value="${role eq 'SUPER_ADMIN' or role eq 'HR'}" />
 <%-- The ID is free text (G22), so every URL carrying it is built with c:param, which encodes it --%>
 <c:url value="/updatecandidate" var="editURL"><c:param name="candidateid" value="${candidate.candidateid}" /></c:url>
 <c:url value="/uploaddocument" var="uploadURL"><c:param name="candidateid" value="${candidate.candidateid}" /></c:url>
+<c:url value="/viewevaluations" var="evaluationsURL"><c:param name="candidateid" value="${candidate.candidateid}" /></c:url>
+<c:url value="/evaluate" var="evaluateURL"><c:param name="candidateid" value="${candidate.candidateid}" /></c:url>
 <c:set var="fullname" value="${candidate.firstname} ${candidate.lastname}" />
 <rms:layout title="${fullname}" active="candidates">
 	<div class="rms-page-header">
@@ -29,8 +33,21 @@
 				&middot; ${candidate.slotcount}/${candidate.slottypes} documents<c:if test="${candidate.professionalcount > 0}">, ${candidate.professionalcount} professional</c:if></p>
 		</div>
 		<div class="d-flex gap-2">
+			<c:choose>
+			<c:when test="${role eq 'INTERVIEWER'}">
+			<%-- An interviewer reaches only their assigned candidates (CandidateController.profile) --%>
+			<a class="btn btn-outline-secondary d-inline-flex align-items-center gap-2" href="${base}myevaluations">
+				<svg class="rms-icon" aria-hidden="true"><use href="${icons}#arrow-left"/></svg>My Evaluations</a>
+			<a class="btn btn-primary d-inline-flex align-items-center gap-2" href="<c:out value='${evaluateURL}'/>">
+				<svg class="rms-icon" aria-hidden="true"><use href="${icons}#pencil-square"/></svg>Evaluate</a>
+			</c:when>
+			<c:otherwise>
 			<a class="btn btn-outline-secondary d-inline-flex align-items-center gap-2" href="${listURL}">
 				<svg class="rms-icon" aria-hidden="true"><use href="${icons}#arrow-left"/></svg>Candidates</a>
+			<a class="btn btn-outline-primary d-inline-flex align-items-center gap-2" href="<c:out value='${evaluationsURL}'/>">
+				<svg class="rms-icon" aria-hidden="true"><use href="${icons}#clipboard-data"/></svg>Evaluations and decision</a>
+			</c:otherwise>
+			</c:choose>
 			<c:if test="${canedit}">
 			<a class="btn btn-primary d-inline-flex align-items-center gap-2" href="<c:out value='${editURL}'/>">
 				<svg class="rms-icon" aria-hidden="true"><use href="${icons}#pencil"/></svg>Edit</a>
@@ -48,6 +65,19 @@
 	<div class="alert alert-danger d-flex align-items-center gap-2" role="alert">
 		<svg class="rms-icon" aria-hidden="true"><use href="${icons}#exclamation-triangle-fill"/></svg>
 		<span><c:out value="${documentError}"/></span>
+	</div>
+	</c:if>
+	<%-- Assignments (AssignmentController) --%>
+	<c:if test="${not empty message}">
+	<div class="alert alert-success d-flex align-items-center gap-2" role="status">
+		<svg class="rms-icon" aria-hidden="true"><use href="${icons}#check-circle-fill"/></svg>
+		<span><c:out value="${message}"/></span>
+	</div>
+	</c:if>
+	<c:if test="${not empty errorMessage}">
+	<div class="alert alert-danger d-flex align-items-center gap-2" role="alert">
+		<svg class="rms-icon" aria-hidden="true"><use href="${icons}#exclamation-triangle-fill"/></svg>
+		<span><c:out value="${errorMessage}"/></span>
 	</div>
 	</c:if>
 
@@ -80,11 +110,12 @@
 						<dd class="col-7"><c:out value="${empty candidate.applieddate ? '-' : candidate.applieddate}"/></dd>
 						<dt class="col-5">Status</dt>
 						<dd class="col-7">
-							<c:choose>
-								<c:when test="${fn:toUpperCase(candidate.candidatestatus) eq 'S'}">Selected</c:when>
-								<c:when test="${fn:toUpperCase(candidate.candidatestatus) eq 'R'}">Rejected</c:when>
-								<c:otherwise>Pending</c:otherwise>
-							</c:choose>
+							<rms:status value="${candidate.candidatestatus}" icons="${icons}"/>
+							<%-- The decision's reason, date and author are for staff --%>
+							<c:if test="${role ne 'INTERVIEWER' and not empty candidate.decisiondate}">
+							<div class="small mt-1"><c:out value="${candidate.decisionreason}"/></div>
+							<div class="small text-body-secondary"><c:out value="${candidate.decisiondate}"/>, <c:out value="${empty candidate.decidedbyname ? candidate.decidedby : candidate.decidedbyname}"/></div>
+							</c:if>
 						</dd>
 					</dl>
 				</div>
@@ -241,16 +272,89 @@
 		</div>
 		</c:if>
 
+		<c:if test="${role ne 'INTERVIEWER'}">
 		<div class="col-12">
-			<div class="card rms-card rms-tile-soon">
-				<div class="card-body d-flex align-items-center gap-3">
-					<span class="rms-tile-icon mb-0"><svg class="rms-icon" aria-hidden="true"><use href="${icons}#clock"/></svg></span>
-					<div>
-						<h2 class="h5 mb-1">Interviewers, evaluations and decisions</h2>
-						<p class="mb-0">Coming in the next release.</p>
+			<div class="card rms-card" id="interviewers">
+				<div class="card-body">
+					<h2 class="h5 mb-1">Interviewers</h2>
+					<p class="text-body-secondary mb-3">Assigned interviewers score the candidate. Unassigning keeps their evaluation, which still counts; they can no longer change it.</p>
+					<c:choose>
+					<c:when test="${empty assignments}">
+					<p class="mb-3">No interviewer is assigned yet.</p>
+					</c:when>
+					<c:otherwise>
+					<div class="table-responsive">
+					<table id="assignmenttable" class="table align-middle">
+						<thead>
+							<tr>
+								<th>Interviewer</th>
+								<th>Assigned</th>
+								<th>Evaluation</th>
+								<th class="text-end"><span class="visually-hidden">Actions</span></th>
+							</tr>
+						</thead>
+						<tbody>
+						<c:forEach items="${assignments}" var="assignment">
+							<tr>
+								<td>
+									<c:out value="${empty assignment.interviewername ? assignment.interviewerid : assignment.interviewername}"/>
+									<%-- A deactivated interviewer keeps the assignment, so HR can see it and reassign --%>
+									<c:if test="${not assignment.intervieweractive}">
+									<span class="badge rounded-pill text-bg-warning ms-1">interviewer inactive</span>
+									</c:if>
+								</td>
+								<td class="small text-nowrap"><c:out value="${assignment.assignedlabel}"/></td>
+								<td>
+									<c:choose>
+										<c:when test="${assignment.evaluated}"><span class="badge rounded-pill text-bg-success">Submitted</span></c:when>
+										<c:otherwise><span class="badge rounded-pill text-bg-secondary">Not yet</span></c:otherwise>
+									</c:choose>
+								</td>
+								<td class="text-end text-nowrap">
+									<c:if test="${canedit}">
+									<form:form id="unassign-${assignment.assignmentkey}" method="post" action="${unassignURL}" cssClass="d-inline"
+										data-rms-confirm="Unassign this interviewer? Their evaluation, if any, stays and still counts.">
+										<input type="hidden" name="candidateid" value="<c:out value='${candidate.candidateid}'/>"/>
+										<input type="hidden" name="interviewerid" value="<c:out value='${assignment.interviewerid}'/>"/>
+										<button type="submit" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1">
+											<svg class="rms-icon" aria-hidden="true"><use href="${icons}#x-circle-fill"/></svg><span class="rms-btn-label">Unassign</span></button>
+									</form:form>
+									</c:if>
+								</td>
+							</tr>
+						</c:forEach>
+						</tbody>
+					</table>
 					</div>
+					</c:otherwise>
+					</c:choose>
+					<c:if test="${canedit}">
+					<c:choose>
+					<c:when test="${empty assignable}">
+					<p class="text-body-secondary small mb-0">Every active interviewer is assigned already. Interviewers are users with the Interviewer role (Users and Roles).</p>
+					</c:when>
+					<c:otherwise>
+					<form:form id="assigninterviewer" method="post" action="${assignURL}" cssClass="row g-2 align-items-end">
+						<input type="hidden" name="candidateid" value="<c:out value='${candidate.candidateid}'/>"/>
+						<div class="col-sm-8 col-lg-5">
+							<label for="interviewerid" class="form-label">Assign an interviewer</label>
+							<select name="interviewerid" id="interviewerid" class="form-select">
+								<option value="">Choose an interviewer</option>
+							<c:forEach items="${assignable}" var="interviewer">
+								<option value="<c:out value='${interviewer.userid}'/>"><c:out value="${interviewer.firstname} ${interviewer.lastname}"/></option>
+							</c:forEach>
+							</select>
+						</div>
+						<div class="col-sm-4 col-lg-2">
+							<button type="submit" class="btn btn-primary w-100">Assign</button>
+						</div>
+					</form:form>
+					</c:otherwise>
+					</c:choose>
+					</c:if>
 				</div>
 			</div>
 		</div>
+		</c:if>
 	</div>
 </rms:layout>

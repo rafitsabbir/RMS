@@ -1,7 +1,7 @@
 # Flow: Users, Roles and Passwords
 
 Purpose: Traces the four roles, the Users and Roles screen, Change password and the login lock.
-Last updated: 2026-10-02 (Phase 2: the access rules for jobs, the candidate profile and documents). 2026-10-02 (Phase 1 of the roles plan: roles, Users and Roles, Change password, bcrypt for new passwords, inactive users, login lock; migrations 002 and 003)
+Last updated: 2026-10-02 (Phase 3: interviewer pages and the assigned-candidate checks; a deactivated interviewer's assignments stay, flagged). 2026-10-02 (Phase 2: the access rules for jobs, the candidate profile and documents). 2026-10-02 (Phase 1 of the roles plan: roles, Users and Roles, Change password, bcrypt for new passwords, inactive users, login lock; migrations 002 and 003)
 Read this when: you're changing who can open what, managing users, or working on passwords and the login lock. The login itself is in [login.md](login.md).
 
 Evidence: `rms/model/Role.java`, `rms/config/SecurityConfig.java`, `rms/config/AccountCheckFilter.java`, `rms/config/LoginThrottle.java`, `rms/controller/UserController.java`, `rms/controller/AccountController.java`, `rms/service/UserServiceImpl.java`, `rms/dao/UserDaoImpl.java`, `rms/dao/LoginDaoImpl.java`, `WEB-INF/jsp/viewuser.jsp`, `createuser.jsp`, `changepassword.jsp`, `WEB-INF/tags/layout.tag`. Tests: `SecurityConfigTest` (access matrix), `UserControllerTest`, `AccountControllerTest`, `UserServiceImplTest`, `UserDaoImplTest` (needs Docker), `LoginThrottleTest`, `RoleTest`.
@@ -12,7 +12,7 @@ Evidence: `rms/model/Role.java`, `rms/config/SecurityConfig.java`, `rms/config/A
 | Super Admin | `SUPER_ADMIN` | everything, including Users and Roles | `N` |
 | HR | `HR` | Candidate Status, candidates (add, edit, delete, profile, documents), jobs, positions, languages | `Y` |
 | Hiring Manager | `HIRING_MANAGER` | Candidate Status, the candidate list and profiles, jobs, document downloads; read-only | `Y` |
-| Interviewer | `INTERVIEWER` | Home and Change password (evaluation pages come in Phase 3, G5–G7) | `Y` |
+| Interviewer | `INTERVIEWER` | My Evaluations and the evaluation form for their assigned candidates, those candidates' profiles and documents | `Y` |
 
 - **Every logged-in user**, with or without a role, can open Home and Change password.
 - **Where the role comes from** (`Role.of`, read in `LoginDaoImpl.UserMapper` and `UserDaoImpl.UserMapper`): `admin.role`; when that is NULL, the legacy `admin.isinterviewer` (`N` → Super Admin, `Y` → Interviewer). Anything else, including an unknown `role` text, is **no role**: the user sees only Home and Change password (fail closed, G16).
@@ -23,8 +23,10 @@ Evidence: `rms/model/Role.java`, `rms/config/SecurityConfig.java`, `rms/config/A
 - `/login`, `/welcome`: public. `/`, `/home`, `/changepassword`, `/savepassword`: any logged-in user.
 - `USER_ADMIN_PAGES` (Users and Roles): Super Admin.
 - `SUPER_ADMIN_PAGES` (`/purgedocuments`, the permanent delete of a candidate's document files): Super Admin.
-- `STAFF_READ_PAGES` (`/adminviewmarks`, `/viewcandidatelist`, `/viewcandidate`, `/downloaddocument/*`, `/viewjoblist`): Super Admin, HR, Hiring Manager.
-- `HR_PAGES` (candidate and document changes, jobs, positions, languages): Super Admin, HR.
+- `STAFF_READ_PAGES` (`/adminviewmarks`, `/viewcandidatelist`, `/viewevaluations`, `/viewjoblist`): Super Admin, HR, Hiring Manager.
+- `CANDIDATE_READ_PAGES` (`/viewcandidate`, `/downloaddocument/*`): all four roles; an interviewer only for candidates assigned to them, checked in `CandidateController` and `DocumentController` (403 otherwise).
+- `INTERVIEWER_PAGES` (`/myevaluations`, `/evaluate`, `/saveevaluation`): Interviewer; the assignment is checked in `EvaluationController`.
+- `HR_PAGES` (candidate, document, assignment and decision changes, jobs, positions, languages): Super Admin, HR.
 - **Everything else is refused** (`anyRequest().denyAll()`), including pages that don't exist and `/x/` for `/x`: HTTP 403 when logged in, a redirect to `/login` when not. A new page needs its own rule and cases in `SecurityConfigTest.pages()`.
 - The candidate list hides Add, Edit and Delete from a Hiring Manager (`viewcandidate.jsp`, `canedit`); the URLs behind them are refused anyway.
 
@@ -50,7 +52,7 @@ flowchart LR
   - A username used by any `users` row is refused ("That username is already taken."), compared under the column's collation (case-insensitive on the MySQL defaults), deactivated users included.
   - The new user must choose their own password at first login (`users.mustchangepassword = 1`).
 - **Edit:** profile and role. The user ID and username can't be changed. Posted `isactive`, `mustchangepassword` and the like are ignored (`UserController.bindProfileFieldsOnly`).
-- **Deactivate / Reactivate:** soft. Deactivating sets `admin.isactive = 0`, which blocks the login and ends the user's open session at their next request. Nothing else changes: their evaluations, schedules and history stay, and (from Phase 3) their open candidate assignments stay too, flagged "interviewer inactive" for HR. Reactivating restores everything.
+- **Deactivate / Reactivate:** soft. Deactivating sets `admin.isactive = 0`, which blocks the login and ends the user's open session at their next request. Nothing else changes: their evaluations, schedules and history stay, and their open candidate assignments stay too, flagged "interviewer inactive" on the profile and the evaluation detail for HR (Phase 3; the dashboard flag comes in Phase 4). Reactivating restores everything.
 - **Reset password:** sets a temporary password and `mustchangepassword = 1`. The user can then open only Change password until they choose their own.
 - **Guards:** a Super Admin can't deactivate, demote or reset themselves here (they use Change password), and the last active Super Admin can't be deactivated or demoted.
 - **Logging:** `UserController` logs the target and acting userids at INFO (created, edited, deactivated, reactivated, password reset). No names or passwords.

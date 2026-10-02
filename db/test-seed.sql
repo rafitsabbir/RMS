@@ -33,10 +33,14 @@ INSERT INTO job (jobkey, positionkey, vacancies, closingdate, status, isactive) 
 	(2, 2, 1, '2026-01-31', 'CLOSED', 1),
 	(3, 1, 1, NULL, 'OPEN', 0);
 
+-- C1 is Selected and C2 Rejected (latest decisions; the history is in candidate_decision), so both have their
+-- evaluations locked
 INSERT INTO candidate (candidateid, firstname, lastname, positionkey, languagekey, candidatestatus,
-		email, phone, source, applieddate, jobkey) VALUES
-	('C1', 'Carla', 'Candidate', 1, 1, 'S', 'carla@example.test', '000-1001', 'REFERRAL', '2026-09-01', 1),
-	('C2', 'Cody', 'Candidate', 2, 2, 'R', NULL, NULL, 'JOB_BOARD', '2026-09-15', NULL);
+		email, phone, source, applieddate, jobkey, decisionreason, decisiondate, decidedby) VALUES
+	('C1', 'Carla', 'Candidate', 1, 1, 'S', 'carla@example.test', '000-1001', 'REFERRAL', '2026-09-01', 1,
+		'Strong technical interview', '2026-09-20', 'U3'),
+	('C2', 'Cody', 'Candidate', 2, 2, 'R', NULL, NULL, 'JOB_BOARD', '2026-09-15', NULL,
+		'Not enough experience for the role', '2026-09-22', 'U3');
 
 -- Document metadata only: no files exist for these stored names (a download answers 404, "file missing").
 -- The DAO and service tests write their own small synthetic files. C1 has a CV, an SSC certificate and one
@@ -52,7 +56,28 @@ INSERT INTO candidate_document (documentkey, candidateid, doctype, originalname,
 	(4, 'C1', 'CV', 'old-cv.pdf', 'a0000000000000000000000000000004', 'application/pdf', 1536,
 		NULL, NULL, NULL, 'U3', '2026-09-02 09:00:00', 0, 'U3', '2026-09-03 10:00:00');
 
+-- Rows 1-2 look like evaluations from before Phase 3 (no comments, no dates). Row 3 is from U5, an interviewer
+-- deactivated since: it still counts. Row 4 is inactive and doesn't count. markkey is generated: 1 to 4.
+-- C1 averages: 7.0 8.0 7.5 7.0 8.0 7.0 7.5 7.5 8.0 7.0, total 74.5; C2: 33.0 from row 2 alone.
 INSERT INTO marks (isactive, interviewerid, candidateid, workexp, techknowledge, leadership, decision,
-		probsolving, stress, education, comskill, attitude, personality) VALUES
-	(1, 'U2', 'C1', 8, 9, 7, 8, 9, 6, 8, 7, 9, 8),
-	(1, 'U2', 'C2', 3, 4, 2, 3, 4, 5, 3, 2, 4, 3);
+		probsolving, stress, education, comskill, attitude, personality, comments, techknowledgecomment,
+		createdat, updatedat) VALUES
+	(1, 'U2', 'C1', 8, 9, 7, 8, 9, 6, 8, 7, 9, 8, NULL, NULL, NULL, NULL),
+	(1, 'U2', 'C2', 3, 4, 2, 3, 4, 5, 3, 2, 4, 3, NULL, NULL, NULL, NULL),
+	(1, 'U5', 'C1', 6, 7, 8, 6, 7, 8, 7, 8, 7, 6, 'Calm and structured.', 'Good Java basics.',
+		'2026-09-12 15:00:00', '2026-09-12 15:30:00'),
+	(0, 'U5', 'C2', 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, NULL, NULL, NULL, NULL);
+
+-- U2 is assigned to both candidates; U5 (inactive) to C1, and was unassigned from C2
+INSERT INTO candidate_interviewer (assignmentkey, candidateid, interviewerid, assignedby, assignedat, isactive,
+		unassignedby, unassignedat) VALUES
+	(1, 'C1', 'U2', 'U3', '2026-09-04 09:00:00', 1, NULL, NULL),
+	(2, 'C1', 'U5', 'U3', '2026-09-04 09:05:00', 1, NULL, NULL),
+	(3, 'C2', 'U2', 'U3', '2026-09-16 09:00:00', 1, NULL, NULL),
+	(4, 'C2', 'U5', 'U3', '2026-09-16 09:05:00', 0, 'U3', '2026-09-17 09:00:00');
+
+-- C1 was put On hold, then Selected; C2 Rejected
+INSERT INTO candidate_decision (decisionkey, candidateid, status, reason, decisiondate, decidedby, decidedat) VALUES
+	(1, 'C1', 'H', 'Waiting for a second interview', '2026-09-10', 'U3', '2026-09-10 12:00:00'),
+	(2, 'C1', 'S', 'Strong technical interview', '2026-09-20', 'U3', '2026-09-20 12:00:00'),
+	(3, 'C2', 'R', 'Not enough experience for the role', '2026-09-22', 'U3', '2026-09-22 12:00:00');

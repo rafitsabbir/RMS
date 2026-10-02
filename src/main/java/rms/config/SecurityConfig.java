@@ -63,18 +63,27 @@ public class SecurityConfig {
 	private static final String SUPER_ADMIN = Role.SUPER_ADMIN.name();
 	private static final String HR = Role.HR.name();
 	private static final String HIRING_MANAGER = Role.HIRING_MANAGER.name();
+	private static final String INTERVIEWER = Role.INTERVIEWER.name();
 
 	/** Users and Roles: Super Admin only. */
 	static final String[] USER_ADMIN_PAGES = { "/viewuserlist", "/createuser", "/updateuser", "/saveuser",
 			"/deactivateuser", "/reactivateuser", "/resetpassword" };
 	/** The permanent delete of a candidate's document files: Super Admin only. */
 	static final String[] SUPER_ADMIN_PAGES = { "/purgedocuments" };
-	/** Read-only staff pages: Super Admin, HR and Hiring Manager. Interviewers get assigned profiles in Phase 3. */
-	static final String[] STAFF_READ_PAGES = { "/adminviewmarks", "/viewcandidatelist", "/viewcandidate",
-			"/downloaddocument/*", "/viewjoblist" };
-	/** Candidate and document changes, jobs and master data: Super Admin and HR. */
+	/** Read-only staff pages: Super Admin, HR and Hiring Manager. */
+	static final String[] STAFF_READ_PAGES = { "/adminviewmarks", "/viewcandidatelist", "/viewevaluations",
+			"/viewjoblist" };
+	/**
+	 * A candidate's profile and documents: staff, and interviewers for the candidates they are assigned to (checked in
+	 * CandidateController and DocumentController, Phase 3).
+	 */
+	static final String[] CANDIDATE_READ_PAGES = { "/viewcandidate", "/downloaddocument/*" };
+	/** An interviewer's own evaluations: Interviewer only (the assignment is checked in EvaluationController). */
+	static final String[] INTERVIEWER_PAGES = { "/myevaluations", "/evaluate", "/saveevaluation" };
+	/** Candidate, document, assignment and decision changes, jobs and master data: Super Admin and HR. */
 	static final String[] HR_PAGES = { "/createcandidate", "/updatecandidate", "/savecandidate",
-			"/deletecandidate", "/uploaddocument", "/deletedocument/*", "/createjob", "/updatejob/*", "/savejob",
+			"/deletecandidate", "/assigninterviewer", "/unassigninterviewer", "/savedecision", "/uploaddocument",
+			"/deletedocument/*", "/createjob", "/updatejob/*", "/savejob",
 			"/deletejob/*", "/viewpositionlist", "/createposition", "/updateposition/*", "/saveposition",
 			"/deleteposition/*", "/viewlanguagelist", "/createlanguage", "/updatelanguage/*", "/savelanguage",
 			"/deletelanguage/*" };
@@ -102,6 +111,8 @@ public class SecurityConfig {
 						.requestMatchers(USER_ADMIN_PAGES).hasRole(SUPER_ADMIN)
 						.requestMatchers(SUPER_ADMIN_PAGES).hasRole(SUPER_ADMIN)
 						.requestMatchers(STAFF_READ_PAGES).hasAnyRole(SUPER_ADMIN, HR, HIRING_MANAGER)
+						.requestMatchers(CANDIDATE_READ_PAGES).hasAnyRole(SUPER_ADMIN, HR, HIRING_MANAGER, INTERVIEWER)
+						.requestMatchers(INTERVIEWER_PAGES).hasRole(INTERVIEWER)
 						.requestMatchers(HR_PAGES).hasAnyRole(SUPER_ADMIN, HR)
 						// Deny by default: a new page needs its own rule above, and cases in SecurityConfigTest
 						.anyRequest().denyAll())

@@ -1,6 +1,6 @@
 # RMS Developer Handbook
 @ Recruitment Management System — code structure, request flow, security model, conventions, tests and recipes for common changes
-@ Branch dev as of 2 October 2026 (roles plan, Phase 2). Java 21, Spring 7, Tomcat 11, MySQL.
+@ Branch dev as of 2 October 2026 (roles plan, Phase 3). Java 21, Spring 7, Tomcat 11, MySQL.
 
 ## 1. First day
 1. Install **JDK 21** (for example Eclipse Temurin 21) and set JAVA_HOME. A JRE isn't enough. Maven comes with the repository (Maven Wrapper).
@@ -17,10 +17,10 @@
 |---|---|
 |pom.xml|Maven build, packaging war|
 |src/main/java/rms/config/|WebInitializer (bootstraps Spring), WebConfig (MVC, view resolver, JNDI DataSource, static resources), SecurityConfig (access rules, login, logout, CSRF, password check), AccountCheckFilter, LoginThrottle, SecurityInitializer (registers the security filter), PlainTextPasswordEncoder (legacy passwords)|
-|src/main/java/rms/controller/|Login, Account (Change password), User (Users and Roles), Position, Language, Candidate (with the profile), Job, Document (upload, download, delete, permanent delete) and Marks controllers|
-|src/main/java/rms/service/|*Service interfaces and *ServiceImpl classes (mostly pass-through; UserServiceImpl encodes passwords; DocumentServiceImpl checks and stores uploads), RmsUserDetails, PasswordRules, DocumentRules (file checks), DocumentOutcome|
+|src/main/java/rms/controller/|Login, Account (Change password), User (Users and Roles), Position, Language, Candidate (with the profile), Job, Document (upload, download, delete, permanent delete), Assignment, Evaluation (My Evaluations, the evaluation form, the evaluation detail and the decision) and Marks (Candidate Status) controllers, and CurrentUser (the session user's ID and role)|
+|src/main/java/rms/service/|*Service interfaces and *ServiceImpl classes (mostly pass-through; UserServiceImpl encodes passwords; DocumentServiceImpl checks and stores uploads), RmsUserDetails, PasswordRules, DocumentRules (file checks), Outcome (a checked action's result)|
 |src/main/java/rms/dao/|*Dao interfaces and *DaoImpl classes — all SQL lives here; DocumentFileStore, the files in RMS_DOC_DIR|
-|src/main/java/rms/model/|*Info beans: PositionInfo, LanguageInfo, CandidateInfo, JobInfo, DocumentInfo, MarksInfo, UserInfo, LoginInfo; the enums Role, DocumentType, CandidateSource; the record DocumentUpload|
+|src/main/java/rms/model/|*Info beans: PositionInfo, LanguageInfo, CandidateInfo, JobInfo, DocumentInfo, MarksInfo, UserInfo, LoginInfo, ResultInfo, AssignmentInfo, DecisionInfo; the enums Role, DocumentType, CandidateSource, DecisionStatus, Criterion; the record DocumentUpload|
 |src/main/resources/logback.xml|Logging configuration|
 |src/main/webapp/WEB-INF/jsp/|15 views: login, main (home), create*/view* per module, candidateprofile, changepassword, viewmarks|
 |src/main/webapp/WEB-INF/tags/layout.tag|Page shell: head, sidebar menu, top bar, Log out|
@@ -46,7 +46,8 @@
 ## 4. Security model
 - **Login:** Spring Security handles `POST /welcome` (fields username and password) and calls `LoginService.loadUserByUsername`. Never read credentials in a controller.
 - **Roles:** four, in `rms.model.Role`: SUPER_ADMIN, HR, HIRING_MANAGER, INTERVIEWER, read from admin.role (NULL falls back to admin.isinterviewer: N is Super Admin, Y is Interviewer). The authority is ROLE_ plus the name. Writes keep isinterviewer in step (N for Super Admin, Y for the rest) so an older WAR still works after a rollback.
-- **Rules** live in `SecurityConfig.appFilterChain` and **deny by default**: /login and /welcome are public; /, /home, /changepassword and /savepassword need any login; every other page is listed in USER_ADMIN_PAGES, SUPER_ADMIN_PAGES (the permanent delete of documents), STAFF_READ_PAGES or HR_PAGES with its roles; `anyRequest().denyAll()` refuses the rest. A new URL is refused for everyone until you list it.
+- **Rules** live in `SecurityConfig.appFilterChain` and **deny by default**: /login and /welcome are public; /, /home, /changepassword and /savepassword need any login; every other page is listed in USER_ADMIN_PAGES, SUPER_ADMIN_PAGES (the permanent delete of documents), STAFF_READ_PAGES, CANDIDATE_READ_PAGES (profile and downloads, all four roles), INTERVIEWER_PAGES or HR_PAGES with its roles; `anyRequest().denyAll()` refuses the rest. A new URL is refused for everyone until you list it.
+- **Per-row checks:** interviewers reach a candidate's profile, documents and evaluation form only while assigned to them. The URL rule lets them in; the controller checks with `CurrentUser` and `AssignmentService.isAssigned` and answers 403. Put such checks in the controller or service, never only in the JSP.
 - **Account check:** `AccountCheckFilter` re-reads the user's admin row on every request: deactivated or a changed role ends the session (/login?ended); a reset password (users.mustchangepassword = 1) allows only Change password.
 - **Login lock:** `LoginThrottle`, 5 failures per username and address in 15 minutes lock it there for 15 minutes; in memory per Tomcat node.
 - **Menu** visibility is separate: layout.tag shows blocks by the session user's role name (`role eq 'HR'`). Change both the rule and the menu.
@@ -124,7 +125,8 @@ Messages are set in the controller (the form(info, "message") helper) and shown 
 - Every schema change needs: the column in schema.sql (for tests and new local databases), a numbered script in db/migrations/ (for existing databases, run by the owner before deploying), and a note in docs/data-model.md.
 - Soft delete everywhere: lists and finds filter isactive = 1; reports may still join deleted rows on purpose.
 - The SQL is MySQL-specific (concat(), UPDATE … ORDER BY … LIMIT, REGEXP).
-- MarksDaoImpl reads columns by position from m.*: don't change the column order of the marks table.
+- marks: since Phase 3 MarksDaoImpl names every column and reads by name; older WARs still read m.* by position, so add marks columns only at the end. Migration 005 (a draft) needs the owner's SHOW CREATE TABLE marks first.
+- The decision badge is `<rms:status value="…" icons="…"/>` (WEB-INF/tags/status.tag): S, R, H or Pending.
 - New tables are created ENGINE=InnoDB (transactions and the SELECT … FOR UPDATE lock in DocumentDaoImpl). Migrations so far: 001 candidate.isactive, 002 roles, 003 password hashing (a Java program, not run), 004 candidate documents and jobs.
 - Dates: LocalDate and LocalDateTime map to DATE and DATETIME through Connector/J (`rs.getObject(column, LocalDate.class)`); upload times use the database's now().
 
@@ -140,7 +142,7 @@ Messages are set in the controller (the form(info, "message") helper) and shown 
 - These are **characterization tests**: they pin what the code does today. A test that pins a known defect carries a comment such as `// characterizes G10`.
 - Use only synthetic data: no real names, credentials or hostnames.
 - Mockito runs as a Java agent configured in pom.xml. When running tests from an IDE, add -javaagent:<path to the mockito-core jar> to the run configuration, or let Maven run them.
-- Current numbers on a machine without Docker: 329 tests, 225 pass, 104 skipped (91 DAO, 13 smoke).
+- Current numbers on a machine without Docker: 383 tests, 263 pass, 120 skipped (106 DAO, 14 smoke).
 
 ## 10. Pitfalls
 |Pitfall|What happens|What to do|

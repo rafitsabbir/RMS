@@ -6,7 +6,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
-import java.util.Arrays;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -19,10 +18,11 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import rms.config.WebConfig;
-import rms.model.MarksInfo;
+import rms.model.Criterion;
+import rms.model.ResultInfo;
 import rms.service.MarksService;
 
-/** Characterization tests: pin the admin results page model before any upgrade. */
+/** Candidate Status: the averages per candidate (Phase 3). */
 @ExtendWith(MockitoExtension.class)
 class MarksControllerTest {
 
@@ -41,14 +41,15 @@ class MarksControllerTest {
 	}
 
 	@Test
-	void adminViewMarksShowsAllMarks() throws Exception {
-		List<MarksInfo> marks = Arrays.asList(new MarksInfo());
-		when(marksservice.getAllMarksByAdmin()).thenReturn(marks);
+	void candidateStatusShowsTheResultsAndTheCriteria() throws Exception {
+		List<ResultInfo> results = List.of(new ResultInfo());
+		when(marksservice.getResults()).thenReturn(results);
 
 		mockMvc.perform(get("/adminviewmarks"))
 				.andExpect(status().isOk())
 				.andExpect(view().name("viewmarks"))
-				.andExpect(model().attribute("markslist", marks));
+				.andExpect(model().attribute("resultlist", results))
+				.andExpect(model().attribute("criteria", Criterion.values()));
 	}
 
 }

@@ -133,6 +133,32 @@ class SmokeTest {
 		assertThat(CSRF_FIELD.matcher(body).find()).isTrue();
 	}
 
+	/** Phase 3: Candidate Status averages and C1's evaluations and decisions. Needs a Super Admin smoke user. */
+	@Test
+	@EnabledIfEnvironmentVariable(named = "RMS_SMOKE_USER", matches = ".+")
+	@EnabledIfEnvironmentVariable(named = "RMS_SMOKE_PASSWORD", matches = ".+")
+	void evaluationPagesRender() throws IOException {
+		HttpURLConnection login = postLogin(System.getenv("RMS_SMOKE_USER"), System.getenv("RMS_SMOKE_PASSWORD"));
+		String cookie = sessionCookie(login);
+
+		HttpURLConnection status = open("/adminviewmarks", cookie);
+		assertThat(status.getResponseCode()).isEqualTo(200);
+		String body = read(status);
+		// The seed's averages for C1 (db/test-seed.sql)
+		assertThat(body).contains("74.5");
+
+		HttpURLConnection detail = open("/viewevaluations?candidateid=C1", cookie);
+		assertThat(detail.getResponseCode()).isEqualTo(200);
+		body = read(detail);
+		assertThat(body).contains("id=\"evaluationtable\"");
+		assertThat(body).contains("id=\"savedecision\"");
+		assertThat(body).contains("interviewer inactive");
+		assertThat(CSRF_FIELD.matcher(body).find()).isTrue();
+
+		HttpURLConnection profile = open("/viewcandidate?candidateid=C1", cookie);
+		assertThat(read(profile)).contains("id=\"interviewers\"");
+	}
+
 	/** Phase 2: jobs, and the seed candidate C1's profile with its documents. Needs a Super Admin smoke user. */
 	@Test
 	@EnabledIfEnvironmentVariable(named = "RMS_SMOKE_USER", matches = ".+")

@@ -30,7 +30,8 @@ import org.testcontainers.containers.MySQLContainer;
  */
 abstract class MySqlContainerSupport {
 
-	private static final String[] TABLES = { "candidate_document", "job", "marks", "candidate", "language",
+	private static final String[] TABLES = { "candidate_decision", "candidate_interviewer", "candidate_document", "job",
+			"marks", "candidate", "language",
 			"position", "admin", "users" };
 
 	private static MySQLContainer<?> mysql;
