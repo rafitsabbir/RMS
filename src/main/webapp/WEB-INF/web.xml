@@ -11,7 +11,8 @@
 		is G34 (docs/gaps.md). -->
 	<request-character-encoding>ISO-8859-1</request-character-encoding>
 	<!-- Sessions by cookie only, so no ;jsessionid in URLs, history or logs (G41). SameSite=Lax keeps
-		other sites' form posts from carrying the session cookie; a CSRF token still comes with G32. -->
+		other sites' form posts from carrying the session cookie; Spring Security's CSRF token also guards
+		every POST (rms.config.SecurityConfig, G32). -->
 	<session-config>
 		<cookie-config>
 			<attribute>

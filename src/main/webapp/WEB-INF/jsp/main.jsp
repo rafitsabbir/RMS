@@ -4,7 +4,7 @@
 <%@ taglib uri="jakarta.tags.core" prefix="c" %>
 <%@ taglib uri="jakarta.tags.functions" prefix="fn" %>
 <%@ taglib prefix="rms" tagdir="/WEB-INF/tags" %>
-<%-- GET /home (LoginController.home). AuthInterceptor already requires a login; this is a fallback --%>
+<%-- GET /home (LoginController.home). Spring Security already requires a login (SecurityConfig); this is a fallback --%>
 <c:if test="${empty userinfo}">
 	<c:redirect url="/login" />
 </c:if>

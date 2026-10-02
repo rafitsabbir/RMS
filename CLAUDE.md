@@ -14,6 +14,7 @@ Use subagents in .claude/agents/ — see ROUTER.md.
 - Framework: Spring MVC 7.0.9 (Spring BOM) on Jakarta EE 11, with JSP/Jakarta Tags (JSTL 3.0) and Spring JDBC (`NamedParameterJdbcTemplate`, no ORM).
 - Database: MySQL (Connector/J 8.2.0, `com.mysql.cj.jdbc.Driver`) through JNDI `jdbc/springrms`, in an external Servlet 6.1 container (Tomcat 11).
 - Logging: SLF4J 2.0 with Logback 1.5 (`src/main/resources/logback.xml`).
+- Security: Spring Security 7.0.7: form login, roles, CSRF tokens, POST logout (`rms/config/SecurityConfig.java`).
 
 Evidence: `pom.xml`, `.mvn/wrapper/maven-wrapper.properties`, `rms/config/WebConfig.java`.
 
@@ -38,7 +39,7 @@ Evidence: `pom.xml`, `.mvn/wrapper/maven-wrapper.properties`, `rms/config/WebCon
 ```
 pom.xml                       Maven build (WAR)
 src/main/java/rms/
-  config/                     WebInitializer (bootstrap), WebConfig (MVC, DataSource), AuthInterceptor (login and admin checks)
+  config/                     WebInitializer (bootstrap), WebConfig (MVC, DataSource), SecurityConfig + SecurityInitializer (Spring Security)
   controller/                 Login, Position, Language, Marks
   service/  dao/  model/      *Service(+Impl), *Dao(+Impl), *Info
 src/main/webapp/
@@ -46,7 +47,7 @@ src/main/webapp/
   WEB-INF/tags/layout.tag     shared page shell: head, sidebar menu, top bar
   WEB-INF/web.xml             Servlet 6.1: request encoding ISO-8859-1, metadata-complete
   resources/                  css (rms.css theme), js (rms.js), img (SVG logo, icon sprite)
-src/test/java/rms/            controller, access-control, DAO (Testcontainers) and smoke tests
+src/test/java/rms/            controller, security, service, DAO (Testcontainers) and smoke tests
 db/                           schema.sql (inferred), test-seed.sql (synthetic)
   local/                      local MySQL setup: create DB + load schema and seed (README.md)
 mvnw, .mvn/wrapper/           Maven Wrapper

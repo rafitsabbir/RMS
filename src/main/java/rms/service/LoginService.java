@@ -1,10 +1,9 @@
 package rms.service;
 
-import rms.model.UserInfo;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 public interface LoginService {
 
-	public String checkLogin(String username, String password);
-
-	public UserInfo getUserInfo(String userid);
+	/** The user Spring Security checks the password against (SecurityConfig). */
+	public RmsUserDetails loadUserByUsername(String username) throws UsernameNotFoundException;
 }

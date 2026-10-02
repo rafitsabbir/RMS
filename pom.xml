@@ -11,6 +11,8 @@
   
   	<properties>
 		<spring.version>7.0.9</spring.version>
+		<!-- 7.0.7 is built against Spring 7.0.9 (spring-security-core's pom) -->
+		<spring-security.version>7.0.7</spring-security.version>
 		<servletapi.version>6.1.0</servletapi.version>
 		<jstl.api.version>3.0.2</jstl.api.version>
 		<jstl.impl.version>3.0.1</jstl.impl.version>
@@ -37,6 +39,14 @@
 				<groupId>org.springframework</groupId>
 				<artifactId>spring-framework-bom</artifactId>
 				<version>${spring.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+			<!-- Keeps every Spring Security module on one version (G11, G13, G32) -->
+			<dependency>
+				<groupId>org.springframework.security</groupId>
+				<artifactId>spring-security-bom</artifactId>
+				<version>${spring-security.version}</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
@@ -83,6 +93,16 @@
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-context</artifactId>
+		</dependency>
+
+		<!-- Login, roles and CSRF tokens (rms.config.SecurityConfig) -->
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-web</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-config</artifactId>
 		</dependency>
 
 		<!-- Jakarta Tags (JSTL) 3.0: Tomcat doesn't bundle an implementation, so the WAR carries one -->
@@ -145,6 +165,11 @@
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-test</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<dependency>

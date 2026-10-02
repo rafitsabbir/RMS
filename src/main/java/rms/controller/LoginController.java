@@ -1,67 +1,40 @@
 package rms.controller;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.ModelAndView;
 
-import rms.model.UserInfo;
-import rms.service.LoginService;
-
+/**
+ * The login page and the home page. Spring Security handles the login post (POST /welcome) and the logout
+ * (POST /logout); see rms.config.SecurityConfig.
+ */
 @Controller
 @RequestMapping(value = "/")
 public class LoginController {
-	private static final Logger log = LoggerFactory.getLogger(LoginController.class);
-
-	@Autowired
-	LoginService loginservice;
 
 	@RequestMapping(value = "/", method = RequestMethod.GET)
 	public ModelAndView root() {
 		return new ModelAndView("redirect:/home");
 	}
 
+	/** No longer logs out: a GET from another site could otherwise end the session (G32). */
 	@RequestMapping(value = "/login", method = RequestMethod.GET)
-	public ModelAndView loginPage(HttpSession session) {
+	public ModelAndView loginPage(@RequestParam(value = "error", required = false) String error,
+			@RequestParam(value = "expired", required = false) String expired,
+			@RequestParam(value = "unavailable", required = false) String unavailable) {
 		ModelAndView mv = new ModelAndView("login");
-		session.removeAttribute("user");
-		session.invalidate();
-		return mv;
-	}
-
-	@RequestMapping(value = "/welcome", method = RequestMethod.POST)
-	public ModelAndView doLogin(HttpSession session, HttpServletRequest request, HttpServletResponse response) {
-		String username = request.getParameter("username");
-		String password = request.getParameter("password");
-		ModelAndView mv;
-
-		String userid = null;
-		userid = loginservice.checkLogin(username, password);
-		UserInfo userinfo = userid == null ? null : loginservice.getUserInfo(userid);
-		if (userid != null && userinfo == null) {
-			log.warn("User {} has no admin row; login refused", userid);
-		}
-
-		if (userinfo != null) {
-			// A new session id after login, so an id set before it is worthless
-			request.changeSessionId();
-			session.setAttribute("user", userinfo);
-			// Redirect, so a refresh of the menu page doesn't post the login again
-			return new ModelAndView("redirect:/home");
-		} else {
-			session.removeAttribute("user");
-			session.invalidate();
-			mv = new ModelAndView("login");
+		if (error != null) {
 			mv.addObject("errorMessage", "Invalid login!");
-			return mv;
+		} else if (expired != null) {
+			mv.addObject("errorMessage", "Your session expired. Please sign in again.");
+		} else if (unavailable != null) {
+			mv.addObject("errorMessage", "Sign-in isn't available right now. Please try again later.");
 		}
+		return mv;
 	}
 
 	@RequestMapping(value = "/home", method = RequestMethod.GET)

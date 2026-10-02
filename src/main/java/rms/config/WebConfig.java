@@ -10,7 +10,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jndi.JndiTemplate;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
-import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.view.InternalResourceViewResolver;
@@ -42,15 +41,6 @@ public class WebConfig implements WebMvcConfigurer {
 		// TODO Auto-generated method stub
 		registry.addResourceHandler("/resources/**").addResourceLocations("/resources/");
 
-	}
-
-	@Override
-	public void addInterceptors(InterceptorRegistry registry) {
-		// The menu page: any logged-in user
-		registry.addInterceptor(new AuthInterceptor(false)).addPathPatterns("/", "/home");
-		// Everything else except the login pages and static resources: admins only
-		registry.addInterceptor(new AuthInterceptor(true))
-				.excludePathPatterns("/", "/home", "/login", "/welcome", "/resources/**");
 	}
 
 	@Bean

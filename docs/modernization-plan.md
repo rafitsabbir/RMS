@@ -1,7 +1,7 @@
 # Modernization Plan
 
 Purpose: The agreed plan for bringing RMS up to a supported stack: current state, target stack with reasons, phases, risks and gates.
-Last updated: 2026-10-01 (UI redesign on `dev`: the front end moved past this plan's CDN bumps to Bootstrap 5.3.8, DataTables 2.3.8 and a shared layout tag; the assessment tables below stay as the original baseline; status in [upgrade-status.md](upgrade-status.md)). 2026-10-01 (small fixes batch: the `main.jsp` `System.out`, the G36 session warning and the G30 context-path redirect bug are fixed, so they're no longer described as current; checklist item 2 and stale line references updated). 2026-10-01 (Phase 4 CI, dependency scan and context template on `dev`; Eclipse files removed). 2026-10-01 (Phase 3 merged into `dev` with releases on hold; Phase 1 frozen on `release/phase1`). 2026-10-01 (Phase 3 coded and verified on a branch, with Phase 2 folded in, then reviewed and re-verified; Phase 3 rollback target corrected; Phase 1 rollback rehearsed; the Phase 3 JSTL list covers five JSPs). 2026-09-30 (G11 interceptor adds a second `javax.servlet` user; all 7 JSPs opt into EL after the G40 fix; G27/G38 fixed). 2026-09-26 (Phase 1 code on `dev`, not released; Phase 0 owner steps still open)
+Last updated: 2026-10-01 (Spring Security 7 brought forward and coded; the Phase 3 sections below keep their AuthInterceptor references as history). 2026-10-01 (UI redesign on `dev`: the front end moved past this plan's CDN bumps to Bootstrap 5.3.8, DataTables 2.3.8 and a shared layout tag; the assessment tables below stay as the original baseline; status in [upgrade-status.md](upgrade-status.md)). 2026-10-01 (small fixes batch: the `main.jsp` `System.out`, the G36 session warning and the G30 context-path redirect bug are fixed, so they're no longer described as current; checklist item 2 and stale line references updated). 2026-10-01 (Phase 4 CI, dependency scan and context template on `dev`; Eclipse files removed). 2026-10-01 (Phase 3 merged into `dev` with releases on hold; Phase 1 frozen on `release/phase1`). 2026-10-01 (Phase 3 coded and verified on a branch, with Phase 2 folded in, then reviewed and re-verified; Phase 3 rollback target corrected; Phase 1 rollback rehearsed; the Phase 3 JSTL list covers five JSPs). 2026-09-30 (G11 interceptor adds a second `javax.servlet` user; all 7 JSPs opt into EL after the G40 fix; G27/G38 fixed). 2026-09-26 (Phase 1 code on `dev`, not released; Phase 0 owner steps still open)
 Read this when: you're upgrading libraries, the JDK, the framework, the servlet container or the DB driver, or planning a security fix to the stack.
 
 **Status and rules:**
@@ -100,7 +100,7 @@ Move one axis at a time. Pass through Spring 5.3 so the security fixes ship befo
 | **Logging** | SLF4J 2 + Logback (1.3.x on Java 8, 1.5.x on 21) | Spring 5.3+ routes its logging to SLF4J. Replaces the 3 `System.out` calls | **Log4j2:** heavier configuration.<br>**java.util.logging:** weak configuration.<br>No existing config to keep | S | [A] routing; [C] call sites |
 | **Testing** | JUnit Jupiter 5.x, Mockito, AssertJ, spring-test `MockMvc` (standalone), **Testcontainers MySQL**, and a manual acceptance checklist | Standalone MockMvc needs no Spring test runner, so the same tests work from 4.3 to 7.0. A real MySQL matches the MySQL-specific SQL | **H2 in MySQL mode:** doesn't prove driver or `concat()` behaviour.<br>**JUnit 4:** a dead end.<br>JUnit 6 and Mockito 5 need newer Java, so switch in Phase 2 | M | [A] compatibility; [C] SQL |
 | **Packaging** | WAR on external Tomcat 11 with the JNDI name kept; CI builds the WAR; `target/` no longer committed; optional container image | Keeps today's model. JSP and `src/main/webapp` need a WAR | **Executable JAR:** `src/main/webapp` is ignored in a JAR [A: Boot docs] | S–M | [C] `pom.xml:6`, G29 |
-| **Security framework** | Not part of this plan | G11, G13 and G32 are functional fixes. G11 has an interim `HandlerInterceptor` since 2026-09-30. Spring Security 7 is the follow-up after Phase 3 | — | — | [C] [gaps.md](gaps.md) |
+| **Security framework** | Not part of this plan | G11, G13 and G32 are functional fixes. G11 has an interim `HandlerInterceptor` since 2026-09-30. Spring Security 7 was planned as the follow-up after Phase 3; it was brought forward and coded on `dev` on 2026-10-01 (7.0.7, replacing the interceptor; [upgrade-status.md](upgrade-status.md)) | — | — | [C] [gaps.md](gaps.md) |
 
 ## 4. Phases
 **Rules:**
@@ -319,7 +319,7 @@ Move one axis at a time. Pass through Spring 5.3 so the security fixes ship befo
      - An optional container image (Tomcat 11 + JDK 21) that deploys the WAR as `ROOT`. (It was meant to sidestep the context-path redirect bug in G30, which was fixed on 2026-10-01: the login fallback and the `redirect:/home` both use the context path, `main.jsp:166`, `LoginController.java:57`.)
 - **Follow-ups, outside this plan:**
   - JDK 21 → 25 (S)
-  - Spring Security 7 for G11, G13 and G32
+  - ~~Spring Security 7 for G11, G13 and G32~~ coded 2026-10-01, ahead of this order; the stored-password migration (G13) waits for the owner
   - replacing the JSPs, then re-evaluating Spring Boot
 - **Files:** `.github/workflows/*.yml`, a `deploy/` template, an optional `Dockerfile`.
 - **Rollback:** the manual deployment path stays valid.

@@ -7,7 +7,9 @@
 <%@ taglib uri="jakarta.tags.core" prefix="c" %>
 <%@ taglib uri="jakarta.tags.functions" prefix="fn" %>
 <%@ taglib uri="http://www.springframework.org/tags" prefix="spring" %>
+<%@ taglib uri="http://www.springframework.org/tags/form" prefix="form" %>
 <spring:url value="/" var="base" htmlEscape="true" />
+<spring:url value="/logout" var="logoutURL" />
 <c:set var="user" value="${sessionScope.user}" />
 <%-- Same role rule as before: 'N' is an admin, 'Y' an interviewer, anything else sees neither menu (G16) --%>
 <c:set var="role" value="${fn:toUpperCase(user.isinterviewer)}" />
@@ -109,8 +111,11 @@
 					<span class="rms-user-name"><c:out value="${user.firstname} ${user.lastname}" /></span>
 					<span class="rms-user-role"><c:out value="${user.designation}" /></span>
 				</span>
-				<a class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1" href="${base}login">
-					<svg class="rms-icon" aria-hidden="true"><use href="${icons}#box-arrow-right"/></svg><span>Log out</span></a>
+				<%-- A POST with the CSRF token that form:form adds (SecurityConfig, G32) --%>
+				<form:form id="logout" method="post" action="${logoutURL}" cssClass="d-inline">
+					<button type="submit" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1">
+						<svg class="rms-icon" aria-hidden="true"><use href="${icons}#box-arrow-right"/></svg><span>Log out</span></button>
+				</form:form>
 			</div>
 		</header>
 		<main id="rms-main" class="rms-main" tabindex="-1">

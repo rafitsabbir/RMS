@@ -11,6 +11,8 @@ import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -18,11 +20,15 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 /**
  * HTTP smoke test against an already deployed WAR (local dev only).
  * Enabled only when RMS_BASE_URL is set, e.g. the local Tomcat context URL.
- * The login test also needs RMS_SMOKE_USER and RMS_SMOKE_PASSWORD (seed test values); the Latin-1 post
- * needs only a working database (it expects "Invalid login!").
+ * The login tests also need RMS_SMOKE_USER and RMS_SMOKE_PASSWORD (seed test values); the Latin-1 post
+ * needs only a working database (it expects a failed login).
+ * Every POST first opens a page for the session cookie and the CSRF token, as a browser does (G32).
  */
 @EnabledIfEnvironmentVariable(named = "RMS_BASE_URL", matches = ".+")
 class SmokeTest {
+
+	/** The hidden field Spring's form:form writes for Spring Security's CSRF token. */
+	private static final Pattern CSRF_FIELD = Pattern.compile("name=\"_csrf\" value=\"([^\"]+)\"");
 
 	private static String baseUrl() {
 		String url = System.getenv("RMS_BASE_URL");
@@ -31,15 +37,17 @@ class SmokeTest {
 
 	@Test
 	void loginPageRenders() throws IOException {
-		HttpURLConnection connection = (HttpURLConnection) URI.create(baseUrl() + "/login").toURL().openConnection();
+		HttpURLConnection connection = open("/login", null);
 
 		assertThat(connection.getResponseCode()).isEqualTo(200);
-		assertThat(read(connection)).contains("id=\"Login\"");
+		String body = read(connection);
+		assertThat(body).contains("id=\"Login\"");
+		assertThat(body).contains("name=\"_csrf\"");
 	}
 
 	@Test
 	void loginPageCarriesNoSessionIdInUrls() throws IOException {
-		HttpURLConnection connection = (HttpURLConnection) URI.create(baseUrl() + "/login").toURL().openConnection();
+		HttpURLConnection connection = open("/login", null);
 
 		// G41: sessions are tracked by cookie only
 		assertThat(read(connection)).doesNotContainIgnoringCase("jsessionid");
@@ -47,8 +55,7 @@ class SmokeTest {
 
 	@Test
 	void rootRedirectsToLoginWhenLoggedOut() throws IOException {
-		HttpURLConnection connection = (HttpURLConnection) URI.create(baseUrl() + "/").toURL().openConnection();
-		connection.setInstanceFollowRedirects(false);
+		HttpURLConnection connection = open("/", null);
 
 		assertThat(connection.getResponseCode()).isEqualTo(302);
 		assertThat(connection.getHeaderField("Location")).endsWith("/login");
@@ -56,8 +63,7 @@ class SmokeTest {
 
 	@Test
 	void loggedOutRequestRedirectsToLogin() throws IOException {
-		HttpURLConnection connection = (HttpURLConnection) URI.create(baseUrl() + "/viewpositionlist").toURL().openConnection();
-		connection.setInstanceFollowRedirects(false);
+		HttpURLConnection connection = open("/viewpositionlist", null);
 
 		assertThat(connection.getResponseCode()).isEqualTo(302);
 		assertThat(connection.getHeaderField("Location")).endsWith("/login");
@@ -69,7 +75,7 @@ class SmokeTest {
 	void loginShowsMenu() throws IOException {
 		HttpURLConnection login = postLogin(System.getenv("RMS_SMOKE_USER"), System.getenv("RMS_SMOKE_PASSWORD"));
 
-		// G30: the login redirects to the menu page, with the session in a cookie
+		// G30: the login redirects to the menu page, with the (new) session in a cookie
 		assertThat(login.getResponseCode()).isEqualTo(302);
 		String location = login.getHeaderField("Location");
 		assertThat(location).endsWith("/home");
@@ -85,6 +91,9 @@ class SmokeTest {
 		assertThat(body).doesNotContain("<object");
 		// G38: the score-entry URLs carry no userid
 		assertThat(body).doesNotContain("?user=");
+		// Log out is a form with the CSRF token (G32)
+		assertThat(body).contains("id=\"logout\"");
+		assertThat(CSRF_FIELD.matcher(body).find()).isTrue();
 	}
 
 	@Test
@@ -93,10 +102,7 @@ class SmokeTest {
 	void listPageUsesTheLayout() throws IOException {
 		HttpURLConnection login = postLogin(System.getenv("RMS_SMOKE_USER"), System.getenv("RMS_SMOKE_PASSWORD"));
 		assertThat(login.getResponseCode()).isEqualTo(302);
-		HttpURLConnection connection = (HttpURLConnection) URI.create(baseUrl() + "/viewpositionlist").toURL()
-				.openConnection();
-		connection.setInstanceFollowRedirects(false);
-		connection.setRequestProperty("Cookie", sessionCookie(login));
+		HttpURLConnection connection = open("/viewpositionlist", sessionCookie(login));
 
 		assertThat(connection.getResponseCode()).isEqualTo(200);
 		String body = read(connection);
@@ -106,29 +112,78 @@ class SmokeTest {
 	}
 
 	@Test
+	@EnabledIfEnvironmentVariable(named = "RMS_SMOKE_USER", matches = ".+")
+	@EnabledIfEnvironmentVariable(named = "RMS_SMOKE_PASSWORD", matches = ".+")
+	void logoutEndsTheSession() throws IOException {
+		HttpURLConnection login = postLogin(System.getenv("RMS_SMOKE_USER"), System.getenv("RMS_SMOKE_PASSWORD"));
+		String cookie = sessionCookie(login);
+		String token = csrfToken(read(open("/home", cookie)));
+
+		HttpURLConnection logout = post("/logout", "_csrf=" + URLEncoder.encode(token, StandardCharsets.ISO_8859_1),
+				cookie);
+
+		assertThat(logout.getResponseCode()).isEqualTo(302);
+		assertThat(logout.getHeaderField("Location")).endsWith("/login");
+		HttpURLConnection after = open("/home", cookie);
+		assertThat(after.getResponseCode()).isEqualTo(302);
+		assertThat(after.getHeaderField("Location")).endsWith("/login");
+	}
+
+	@Test
+	void postWithoutCsrfTokenIsRefused() throws IOException {
+		HttpURLConnection connection = post("/saveposition", "positionname=x", null);
+
+		// G32: Spring Security refuses a POST without the token (a login post goes back to the login page instead)
+		assertThat(connection.getResponseCode()).isEqualTo(403);
+		HttpURLConnection login = post("/welcome", "username=x&password=x", null);
+		assertThat(login.getResponseCode()).isEqualTo(302);
+		assertThat(login.getHeaderField("Location")).endsWith("/login?expired");
+	}
+
+	@Test
 	void brandAssetsAreServed() throws IOException {
-		HttpURLConnection connection = (HttpURLConnection) URI.create(baseUrl() + "/resources/img/logo.svg").toURL()
-				.openConnection();
+		HttpURLConnection connection = open("/resources/img/logo.svg", null);
 
 		assertThat(connection.getResponseCode()).isEqualTo(200);
 		assertThat(connection.getContentType()).startsWith("image/svg+xml");
+		// Static resources stay cacheable (SecurityConfig.resourceFilterChain)
+		String cacheControl = connection.getHeaderField("Cache-Control");
+		assertThat(cacheControl == null ? "" : cacheControl).doesNotContain("no-store");
 	}
 
 	/** The pages post ISO-8859-1; web.xml pins that decoding (Tomcat 11 would answer 400 for UTF-8-invalid bytes). */
 	@Test
 	void latin1FormPostIsAccepted() throws IOException {
-		HttpURLConnection connection = postLogin("caf\u00e9", "x");
+		HttpURLConnection connection = postLogin("café", "x");
 
-		assertThat(connection.getResponseCode()).isEqualTo(200);
-		assertThat(read(connection)).contains("Invalid login!");
+		// A failed login (302 to the error page), not HTTP 400
+		assertThat(connection.getResponseCode()).isEqualTo(302);
+		assertThat(connection.getHeaderField("Location")).endsWith("/login?error");
 	}
 
-	/** Posts the login form the way the browser does for an ISO-8859-1 page. */
+	/** Opens the login page for a session and its CSRF token, then posts the form as the browser does. */
 	private static HttpURLConnection postLogin(String username, String password) throws IOException {
+		HttpURLConnection page = open("/login", null);
+		String cookie = sessionCookie(page);
+		String token = csrfToken(read(page));
 		String form = "username=" + URLEncoder.encode(username, StandardCharsets.ISO_8859_1)
-				+ "&password=" + URLEncoder.encode(password, StandardCharsets.ISO_8859_1);
-		HttpURLConnection connection = (HttpURLConnection) URI.create(baseUrl() + "/welcome").toURL().openConnection();
+				+ "&password=" + URLEncoder.encode(password, StandardCharsets.ISO_8859_1)
+				+ "&_csrf=" + URLEncoder.encode(token, StandardCharsets.ISO_8859_1);
+		return post("/welcome", form, cookie);
+	}
+
+	private static HttpURLConnection open(String path, String cookie) throws IOException {
+		HttpURLConnection connection = (HttpURLConnection) URI.create(baseUrl() + path).toURL().openConnection();
 		connection.setInstanceFollowRedirects(false);
+		if (cookie != null) {
+			connection.setRequestProperty("Cookie", cookie);
+		}
+		return connection;
+	}
+
+	/** Posts an ISO-8859-1 form, the way the browser does for these pages. */
+	private static HttpURLConnection post(String path, String form, String cookie) throws IOException {
+		HttpURLConnection connection = open(path, cookie);
 		connection.setRequestMethod("POST");
 		connection.setDoOutput(true);
 		connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
@@ -139,6 +194,12 @@ class SmokeTest {
 			out.close();
 		}
 		return connection;
+	}
+
+	private static String csrfToken(String body) {
+		Matcher field = CSRF_FIELD.matcher(body);
+		assertThat(field.find()).as("a _csrf field in the page").isTrue();
+		return field.group(1);
 	}
 
 	/** The JSESSIONID cookie the response set, as a Cookie request header value. */

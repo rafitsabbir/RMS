@@ -1,7 +1,7 @@
 # Flow: Candidate Evaluation Results
 
 Purpose: Traces the admin's read-only view of candidate scores and status.
-Last updated: 2026-10-01 (UI redesign: status badges, EL total, "Coming soon" menu entries). 2026-10-01 (`getFullmarks` removed, G8; deleted positions and languages still show, G17; null-safe status, G16). 2026-09-30 (names escaped, G27; no userid in the score-entry URL, G38)
+Last updated: 2026-10-01 (Spring Security 7 replaces AuthInterceptor). 2026-10-01 (UI redesign: status badges, EL total, "Coming soon" menu entries). 2026-10-01 (`getFullmarks` removed, G8; deleted positions and languages still show, G17; null-safe status, G16). 2026-09-30 (names escaped, G27; no userid in the score-entry URL, G38)
 Read this when: you're working on scores, candidate status, the results page, or the unfinished interviewer score entry.
 
 Evidence: `rms/controller/MarksController.java`, `rms/service/MarksServiceImpl.java`, `rms/dao/MarksDaoImpl.java` (`getAllMarksByAdmin`, `MarksMapper`), `WEB-INF/jsp/viewmarks.jsp`, `WEB-INF/tags/layout.tag` (menu), `main.jsp` (home tile).
@@ -25,7 +25,7 @@ flowchart LR
 
 ## Not implemented (partial)
 - **Interviewer score entry:** `MarksDaoImpl.saveMarks` is empty and `getAllMarksByInterviewer` returns `null` (`MarksDaoImpl.java:62-65,68-71`). The dead `getFullmarks` that returned 0 was removed (G8).
-- **Menu entries:** the interviewer menu shows "Evaluation" and "Show Evaluation" as disabled "Coming soon" entries with no URL (`layout.tag:89-95`), and the interviewer home page says evaluations are coming (`main.jsp:65-79`). Until the 2026-10-01 redesign they called `MarksController` and `MarksController?param=VIEW`, which no mapping matched, and until 2026-09-30 they also passed the userid as `?user=…` (G38). Score entry (G5) must take the interviewer from the session, not from a parameter.
+- **Menu entries:** the interviewer menu shows "Evaluation" and "Show Evaluation" as disabled "Coming soon" entries with no URL (`layout.tag:91-97`), and the interviewer home page says evaluations are coming (`main.jsp:65-79`). Until the 2026-10-01 redesign they called `MarksController` and `MarksController?param=VIEW`, which no mapping matched, and until 2026-09-30 they also passed the userid as `?user=…` (G38). Score entry (G5) must take the interviewer from the session, not from a parameter.
 - **Output:** candidate, position and language names are escaped with `<c:out>` (`viewmarks.jsp`, G27). A candidate with a NULL first or last name shows a blank name, because `concat` returns NULL; until 2026-09-30 it showed "null".
 
-Known gaps: G5–G7 (score entry; interviewer pages must also join the login-only interceptor registration, G11), G9 (status never written) and G10 (column mapping), in [gaps.md](../gaps.md). G8 (dead `getFullmarks`) and G16 (NULL status) are fixed.
+Known gaps: G5–G7 (score entry; interviewer pages also need their own rule in `SecurityConfig`, G11), G9 (status never written) and G10 (column mapping), in [gaps.md](../gaps.md). G8 (dead `getFullmarks`) and G16 (NULL status) are fixed.

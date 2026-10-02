@@ -1,7 +1,7 @@
 # Data Model
 
 Purpose: The database tables and columns RMS uses, as seen in the SQL in the code.
-Last updated: 2026-10-01 (small fixes batch: duplicates among active rows, soft delete and reactivation, active-only lookups, unused model fields removed). 2026-09-26
+Last updated: 2026-10-01 (Spring Security 7 replaces AuthInterceptor). 2026-10-01 (small fixes batch: duplicates among active rows, soft delete and reactivation, active-only lookups, unused model fields removed). 2026-09-26
 Read this when: you're changing SQL, adding a column or table, or fixing a data-mapping bug.
 
 - **Database:** MySQL (`pom.xml`, Connector/J 8.2.0 since Phase 1; 5.1.36 before).
@@ -12,7 +12,7 @@ Read this when: you're changing SQL, adding a column or table, or fixing a data-
 
 | Table | Columns referenced | Used by | Evidence |
 |---|---|---|---|
-| `users` | `userid`, `username`, `password` | Login check | `LoginDaoImpl` (`listallusers`) |
+| `users` | `userid`, `username`, `password` | Login: read by username; Spring Security checks the password in Java (since 2026-10-01; before, the password was compared in SQL) | `LoginDaoImpl` (`loginsbyusername`) |
 | `admin` | `userid`, `isactive`, `username`, `firstname`, `lastname`, `email`, `phone`, `designation`, `isinterviewer` (`Y`/`N`) | User profile, interviewer name in the marks query | `LoginDaoImpl.UserMapper`, `MarksDaoImpl` |
 | `position` | `positionkey`, `positionname`, `isactive` | Position master | `PositionDaoImpl` |
 | `language` | `languagekey`, `languagename`, `isactive` | Language master | `LanguageDaoImpl` |
@@ -38,4 +38,4 @@ Read this when: you're changing SQL, adding a column or table, or fixing a data-
 - The relationships `candidate.positionkey` → `position` and `candidate.languagekey` → `language` are joins in `MarksDaoImpl`. Whether real foreign keys exist is unknown.
 - `MarksMapper` reads result columns by position (1–5 and 8–18), so the query's column order matters (`MarksDaoImpl`). For the mapping to work, `marks` must have 13 columns, with `isactive` first and the 10 scores in columns 4–13 (`workexp` … `personality`); columns 2–3 aren't read. `db/schema.sql` follows this, and `MarksDaoImplTest` pins it.
 - **The SQL is MySQL-specific:** it uses the 3-argument `concat()` and comma-style joins (`MarksDaoImpl.java:19-25`).
-- **No date or time columns:** the row mappers read columns only with `getInt`/`getString` (`LoginDaoImpl.java:33-41`, `MarksDaoImpl.java:40-55`, `PositionDaoImpl.java:47-48`, `LanguageDaoImpl.java:49-50`).
+- **No date or time columns:** the row mappers read columns only with `getInt`/`getString` (`LoginDaoImpl.java:33-47,50-54`, `MarksDaoImpl.java:40-55`, `PositionDaoImpl.java:47-48`, `LanguageDaoImpl.java:49-50`).

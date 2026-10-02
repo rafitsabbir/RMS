@@ -1,81 +1,70 @@
 package rms.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import rms.config.WebConfig;
 import rms.model.UserInfo;
-import rms.service.LoginService;
 
-/** Characterization tests: pin current login behaviour. */
-@ExtendWith(MockitoExtension.class)
+/**
+ * Characterization tests: pin current login-page behaviour. The login post, logout and access rules are
+ * Spring Security's, tested in rms.config.SecurityConfigTest.
+ */
 class LoginControllerTest {
-
-	@Mock
-	LoginService loginservice;
-
-	@InjectMocks
-	LoginController controller;
 
 	MockMvc mockMvc;
 
 	@BeforeEach
 	void setUp() {
-		mockMvc = MockMvcBuilders.standaloneSetup(controller)
+		mockMvc = MockMvcBuilders.standaloneSetup(new LoginController())
 				.setViewResolvers(new WebConfig().viewResolver()).build();
 	}
 
 	@Test
-	void loginPageRendersLoginViewAndInvalidatesSession() throws Exception {
+	void loginPageRendersLoginViewAndKeepsSession() throws Exception {
 		MockHttpSession session = new MockHttpSession();
 		session.setAttribute("user", new UserInfo());
 
 		mockMvc.perform(get("/login").session(session))
 				.andExpect(status().isOk())
 				.andExpect(view().name("login"))
-				.andExpect(forwardedUrl("/WEB-INF/jsp/login.jsp"));
+				.andExpect(forwardedUrl("/WEB-INF/jsp/login.jsp"))
+				.andExpect(model().attributeDoesNotExist("errorMessage"));
 
-		assertThat(session.isInvalid()).isTrue();
+		// G32: logging out is POST /logout now, not a visit to the login page
+		assertThat(session.isInvalid()).isFalse();
 	}
 
 	@Test
-	void validLoginRedirectsToHomeWithUserInANewSession() throws Exception {
-		UserInfo user = new UserInfo();
-		user.setUserid("U1");
-		when(loginservice.checkLogin("test.admin", "test-only-1")).thenReturn("U1");
-		when(loginservice.getUserInfo("U1")).thenReturn(user);
-		MockHttpSession session = new MockHttpSession(null, "before-login");
+	void failedLoginShowsError() throws Exception {
+		mockMvc.perform(get("/login").param("error", ""))
+				.andExpect(view().name("login"))
+				.andExpect(model().attribute("errorMessage", "Invalid login!"));
+	}
 
-		MvcResult result = mockMvc.perform(post("/welcome").session(session)
-				.param("username", "test.admin").param("password", "test-only-1"))
-				.andExpect(redirectedUrl("/home"))
-				.andExpect(request().sessionAttribute("user", user))
-				.andReturn();
+	@Test
+	void expiredSessionShowsMessage() throws Exception {
+		mockMvc.perform(get("/login").param("expired", ""))
+				.andExpect(view().name("login"))
+				.andExpect(model().attribute("errorMessage", "Your session expired. Please sign in again."));
+	}
 
-		// G30: the session id changes at login
-		assertThat(result.getRequest().getSession().getId()).isNotEqualTo("before-login");
+	@Test
+	void databaseErrorShowsUnavailable() throws Exception {
+		mockMvc.perform(get("/login").param("unavailable", ""))
+				.andExpect(view().name("login"))
+				.andExpect(model().attribute("errorMessage", "Sign-in isn't available right now. Please try again later."));
 	}
 
 	@Test
@@ -93,34 +82,6 @@ class LoginControllerTest {
 	@Test
 	void rootRedirectsToHome() throws Exception {
 		mockMvc.perform(get("/")).andExpect(redirectedUrl("/home"));
-	}
-
-	@Test
-	void userWithoutAdminRowIsRefused() throws Exception {
-		MockHttpSession session = new MockHttpSession();
-		when(loginservice.checkLogin("orphan", "test-only-9")).thenReturn("U9");
-		when(loginservice.getUserInfo("U9")).thenReturn(null);
-
-		mockMvc.perform(post("/welcome").session(session).param("username", "orphan").param("password", "test-only-9"))
-				.andExpect(status().isOk())
-				.andExpect(view().name("login"))
-				.andExpect(model().attribute("errorMessage", "Invalid login!"));
-
-		assertThat(session.isInvalid()).isTrue();
-	}
-
-	@Test
-	void invalidLoginShowsLoginViewWithErrorAndInvalidatesSession() throws Exception {
-		MockHttpSession session = new MockHttpSession();
-		when(loginservice.checkLogin("test.admin", "wrong")).thenReturn(null);
-
-		mockMvc.perform(post("/welcome").session(session).param("username", "test.admin").param("password", "wrong"))
-				.andExpect(status().isOk())
-				.andExpect(view().name("login"))
-				.andExpect(model().attribute("errorMessage", "Invalid login!"));
-
-		assertThat(session.isInvalid()).isTrue();
-		verify(loginservice, never()).getUserInfo(anyString());
 	}
 
 }

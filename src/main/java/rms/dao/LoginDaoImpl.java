@@ -3,6 +3,7 @@ package rms.dao;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,11 +13,13 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import rms.model.LoginInfo;
 import rms.model.UserInfo;
 
 @Repository
 public class LoginDaoImpl implements LoginDao {
-	final String listallusers = "select userid from users where username= :username and password= :password";
+	// The password is checked in Java by Spring Security (SecurityConfig.passwordEncoder), not in SQL (G13)
+	final String loginsbyusername = "select userid, username, password from users where username= :username";
 	final String userinfo = "select * from admin where userid= :userid";
 
 	NamedParameterJdbcTemplate namedParameterJdbcTemplate;
@@ -43,18 +46,16 @@ public class LoginDaoImpl implements LoginDao {
 		}
 	}
 
-	public String checkUser(String username, String password) {
-		// TODO Auto-generated method stub
+	private static final class LoginMapper implements RowMapper<LoginInfo> {
+		public LoginInfo mapRow(ResultSet rs, int rowNum) throws SQLException {
+			return new LoginInfo(rs.getString("userid"), rs.getString("username"), rs.getString("password"));
+		}
+	}
+
+	public List<LoginInfo> findLogins(String username) {
 		Map<String, String> paramMap = new HashMap<String, String>();
 		paramMap.put("username", username);
-		paramMap.put("password", password);
-		
-		try {
-		String userid= namedParameterJdbcTemplate.queryForObject(listallusers, paramMap, String.class);	
-		return userid;
-		} catch (EmptyResultDataAccessException e) {
-			return null;
-		}
+		return namedParameterJdbcTemplate.query(loginsbyusername, paramMap, new LoginMapper());
 	}
 
 	public UserInfo getUserInfo(String userid) {
