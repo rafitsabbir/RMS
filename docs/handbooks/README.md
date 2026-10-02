@@ -1,7 +1,7 @@
 # Handbooks
 
 Purpose: Word documents for people outside the code: the business analyst, the IT team, and new developers.
-Last updated: 2026-10-02 (updated for the roles plan, Phase 1: four roles, Users and Roles, passwords, migration 002; sources moved into `src/`). 2026-10-02 (first versions, describing `dev` as of 2026-10-02)
+Last updated: 2026-10-02 (updated for the roles plan, Phase 2: jobs, candidate profile and documents, RMS_DOC_DIR, migration 004; the process diagram redrawn). 2026-10-02 (updated for the roles plan, Phase 1: four roles, Users and Roles, passwords, migration 002; sources moved into `src/`). 2026-10-02 (first versions, describing `dev` as of 2026-10-02)
 Read this when: you need to hand RMS documentation to a non-developer, or check whether these handbooks are out of date.
 
 | File | For | Covers |

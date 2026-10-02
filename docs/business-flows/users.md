@@ -1,7 +1,7 @@
 # Flow: Users, Roles and Passwords
 
 Purpose: Traces the four roles, the Users and Roles screen, Change password and the login lock.
-Last updated: 2026-10-02 (Phase 1 of the roles plan: roles, Users and Roles, Change password, bcrypt for new passwords, inactive users, login lock; migrations 002 and 003)
+Last updated: 2026-10-02 (Phase 2: the access rules for jobs, the candidate profile and documents). 2026-10-02 (Phase 1 of the roles plan: roles, Users and Roles, Change password, bcrypt for new passwords, inactive users, login lock; migrations 002 and 003)
 Read this when: you're changing who can open what, managing users, or working on passwords and the login lock. The login itself is in [login.md](login.md).
 
 Evidence: `rms/model/Role.java`, `rms/config/SecurityConfig.java`, `rms/config/AccountCheckFilter.java`, `rms/config/LoginThrottle.java`, `rms/controller/UserController.java`, `rms/controller/AccountController.java`, `rms/service/UserServiceImpl.java`, `rms/dao/UserDaoImpl.java`, `rms/dao/LoginDaoImpl.java`, `WEB-INF/jsp/viewuser.jsp`, `createuser.jsp`, `changepassword.jsp`, `WEB-INF/tags/layout.tag`. Tests: `SecurityConfigTest` (access matrix), `UserControllerTest`, `AccountControllerTest`, `UserServiceImplTest`, `UserDaoImplTest` (needs Docker), `LoginThrottleTest`, `RoleTest`.
@@ -10,8 +10,8 @@ Evidence: `rms/model/Role.java`, `rms/config/SecurityConfig.java`, `rms/config/A
 | Role | Stored as `admin.role` | Can open | `admin.isinterviewer` written |
 |---|---|---|---|
 | Super Admin | `SUPER_ADMIN` | everything, including Users and Roles | `N` |
-| HR | `HR` | Candidate Status, candidates (add, edit, delete), positions, languages | `Y` |
-| Hiring Manager | `HIRING_MANAGER` | Candidate Status and the candidate list, read-only | `Y` |
+| HR | `HR` | Candidate Status, candidates (add, edit, delete, profile, documents), jobs, positions, languages | `Y` |
+| Hiring Manager | `HIRING_MANAGER` | Candidate Status, the candidate list and profiles, jobs, document downloads; read-only | `Y` |
 | Interviewer | `INTERVIEWER` | Home and Change password (evaluation pages come in Phase 3, G5–G7) | `Y` |
 
 - **Every logged-in user**, with or without a role, can open Home and Change password.
@@ -22,8 +22,9 @@ Evidence: `rms/model/Role.java`, `rms/config/SecurityConfig.java`, `rms/config/A
 ## Access rules (`SecurityConfig.appFilterChain`)
 - `/login`, `/welcome`: public. `/`, `/home`, `/changepassword`, `/savepassword`: any logged-in user.
 - `USER_ADMIN_PAGES` (Users and Roles): Super Admin.
-- `STAFF_READ_PAGES` (`/adminviewmarks`, `/viewcandidatelist`): Super Admin, HR, Hiring Manager.
-- `HR_PAGES` (candidate changes, positions, languages): Super Admin, HR.
+- `SUPER_ADMIN_PAGES` (`/purgedocuments`, the permanent delete of a candidate's document files): Super Admin.
+- `STAFF_READ_PAGES` (`/adminviewmarks`, `/viewcandidatelist`, `/viewcandidate`, `/downloaddocument/*`, `/viewjoblist`): Super Admin, HR, Hiring Manager.
+- `HR_PAGES` (candidate and document changes, jobs, positions, languages): Super Admin, HR.
 - **Everything else is refused** (`anyRequest().denyAll()`), including pages that don't exist and `/x/` for `/x`: HTTP 403 when logged in, a redirect to `/login` when not. A new page needs its own rule and cases in `SecurityConfigTest.pages()`.
 - The candidate list hides Add, Edit and Delete from a Hiring Manager (`viewcandidate.jsp`, `canedit`); the URLs behind them are refused anyway.
 

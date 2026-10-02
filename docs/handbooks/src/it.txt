@@ -1,6 +1,6 @@
 # RMS Technical Operations Guide
 @ Recruitment Management System — technology stack, architecture, production requirements, sizing, deployment and security
-@ Describes the version on the dev branch as of 2 October 2026 (roles plan, Phase 1; not yet released). Contains no hostnames, passwords or connection strings.
+@ Describes the version on the dev branch as of 2 October 2026 (roles plan, Phase 2; not yet released). Contains no hostnames, passwords or connection strings.
 
 ## 1. At a glance
 |Item|Value|
@@ -59,14 +59,15 @@ Supported browsers: current versions of Chrome, Edge, Firefox and Safari. Intern
 |Servlet container|Apache Tomcat 11.0.x|Tested on 11.0.26. Tomcat 9 or 10 will not run this version.|
 |Database|MySQL 8.0 or later recommended; 5.7 still works with this driver|MySQL 5.7 reached end of life in October 2023. The automated tests run on MySQL 8.0; the earlier Phase 1 release was rehearsed on 5.7.44.|
 |Database driver jar|mysql-connector-j-8.2.0.jar in Tomcat's lib/ folder|Remove any old mysql-connector-java-5.1.x, slf4j or logback jars from lib/.|
-|Database schema changes|Run db/migrations/001-candidate-isactive.sql and 002-user-roles.sql once each, in order, before deploying|001 adds candidate.isactive (without it the Candidates pages fail). 002 adds admin.role and users.mustchangepassword (without them every login fails) and checks that users.password holds 68 characters. Rollback statements are in the files. 002 makes every existing admin a Super Admin: re-assign HR and Hiring Manager roles afterwards on Users and Roles.|
-|Database account|One MySQL account with SELECT, INSERT and UPDATE on the six tables|The application never deletes rows and never changes the schema.|
+|Database schema changes|Run db/migrations/001-candidate-isactive.sql, 002-user-roles.sql and 004-candidate-documents-jobs.sql once each, in order, before deploying|001 adds candidate.isactive (without it the Candidates pages fail). 002 adds admin.role and users.mustchangepassword (without them every login fails) and checks that users.password holds 68 characters. Rollback statements are in the files. 002 makes every existing admin a Super Admin: re-assign HR and Hiring Manager roles afterwards on Users and Roles. 004 adds five candidate columns and the tables job and candidate_document (InnoDB); check candidate's collation and engine first, as the script describes.|
+|Document storage|A folder outside Tomcat's webapps and any web root, given to Tomcat as the environment variable RMS_DOC_DIR|Tomcat needs read, write and delete rights on it. Without it RMS starts but refuses uploads and downloads (an ERROR at startup). See sections 5, 7 and 9.|
+|Database account|One MySQL account with SELECT, INSERT and UPDATE on the eight tables|The application never deletes rows and never changes the schema. (Uploads lock a candidate row with SELECT … FOR UPDATE, which these rights cover.)|
 |Network|Application server → MySQL (default port 3306). Users → application (HTTPS). Users' browsers → cdn.jsdelivr.net|If the CDN is blocked, pages load without styling and tables lose search and sort.|
 |TLS|HTTPS in front of Tomcat (reverse proxy or Tomcat connector); TLS to MySQL (sslMode=REQUIRED)|See section 8.|
 |Build machine|JDK 21 and internet access to Maven Central|Or use the WAR built by CI (artifact "rms-war").|
 
 ## 5. Recommended hardware
-> **These are estimates, not measurements.** No load test has been run. RMS is a small internal tool: a few simple SQL queries per page, no background jobs, no file storage. The figures assume up to about 50 users working at the same time; confirm with a load test if you expect more.
+> **These are estimates, not measurements.** No load test has been run. RMS is a small internal tool: a few simple SQL queries per page, no background jobs, and candidate documents (PDF, JPG, PNG up to 5 MB) stored as files. The figures assume up to about 50 users working at the same time; confirm with a load test if you expect more.
 
 |Setup|vCPU|RAM|Disk|Java heap|
 |---|---|---|---|---|
@@ -76,6 +77,7 @@ Supported browsers: current versions of Chrome, Edge, Firefox and Safari. Intern
 |MySQL server (if separate)|2|4 GB|20 GB SSD plus backups|—|
 
 - Disk is used mostly by logs, Tomcat and the JDK; the database itself is small (text rows only).
+- **Document storage (RMS_DOC_DIR):** plan with about 6 files of up to 2 MB per candidate (12 MB; the hard limit is 5 MB per file). For example 1,000 candidates a year need about 12 GB a year, more if replaced documents aren't purged. Watch the free space; files are only removed by a Super Admin's permanent delete.
 - The connection pool uses Tomcat's defaults (8 connections). Raise maxTotal in the context file if requests wait for connections under load.
 - For high availability, two Tomcat nodes need sticky sessions at the load balancer, because sessions aren't replicated. Candidate ID generation is protected only within one node, so a database key on candidate.candidateid is advised before running two nodes.
 
@@ -90,10 +92,10 @@ CI builds the same WAR on every push to the dev and master branches; it can be d
 
 ### First installation
 1. Install JDK 21 and Tomcat 11. Copy mysql-connector-j-8.2.0.jar into Tomcat's lib/ folder.
-2. Run db/migrations/001-candidate-isactive.sql, then 002-user-roles.sql, on the RMS database (once each). Check them against the real tables first (SHOW CREATE TABLE candidate, users and admin). Do not run 003-hash-passwords without the owner's approval.
+2. Run db/migrations/001-candidate-isactive.sql, then 002-user-roles.sql, then 004-candidate-documents-jobs.sql, on the RMS database (once each). Check them against the real tables first (SHOW CREATE TABLE candidate, users and admin). Create the document folder (outside webapps), owned by the Tomcat user, and add RMS_DOC_DIR to the environment variables of step 5. Do not run 003-hash-passwords without the owner's approval.
 3. Copy deploy/tomcat/rms.xml from the repository, unchanged, to conf/Catalina/localhost/rms.xml. It defines the jdbc/springrms connection pool with placeholders only.
 4. Make Tomcat read the placeholders from the environment: add -Dorg.apache.tomcat.util.digester.PROPERTY_SOURCE=org.apache.tomcat.util.digester.EnvironmentPropertySource to CATALINA_OPTS (for example in bin/setenv.sh).
-5. Provide the three environment variables listed in section 7, through the service manager or a file only the Tomcat user can read.
+5. Provide the four environment variables listed in section 7, through the service manager or a file only the Tomcat user can read.
 6. Deploy the WAR as webapps/rms.war (context path /rms), start Tomcat, and open /rms/login.
 
 ### Upgrade and rollback
@@ -102,13 +104,15 @@ CI builds the same WAR on every push to the dev and master branches; it can be d
 - A detailed, rehearsed runbook exists for the Phase 1 release (docs/release-phase1.md in the repository); the runbook for this version is still to be written.
 
 ## 7. Configuration
-The application has no properties files and no profiles. All environment-specific settings live in Tomcat.
+The application has no properties files and no profiles. All environment-specific settings live in Tomcat: the database connection and, since Phase 2, the document folder.
 
 |Setting|Where|Purpose|
 |---|---|---|
 |RMS_DB_URL|Tomcat environment|JDBC URL of the RMS database; include sslMode=REQUIRED|
 |RMS_DB_USER|Tomcat environment|Database account|
 |RMS_DB_PASSWORD|Tomcat environment (protected)|Database password; never on the command line or in the repository|
+|RMS_DOC_DIR|Tomcat environment|Absolute path of the folder for candidate documents (outside webapps). Read once at startup; unset or unusable means an ERROR in the log and no uploads or downloads|
+|Upload limits|Inside the WAR (5 MB per file, 6 MB per request)|Tomcat's connector swallows at most 2 MB of a refused upload (maxSwallowSize); raise it (for example 10 MB) so users see "The file is larger than 5 MB" instead of a reset connection. The container's temporary folder holds uploads briefly: treat it as personal data|
 |JNDI name jdbc/springrms|conf/Catalina/localhost/rms.xml|Connection pool the application looks up; validation query SELECT 1|
 |Session timeout|Tomcat conf/web.xml (default 30 minutes)|RMS sets none of its own|
 |Session persistence|Tomcat Manager element (off by default)|If enabled, user profiles are written to Tomcat's work/ folder: treat that folder as personal data|
@@ -126,6 +130,7 @@ The application has no properties files and no profiles. All environment-specifi
 - The session id changes at login; sessions use cookies only (HttpOnly, SameSite=Lax), never URLs.
 - Response headers: X-Content-Type-Options nosniff, X-Frame-Options DENY, no caching of logged-in pages, and HSTS on HTTPS requests.
 - All output is HTML-escaped; all SQL uses bound parameters.
+- Uploaded documents: PDF, JPG or PNG only, at most 5 MB, checked by name, declared type and content (first bytes); stored outside the web root under random names; served only through the application, as downloads, to staff roles. Logs carry only document keys, user keys and counts.
 - Log lines can't be forged by user input (line breaks are replaced).
 - Dependency vulnerability scanning (OSV-Scanner) runs in CI.
 
@@ -138,13 +143,16 @@ The application has no properties files and no profiles. All environment-specifi
 |HSTS includes subdomains|Check|Confirm this suits the production hostname.|
 |The production version (master branch) is old: Spring 4.3, Connector/J 5.1.36|High|GitHub reports 26 security alerts on master. Release the upgraded version.|
 |User ids appear in WARN log lines (refused requests)|Low|Restrict log access if user ids are personal data.|
+|Uploaded files aren't virus-scanned|Medium|Scan RMS_DOC_DIR with the organisation's scanner (on access or scheduled). RMS checks only the file type.|
+|Document folder access|Medium|Only the Tomcat user should read RMS_DOC_DIR; never serve it from a web server. It holds candidates' personal documents.|
 
 ## 9. Operations
 - **Logs:** written to standard output, so Tomcat captures them in catalina.out (or the service journal). Set up log rotation. Watch for WARN lines from "rms." (refused access, duplicate users) and ERROR lines (database problems).
 - **Health check:** there is no dedicated endpoint. GET /rms/login returning HTTP 200 shows that Tomcat and the application are up; it doesn't touch the database.
-- **Backups:** back up the MySQL database; the application server holds no data.
+- **Backups:** back up the MySQL database **and** the RMS_DOC_DIR folder together, at the same point in time, and restore them together: a document row without its file gives "not found", and a file without its row is never found again. Apart from that folder the application server holds no data.
 - **Restarts** log everyone out (sessions aren't persisted by default).
 - **User administration** is done by a Super Admin on the Users and Roles screen (see the Business Analyst Guide, section 4). If the last Super Admin is locked out, the owner must fix it in the database.
+- **Documents:** RMS never deletes files by itself. A Super Admin's "Permanently delete documents" removes a candidate's files and logs only the candidate key, the user key and the count. A startup ERROR "RMS_DOC_DIR is not set" means uploads and downloads are off.
 - **Character set:** forms post ISO-8859-1. Keep WEB-INF/web.xml as shipped; without it Tomcat 11 rejects accented input with HTTP 400.
 
 ## 10. Release status
@@ -152,7 +160,7 @@ The application has no properties files and no profiles. All environment-specifi
 |---|---|---|---|
 |master|Phase 1 security upgrades (merged 2 October 2026)|Spring 5.3.39, Tomcat 9, JDK 8|Production still runs whatever was last deployed|
 |release/phase1|Security upgrades on Java 8|Spring 5.3.39, Tomcat 9, JDK 8|Tested and rehearsed; not released|
-|dev|Full upgrade, new UI, Spring Security, candidate management, four roles and user management|Spring 7, Tomcat 11, JDK 21|Built and unit-tested; a full run on Tomcat 11 is still due|
+|dev|Full upgrade, new UI, Spring Security, candidate management, four roles and user management, candidate documents and jobs|Spring 7, Tomcat 11, JDK 21|Built and unit-tested; a full run on Tomcat 11 is still due|
 
 **Deadline:** Tomcat 9 support ends on 31 March 2027. Production should move to the dev line (Tomcat 11) before then.
 
@@ -161,6 +169,7 @@ The application has no properties files and no profiles. All environment-specifi
 2. The JDK standard: 21, or an organisational 17 or 25. The build can target 17 with a one-line change.
 3. Who owns the Tomcat server, the JNDI configuration and the runtime? Is a Java Security Manager in use (Tomcat 11 doesn't support it)?
 4. The deployment target: a virtual machine with Tomcat as described, or a container image (planned, not built yet).
-5. Should user sessions survive restarts (session persistence)?
+. Where should RMS_DOC_DIR live (local disk or a network share), how is it backed up together with the database, and is a virus scanner available for it?
+7. Should Tomcat's maxSwallowSize be raised so very large uploads get a clear message?
 
 > Detailed sources in the repository: docs/tech-stack.md, docs/build-run.md, docs/config.md and docs/upgrade-status.md.

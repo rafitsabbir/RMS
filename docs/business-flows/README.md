@@ -1,14 +1,14 @@
 # Business Flows — Index
 
 Purpose: The business capabilities RMS implements, and which code implements each one.
-Last updated: 2026-10-02 (four roles; Users and Roles; Change password: users.md). 2026-10-02 (candidate management, G1, with soft delete). 2026-10-01 (Spring Security 7: login, roles, logout). 2026-10-01 (UI redesign: menu in `layout.tag`). 2026-10-01 (entry points `GET /`, `GET /home`; deletes are POST). 2026-09-25
+Last updated: 2026-10-02 (roles plan Phase 2: jobs.md, documents.md, candidate profile). 2026-10-02 (four roles; Users and Roles; Change password: users.md). 2026-10-02 (candidate management, G1, with soft delete). 2026-10-01 (Spring Security 7: login, roles, logout). 2026-10-01 (UI redesign: menu in `layout.tag`). 2026-10-01 (entry points `GET /`, `GET /home`; deletes are POST). 2026-09-25
 Read this when: you're working on a feature and need to find its flow file. Open only the module file you need.
 
 - RMS is a recruitment management system (`README.md`).
 - It has four roles, stored in `admin.role` (`rms.model.Role`; rows without one fall back to `admin.isinterviewer`: N is Super Admin, Y is Interviewer). Details in [users.md](users.md).
   - **Super Admin:** everything, including Users and Roles.
-  - **HR:** candidates, positions, languages and Candidate Status.
-  - **Hiring Manager:** Candidate Status and the candidate list, read-only.
+  - **HR:** candidates and their documents, jobs, positions, languages and Candidate Status.
+  - **Hiring Manager:** Candidate Status, the candidate list and profiles, jobs, and document downloads, read-only.
   - **Interviewer:** meant to enter scores, but that flow isn't built yet (G5–G7, Phase 3).
 
 ## Confirmed capabilities
@@ -20,6 +20,8 @@ Read this when: you're working on a feature and need to find its flow file. Open
 | Position master | Create, list, rename and delete (soft, `POST`) job positions | `/createposition`, `/saveposition`, `/viewpositionlist`, `/updateposition/{k}`, `POST /deleteposition/{k}` | `PositionController`, `PositionServiceImpl`, `PositionDaoImpl`, `PositionInfo` | `position` | [masters.md](masters.md) |
 | Language master | Create, list, rename and delete (soft, `POST`) the languages/skills candidates are assessed on | `/createlanguage`, `/savelanguage`, `/viewlanguagelist`, `/updatelanguage/{k}`, `POST /deletelanguage/{k}` | `LanguageController`, `LanguageServiceImpl`, `LanguageDaoImpl`, `LanguageInfo` | `language` | [masters.md](masters.md) |
 | Candidate management | Add, list, edit and delete (soft, `POST`) candidates, each with a position and a language; IDs generated as C1, C2, …. Super Admin and HR; Hiring Manager sees the list only | `/viewcandidatelist`, `/createcandidate`, `POST /savecandidate`, `/updatecandidate?candidateid=…`, `POST /deletecandidate` | `CandidateController`, `CandidateServiceImpl`, `CandidateDaoImpl`, `CandidateInfo` | `candidate` (reads `position`, `language`) | [candidates.md](candidates.md) |
+| Candidate profile and documents (Phase 2) | Profile page; upload, replace, download and delete (soft) PDF, JPG and PNG documents in `RMS_DOC_DIR`; Super Admin's permanent delete | `GET /viewcandidate?candidateid=…`, `POST /uploaddocument`, `GET /downloaddocument/{k}`, `POST /deletedocument/{k}`, `POST /purgedocuments` | `CandidateController`, `DocumentController`, `DocumentServiceImpl`, `DocumentRules`, `DocumentDaoImpl`, `DocumentFileStore`, `DocumentInfo`, `DocumentType` | `candidate_document` (reads `candidate`, `admin`) | [documents.md](documents.md) |
+| Jobs (Phase 2, G4) | Add, list, edit and delete (soft) openings built on a position; a candidate may be linked to an open job, which sets their position | `/viewjoblist`, `/createjob`, `/updatejob/{k}`, `POST /savejob`, `POST /deletejob/{k}` | `JobController`, `JobServiceImpl`, `JobDaoImpl`, `JobInfo` | `job` (reads `position`) | [jobs.md](jobs.md) |
 | Candidate results (read-only: Super Admin, HR, Hiring Manager) | Lists every candidate's 10 scores, the total and the S/R status | `GET /adminviewmarks` | `MarksController`, `MarksServiceImpl`, `MarksDaoImpl`, `MarksInfo` | `marks`, `candidate`, `position`, `language`, `admin` | [evaluation.md](evaluation.md) |
 
 ## Business ↔ Tech map
@@ -30,6 +32,8 @@ Read this when: you're working on a feature and need to find its flow file. Open
 | Position master | `rms.controller.PositionController` | `rms.service.PositionServiceImpl` | `rms.dao.PositionDaoImpl` | `rms.model.PositionInfo` | `createposition.jsp`, `viewposition.jsp` |
 | Language master | `rms.controller.LanguageController` | `rms.service.LanguageServiceImpl` | `rms.dao.LanguageDaoImpl` | `rms.model.LanguageInfo` | `createlanguage.jsp`, `viewlanguage.jsp` |
 | Candidate management | `rms.controller.CandidateController` | `rms.service.CandidateServiceImpl` | `rms.dao.CandidateDaoImpl` | `rms.model.CandidateInfo` | `createcandidate.jsp`, `viewcandidate.jsp` |
+| Candidate profile and documents | `rms.controller.CandidateController` (`profile`), `rms.controller.DocumentController` | `rms.service.DocumentServiceImpl`, `rms.service.DocumentRules` | `rms.dao.DocumentDaoImpl`, `rms.dao.DocumentFileStore` | `rms.model.DocumentInfo`, `DocumentType`, `DocumentUpload` | `candidateprofile.jsp` |
+| Jobs | `rms.controller.JobController` | `rms.service.JobServiceImpl` | `rms.dao.JobDaoImpl` | `rms.model.JobInfo` | `viewjob.jsp`, `createjob.jsp` |
 | Candidate results | `rms.controller.MarksController` | `rms.service.MarksServiceImpl` | `rms.dao.MarksDaoImpl` | `rms.model.MarksInfo` | `viewmarks.jsp` |
 
-Partial flows (jobs, schedules, interviewer score entry) show as disabled "Coming soon" menu entries; they are listed in [open-questions.md](../open-questions.md). Interviewers are now users with the Interviewer role ([users.md](users.md)).
+Partial flows (schedules, interviewer score entry) show as disabled "Coming soon" menu entries; they are listed in [open-questions.md](../open-questions.md). Interviewers are now users with the Interviewer role ([users.md](users.md)).

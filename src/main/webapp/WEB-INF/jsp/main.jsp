@@ -35,7 +35,16 @@
 				<div class="card-body">
 					<span class="rms-tile-icon"><svg class="rms-icon" aria-hidden="true"><use href="${icons}#people"/></svg></span>
 					<h2><a class="stretched-link text-reset text-decoration-none" href="${base}viewcandidatelist">Candidates</a></h2>
-					<p>The people being interviewed, with their position and language.</p>
+					<p>The people being interviewed, with their profile and documents.</p>
+				</div>
+			</div>
+		</div>
+		<div class="col-sm-6 col-xl-4">
+			<div class="card rms-card rms-tile">
+				<div class="card-body">
+					<span class="rms-tile-icon"><svg class="rms-icon" aria-hidden="true"><use href="${icons}#megaphone"/></svg></span>
+					<h2><a class="stretched-link text-reset text-decoration-none" href="${base}viewjoblist">Jobs</a></h2>
+					<p>Openings for a position, with vacancies, a closing date and a status.</p>
 				</div>
 			</div>
 		</div>
@@ -75,7 +84,7 @@
 					<span class="rms-tile-icon mb-0"><svg class="rms-icon" aria-hidden="true"><use href="${icons}#clock"/></svg></span>
 					<div>
 						<h2 class="mb-1">Coming soon</h2>
-						<p>Interview schedules and jobs.</p>
+						<p>Interview schedules.</p>
 					</div>
 				</div>
 			</div>

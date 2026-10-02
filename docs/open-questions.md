@@ -1,11 +1,11 @@
 # Open Questions
 
 Purpose: Unresolved items and partial flows that need confirmation from the owner or a database.
-Last updated: 2026-10-02 (#27 added for roles, users and passwords; #20 answered for inactive admins; #11 updated; #26 follow-up decided). 2026-10-02 (#26: candidate delete answered, soft delete; follow-up on Candidate Status). 2026-10-02 (#26: candidate IDs answered, RMS generates them). 2026-10-02 (#26 added for candidate management, G1; `layout.tag` references shifted). 2026-10-01 (Spring Security 7 replaces AuthInterceptor; #25 added). 2026-10-01 (UI redesign: evidence moved to `layout.tag` and `viewmarks.jsp:55`). 2026-10-01 (small fixes batch: #5 answered by the owner; #3, #12, #14, #20 updated; #22–#24 added; line references refreshed). 2026-10-01 (#15 answered for Phase 3; #4 adds the runtime JDK and Security Manager for Phase 3). 2026-10-01 (#16: Phase 1 rehearsed on MySQL 5.7). 2026-09-30 (#12 extended; #20 added after the G11 fix; #21 added after the G27 fix)
+Last updated: 2026-10-02 (#28 added for candidate documents and jobs, roles plan Phase 2). 2026-10-02 (#27 added for roles, users and passwords; #20 answered for inactive admins; #11 updated; #26 follow-up decided). 2026-10-02 (#26: candidate delete answered, soft delete; follow-up on Candidate Status). 2026-10-02 (#26: candidate IDs answered, RMS generates them). 2026-10-02 (#26 added for candidate management, G1; `layout.tag` references shifted). 2026-10-01 (Spring Security 7 replaces AuthInterceptor; #25 added). 2026-10-01 (UI redesign: evidence moved to `layout.tag` and `viewmarks.jsp:55`). 2026-10-01 (small fixes batch: #5 answered by the owner; #3, #12, #14, #20 updated; #22–#24 added; line references refreshed). 2026-10-01 (#15 answered for Phase 3; #4 adds the runtime JDK and Security Manager for Phase 3). 2026-10-01 (#16: Phase 1 rehearsed on MySQL 5.7). 2026-09-30 (#12 extended; #20 added after the G11 fix; #21 added after the G27 fix)
 Read this when: your task touches one of the areas below, or before you assume something that isn't documented elsewhere.
 
 ## Partial flows
-Partial and missing features are tracked with evidence in [gaps.md](gaps.md): candidate (G1, partly built; #26), interviewer (G2), schedule (G3), job (G4), interviewer score entry (G5–G7), and the other gaps.
+Partial and missing features are tracked with evidence in [gaps.md](gaps.md): candidate (G1; #26), documents and jobs (G4; #28), schedule (G3), interviewer score entry (G5–G7), and the other gaps.
 
 ## Unresolved
 1. **Results page mapping:** `MarksMapper` puts column 1 (`interviewername`) into `setInterviewerid` and column 2 (`candidatename`) into `setCandidateid`. The score columns depend on the column order of `marks`, which isn't in the repo. Does the page show the intended values? (`MarksDaoImpl.java`)
@@ -63,3 +63,11 @@ Partial and missing features are tracked with evidence in [gaps.md](gaps.md): ca
     - **User IDs:** new users get `U` plus the next number after the highest `U<number>` in `users`, `admin` and `marks.interviewerid`. If production IDs use another form, they are left alone and the new ones start at U1 (or after the highest `U` number).
     - **Proxy:** is RMS behind a reverse proxy? Then the login lock sees the proxy's address for everyone, unless ops configure Tomcat's `RemoteIpValve` (G42).
     - **One role per user:** someone who is both a hiring manager and an interviewer needs two accounts. Is that acceptable, or should a user hold several roles later?
+28. **Candidate documents and jobs (roles plan Phase 2, 2026-10-02):** built against new tables in the inferred schema ([business-flows/documents.md](business-flows/documents.md), [business-flows/jobs.md](business-flows/jobs.md), migration 004). For the owner and ops:
+    - **Collation:** `candidate_document.candidateid` takes the database default. If `candidate.candidateid` has another collation, the Candidates pages may fail with "Illegal mix of collations"; migration 004 shows how to check and match it.
+    - **Deleted candidates' files:** the permanent delete is on the profile, which a deleted candidate no longer has. Should it also be reachable for deleted candidates (for example a list of deleted candidates with stored files), or is "purge before deleting" enough?
+    - **Retention:** RMS never deletes documents by itself. Is there a retention period after which a Super Admin should purge them?
+    - **Very large uploads:** Tomcat swallows at most 2 MB (`maxSwallowSize`, default) of a refused upload body; over that the browser may see a reset connection instead of "The file is larger than 5 MB.". Should ops raise it (for example to 10 MB) on the connector?
+    - **Virus scanning:** recommended, not built. Is a scanner available (for example on the `RMS_DOC_DIR` volume)?
+    - **Sizing and backup:** about 6 files of up to 2 MB per candidate is the planning figure; how many candidates a year? The folder must be backed up together with the database (rows without files give 404; files without rows are orphans).
+    - **Time zone:** `uploadedat`, `deletedat` and `purgedat` use the database server's clock (`now()`).

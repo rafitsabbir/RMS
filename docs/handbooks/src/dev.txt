@@ -1,6 +1,6 @@
 # RMS Developer Handbook
 @ Recruitment Management System — code structure, request flow, security model, conventions, tests and recipes for common changes
-@ Branch dev as of 2 October 2026 (roles plan, Phase 1). Java 21, Spring 7, Tomcat 11, MySQL.
+@ Branch dev as of 2 October 2026 (roles plan, Phase 2). Java 21, Spring 7, Tomcat 11, MySQL.
 
 ## 1. First day
 1. Install **JDK 21** (for example Eclipse Temurin 21) and set JAVA_HOME. A JRE isn't enough. Maven comes with the repository (Maven Wrapper).
@@ -17,12 +17,12 @@
 |---|---|
 |pom.xml|Maven build, packaging war|
 |src/main/java/rms/config/|WebInitializer (bootstraps Spring), WebConfig (MVC, view resolver, JNDI DataSource, static resources), SecurityConfig (access rules, login, logout, CSRF, password check), AccountCheckFilter, LoginThrottle, SecurityInitializer (registers the security filter), PlainTextPasswordEncoder (legacy passwords)|
-|src/main/java/rms/controller/|Login, Account (Change password), User (Users and Roles), Position, Language, Candidate and Marks controllers|
-|src/main/java/rms/service/|*Service interfaces and *ServiceImpl classes (mostly pass-through; UserServiceImpl encodes passwords), RmsUserDetails, PasswordRules|
-|src/main/java/rms/dao/|*Dao interfaces and *DaoImpl classes — all SQL lives here|
-|src/main/java/rms/model/|*Info beans: PositionInfo, LanguageInfo, CandidateInfo, MarksInfo, UserInfo, LoginInfo, and the Role enum|
+|src/main/java/rms/controller/|Login, Account (Change password), User (Users and Roles), Position, Language, Candidate (with the profile), Job, Document (upload, download, delete, permanent delete) and Marks controllers|
+|src/main/java/rms/service/|*Service interfaces and *ServiceImpl classes (mostly pass-through; UserServiceImpl encodes passwords; DocumentServiceImpl checks and stores uploads), RmsUserDetails, PasswordRules, DocumentRules (file checks), DocumentOutcome|
+|src/main/java/rms/dao/|*Dao interfaces and *DaoImpl classes — all SQL lives here; DocumentFileStore, the files in RMS_DOC_DIR|
+|src/main/java/rms/model/|*Info beans: PositionInfo, LanguageInfo, CandidateInfo, JobInfo, DocumentInfo, MarksInfo, UserInfo, LoginInfo; the enums Role, DocumentType, CandidateSource; the record DocumentUpload|
 |src/main/resources/logback.xml|Logging configuration|
-|src/main/webapp/WEB-INF/jsp/|9 views: login, main (home), create*/view* per module, viewmarks|
+|src/main/webapp/WEB-INF/jsp/|15 views: login, main (home), create*/view* per module, candidateprofile, changepassword, viewmarks|
 |src/main/webapp/WEB-INF/tags/layout.tag|Page shell: head, sidebar menu, top bar, Log out|
 |src/main/webapp/WEB-INF/web.xml|Request encoding ISO-8859-1, cookie-only sessions|
 |src/main/webapp/resources/|css/rms.css, js/rms.js, img/ (logo, icons.svg sprite)|
@@ -39,20 +39,21 @@
 
 - Controllers return ModelAndView. The view name maps to /WEB-INF/jsp/<name>.jsp.
 - Services are pass-through today; put business rules there when they grow beyond simple validation.
-- There is no transaction management: every write is a single SQL statement.
+- Transactions only where two statements must go together, as a TransactionTemplate inside the DAO (UserDaoImpl.addUser, DocumentDaoImpl.addDocument); every other write is a single SQL statement.
 - "Not found" (a missing or deleted key) is a null from the DAO, which the controller turns into HTTP 404.
 - Business refusals (duplicates) are a false from the DAO, shown as a message on the form, never an exception.
 
 ## 4. Security model
 - **Login:** Spring Security handles `POST /welcome` (fields username and password) and calls `LoginService.loadUserByUsername`. Never read credentials in a controller.
 - **Roles:** four, in `rms.model.Role`: SUPER_ADMIN, HR, HIRING_MANAGER, INTERVIEWER, read from admin.role (NULL falls back to admin.isinterviewer: N is Super Admin, Y is Interviewer). The authority is ROLE_ plus the name. Writes keep isinterviewer in step (N for Super Admin, Y for the rest) so an older WAR still works after a rollback.
-- **Rules** live in `SecurityConfig.appFilterChain` and **deny by default**: /login and /welcome are public; /, /home, /changepassword and /savepassword need any login; every other page is listed in USER_ADMIN_PAGES, STAFF_READ_PAGES or HR_PAGES with its roles; `anyRequest().denyAll()` refuses the rest. A new URL is refused for everyone until you list it.
+- **Rules** live in `SecurityConfig.appFilterChain` and **deny by default**: /login and /welcome are public; /, /home, /changepassword and /savepassword need any login; every other page is listed in USER_ADMIN_PAGES, SUPER_ADMIN_PAGES (the permanent delete of documents), STAFF_READ_PAGES or HR_PAGES with its roles; `anyRequest().denyAll()` refuses the rest. A new URL is refused for everyone until you list it.
 - **Account check:** `AccountCheckFilter` re-reads the user's admin row on every request: deactivated or a changed role ends the session (/login?ended); a reset password (users.mustchangepassword = 1) allows only Change password.
 - **Login lock:** `LoginThrottle`, 5 failures per username and address in 15 minutes lock it there for 15 minutes; in memory per Tomcat node.
 - **Menu** visibility is separate: layout.tag shows blocks by the session user's role name (`role eq 'HR'`). Change both the rule and the menu.
 - **Session:** after login the profile (UserInfo) is in the session as "user"; the JSPs read it from there, and AccountCheckFilter refreshes it.
 - **CSRF:** every POST needs the token. `<form:form>` adds it automatically; a plain `<form method="post">` gets HTTP 403.
 - **Passwords:** stored values starting with {bcrypt} are checked with bcrypt; anything else as a legacy plain-text password (exact match). RMS stores every new, reset or changed password as {bcrypt} (`UserServiceImpl`, rules in `PasswordRules`). Hashing the existing rows is db/migrations/003-hash-passwords/, which waits for the owner's approval.
+- **Files:** candidate documents are stored by `DocumentFileStore` in RMS_DOC_DIR under 32 random hex characters, never the user's name; served only by `DocumentController.download` (attachment, nosniff). An upload over the container's limit (5 MB per file, 6 MB per request, `WebInitializer`) arrives without its CSRF token; `SecurityConfig.tooLargeUpload` sends it back to the profile.
 
 ## 5. Coding conventions
 |Topic|Rule|Example|
@@ -100,18 +101,22 @@ Add the URLs to the matching array in `SecurityConfig` (HR_PAGES for Super Admin
 ```
 Then add the menu link inside the right `<c:if test="${role eq 'INTERVIEWER'}">` block in layout.tag, and add a `Page` with its allowed roles to `SecurityConfigTest.pages()`; `eachRoleOpensExactlyItsPages` checks it for every role. Checks that depend on the row ("only my assigned candidates") go in the service or controller.
 
+### Accept a file upload
+Follow the document module (docs/business-flows/documents.md): a `<form:form enctype="multipart/form-data">` with IDs in the action URL only (a hidden field as well arrives as "C1,C1"); a controller taking `@RequestParam MultipartFile`; checks in a service (extension, declared type and first bytes, see `DocumentRules`); `DocumentFileStore` for the file; the row in a DAO; logs with keys only. Downloads go through a controller with `ContentDisposition.attachment()` and `X-Content-Type-Options: nosniff`. Test with real files in a `@TempDir` (DocumentServiceImplTest) and `MockMvc multipart()`.
+
 ### Add a field to an existing screen
 1. Add the column to db/schema.sql and a script in db/migrations/ (with a rollback line).
 2. Add the field to the *Info model, the SQL strings, the parameter map and the RowMapper.
 3. Add the input to the create*.jsp (`<form:input path="…"/>`) and the column to the view*.jsp (with <c:out>).
 4. Validate it in the controller's save method, and update the tests.
+A date or number field needs a `BindingResult` after the `@ModelAttribute` so a bad value becomes a message, and the field must be in the controller's `@InitBinder` allowed list (CandidateController, JobController).
 
 ### Change a validation message or rule
 Messages are set in the controller (the form(info, "message") helper) and shown by the alert in the create*.jsp. Change the controller and its test together.
 
 ### Run locally on Tomcat
 1. Create the local database: db/local/setup-local-db.sh (or .ps1), or `docker compose -f db/local/docker-compose.yml up -d`.
-2. Copy deploy/tomcat/rms.xml to Tomcat's conf/Catalina/localhost/, put the Connector/J jar in lib/, and set RMS_DB_URL, RMS_DB_USER, RMS_DB_PASSWORD and the property-source option (see the IT guide).
+2. Copy deploy/tomcat/rms.xml to Tomcat's conf/Catalina/localhost/, put the Connector/J jar in lib/, and set RMS_DB_URL, RMS_DB_USER, RMS_DB_PASSWORD, RMS_DOC_DIR (an empty scratch folder) and the property-source option (see the IT guide).
 3. Copy the WAR to webapps/rms.war, start Tomcat, open http://localhost:8080/rms/login and sign in with a seed user from db/test-seed.sql.
 
 ## 8. Database work
@@ -120,6 +125,8 @@ Messages are set in the controller (the form(info, "message") helper) and shown 
 - Soft delete everywhere: lists and finds filter isactive = 1; reports may still join deleted rows on purpose.
 - The SQL is MySQL-specific (concat(), UPDATE … ORDER BY … LIMIT, REGEXP).
 - MarksDaoImpl reads columns by position from m.*: don't change the column order of the marks table.
+- New tables are created ENGINE=InnoDB (transactions and the SELECT … FOR UPDATE lock in DocumentDaoImpl). Migrations so far: 001 candidate.isactive, 002 roles, 003 password hashing (a Java program, not run), 004 candidate documents and jobs.
+- Dates: LocalDate and LocalDateTime map to DATE and DATETIME through Connector/J (`rs.getObject(column, LocalDate.class)`); upload times use the database's now().
 
 ## 9. Tests
 |Kind|Where|Needs|How|
@@ -133,7 +140,7 @@ Messages are set in the controller (the form(info, "message") helper) and shown 
 - These are **characterization tests**: they pin what the code does today. A test that pins a known defect carries a comment such as `// characterizes G10`.
 - Use only synthetic data: no real names, credentials or hostnames.
 - Mockito runs as a Java agent configured in pom.xml. When running tests from an IDE, add -javaagent:<path to the mockito-core jar> to the run configuration, or let Maven run them.
-- Current numbers on a machine without Docker: 145 tests, 86 pass, 59 skipped (DAO and smoke).
+- Current numbers on a machine without Docker: 329 tests, 225 pass, 104 skipped (91 DAO, 13 smoke).
 
 ## 10. Pitfalls
 |Pitfall|What happens|What to do|
@@ -146,6 +153,8 @@ Messages are set in the controller (the form(info, "message") helper) and shown 
 |queryForObject on a row that may be missing|It throws an exception|Return null (catch EmptyResultDataAccessException, or query a list)|
 |Logging personal data|Names or IDs end up in log files|Don't log passwords, names or free-text IDs|
 |Schema change without a migration|Tests pass, production breaks|Always add a db/migrations/ script|
+|An ID both in a multipart form's URL and in a hidden field|The server reads "C1,C1" and finds nothing (404)|Put it in one place only|
+|Using a user-supplied file name in a path|Path traversal|Store under a generated name (DocumentFileStore); show the user's name only with <c:out>|
 
 ## 11. Git and CI
 - master is the default (production) branch; day-to-day work happens on dev. Release branches such as release/phase1 are frozen candidates.
@@ -159,7 +168,7 @@ Messages are set in the controller (the form(info, "message") helper) and shown 
 |---|---|
 |Which document for my task?|docs/ROUTER.md|
 |Coding patterns in detail|docs/conventions.md|
-|How a feature works end to end|docs/business-flows/*.md (login, masters, candidates, evaluation)|
+|How a feature works end to end|docs/business-flows/*.md (login, users, masters, candidates, documents, jobs, evaluation)|
 |Tables and columns|docs/data-model.md|
 |Build, deploy and test details|docs/build-run.md|
 |Known gaps and defects (G numbers)|docs/gaps.md|

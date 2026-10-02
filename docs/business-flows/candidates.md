@@ -1,7 +1,7 @@
 # Flow: Candidate Management
 
-Purpose: Traces adding, listing, editing and deleting candidates (G1).
-Last updated: 2026-10-02 (soft delete by owner decision; needs `db/migrations/001-candidate-isactive.sql`). 2026-10-02 (generated IDs C1, C2, ... by owner decision; list sorted by number). 2026-10-02 (first version: add, list and edit; no delete)
+Purpose: Traces adding, listing, editing and deleting candidates (G1), with the contact details, source, applied date and job added in Phase 2 of the roles plan.
+Last updated: 2026-10-02 (Phase 2 of the roles plan: e-mail, phone, source, applied date, job link, profile page and document column; access by role; migration 004). 2026-10-02 (soft delete by owner decision; needs `db/migrations/001-candidate-isactive.sql`). 2026-10-02 (generated IDs C1, C2, ... by owner decision; list sorted by number). 2026-10-02 (first version: add, list and edit; no delete)
 Read this when: you're fixing or extending candidate management, or building a module that picks a candidate (score entry G5, schedules G3).
 
 Evidence: `rms/controller/CandidateController.java`, `rms/service/CandidateServiceImpl.java`, `rms/dao/CandidateDaoImpl.java`, `rms/model/CandidateInfo.java`, `WEB-INF/jsp/createcandidate.jsp`, `viewcandidate.jsp`, `WEB-INF/tags/layout.tag:71-74` (menu), `main.jsp` (home tile). Tests: `rms/controller/CandidateControllerTest`, `rms/dao/CandidateDaoImplTest` (needs Docker), `rms/config/SecurityConfigTest` (access and CSRF), `rms/SmokeTest.candidatePagesRender`.
@@ -52,11 +52,12 @@ sequenceDiagram
 | Save (add or edit) | `POST /savecandidate` (the edit form adds `update=true`) | `save()` → redirect to the list, or the form again with `errorMessage` |
 | Edit form | `GET /updatecandidate?candidateid=…` | `update()` → `createcandidate.jsp` prefilled; 404 if missing or deleted |
 | Delete (soft) | `POST /deletecandidate` with the form field `candidateid` | `delete()` → redirect to the list; a GET gets 405 |
+| Profile (Phase 2) | `GET /viewcandidate?candidateid=…` | `profile()` → `candidateprofile.jsp` with the documents; see [documents.md](documents.md) |
 
 `CandidateController.java:40-102`.
 
 ## Notes
-- **Access:** admin only. No rule in `SecurityConfig` names these paths, so `anyRequest().hasRole("ADMIN")` covers them; an interviewer gets 403 and a logged-out user goes to `/login` (`SecurityConfigTest.interviewerIsRefusedAdminPages`, `loggedOutRequestsRedirectToLogin`). Saves need the CSRF token, which `form:form` adds (`postWithoutCsrfTokenIsRefused`).
+- **Access** (`SecurityConfig`, since roles Phase 1): the list and the profile for Super Admin, HR and Hiring Manager; add, edit, delete and documents for Super Admin and HR. The list and the profile hide the change buttons from a Hiring Manager (`canedit`). An interviewer gets 403 and a logged-out user goes to `/login` (`SecurityConfigTest.eachRoleOpensExactlyItsPages`, `loggedOutRequestsRedirectToLogin`). Saves need the CSRF token, which `form:form` adds (`postWithoutCsrfTokenIsRefused`).
 - **Candidate ID:** RMS generates it (owner decision 2026-10-02): `C` plus the next number after the highest existing ID of the form `C<number>` (up to 9 digits), so the seed's C1 and C2 are followed by C3. IDs in other formats, from before the generator, are left alone and don't count (`CandidateDaoImpl.lastnumber`, `addCandidate`, `:31-34,68-90`). The Add form has no ID field, and an ID posted with a new candidate is ignored; Edit shows the ID read-only. Reading the number and inserting are `synchronized` (one Tomcat only). If the insert hits a duplicate key anyway (another node, or another writer; only when `candidateid` is a key, which is unknown, G22), it retries with a fresh number, up to 3 times. Without a key in production, two nodes could still create the same ID.
 - **Order:** the list sorts shorter IDs first, then by text, so C2 comes before C10 (`allcandidate`); the table's ID column sorts by that server order (`data-order` in `viewcandidate.jsp`), not as text.
 - **IDs in URLs:** the Edit link passes the ID as a query parameter built with `c:url` and `c:param` (`viewcandidate.jsp`), not as a path segment, because IDs from before the generator may be any text and Spring Security's firewall refuses some characters in paths, such as `;` and an encoded `/`. `c:param` encodes `+` as `%2B`; `spring:param` would leave it, and the server would read it as a space (found in review).
@@ -76,3 +77,16 @@ sequenceDiagram
 - **Edit form posted for a missing candidate:** 404, as for positions (`:56-61`).
 - **Escaping:** IDs and names print through `<c:out>`; the `form:` tags escape by default (G27).
 - **Known gaps:** G1 (fixed 2026-10-02; migration 001 still to run in production), G9 (status), G22 (inferred schema; the DAO tests run against `db/schema.sql`).
+
+## Phase 2: contact details, source, applied date, job (2026-10-02)
+- **New fields** (`candidate.email`, `phone`, `source`, `applieddate`, `jobkey`; migration 004), all optional; empty ones are stored as NULL (`CandidateDaoImpl.paramMap`).
+  - **E-mail:** at most 150 characters, something@something.something without spaces ("Please enter a valid e-mail address, or leave it empty.").
+  - **Phone:** 3 to 30 of digits, spaces and `+ ( ) - . /`.
+  - **Source** (`rms.model.CandidateSource`): Referral, Job board, Website, Agency, Walk-in, Other, stored by name (`REFERRAL` …). A stored value this version doesn't know is kept and offered on the form.
+  - **Applied on:** a date, not in the future.
+  - **Job:** optional; it sets the candidate's position (decision M). Rules in [jobs.md](jobs.md).
+- **Only the form's fields bind** (`CandidateController.bindFormFieldsOnly`): a posted `candidatestatus` or document count is ignored.
+- **Order of checks:** first name, last name, e-mail, phone, job, position (skipped with a job), language, source, applied date.
+- **List:** the name links to the profile; a new **Documents** column shows "CV ✓" or "No CV" and n/6 ([documents.md](documents.md)). The counts come from subqueries on `candidate_document` (active rows only) in `CandidateDaoImpl.selectcandidate`; the single-slot kind names in that SQL are built from `DocumentType`.
+- **Profile:** `GET /viewcandidate?candidateid=…` ([documents.md](documents.md)).
+- **Database change:** production needs `db/migrations/004-candidate-documents-jobs.sql` before this WAR; without it the Candidates pages fail with "Unknown column 'c.email'".

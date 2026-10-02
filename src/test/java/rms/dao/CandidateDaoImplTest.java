@@ -3,6 +3,7 @@ package rms.dao;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.groups.Tuple.tuple;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -151,6 +152,84 @@ class CandidateDaoImplTest extends MySqlContainerSupport {
 
 		assertThat(jdbcTemplate.queryForObject("select isactive from candidate where candidateid='C3'", Integer.class))
 				.isEqualTo(1);
+	}
+
+	// --- Phase 2: contact details, source, applied date, job, document counts ---
+
+	@Test
+	void profileFieldsJobAndDocumentCountsAreRead() {
+		CandidateInfo carla = dao.findCandidateById("C1");
+
+		assertThat(carla.getEmail()).isEqualTo("carla@example.test");
+		assertThat(carla.getPhone()).isEqualTo("000-1001");
+		assertThat(carla.getSource()).isEqualTo("REFERRAL");
+		assertThat(carla.getApplieddate()).isEqualTo(LocalDate.of(2026, 9, 1));
+		assertThat(carla.getJobkey()).isEqualTo(1);
+		assertThat(carla.getJobstatus()).isEqualTo("OPEN");
+		// CV and SSC active (the replaced CV doesn't count), one professional certificate
+		assertThat(carla.getCvcount()).isEqualTo(1);
+		assertThat(carla.getSlotcount()).isEqualTo(2);
+		assertThat(carla.getProfessionalcount()).isEqualTo(1);
+
+		CandidateInfo cody = dao.findCandidateById("C2");
+		assertThat(cody.getEmail()).isNull();
+		assertThat(cody.getJobkey()).isZero();
+		assertThat(cody.getJobstatus()).isNull();
+		assertThat(cody.getCvcount()).isZero();
+		assertThat(cody.getSlotcount()).isZero();
+	}
+
+	@Test
+	void aDeletedJobHasNoStatusAndTheLinkStays() {
+		jdbcTemplate.update("update job set isactive=0 where jobkey=1");
+
+		CandidateInfo carla = dao.findCandidateById("C1");
+		assertThat(carla.getJobkey()).isEqualTo(1);
+		assertThat(carla.getJobstatus()).isNull();
+	}
+
+	@Test
+	void documentCountsFollowDeletesAndKinds() {
+		jdbcTemplate.update("update candidate_document set isactive=0 where documentkey=1");
+		jdbcTemplate.update("insert into candidate_document (candidateid, doctype, originalname, storedname, "
+				+ "contenttype, filesize, uploadedby, uploadedat) values ('C1', 'SSC', 'x.pdf', "
+				+ "'b0000000000000000000000000000001', 'application/pdf', 1, 'U1', now())");
+
+		CandidateInfo carla = dao.getAllCandidate().get(0);
+		assertThat(carla.isHascv()).isFalse();
+		// Two active SSC rows still count as one kind
+		assertThat(carla.getSlotcount()).isEqualTo(1);
+	}
+
+	@Test
+	void addAndUpdateSaveTheNewFields() {
+		CandidateInfo dana = candidate(null, "Dana", "Doe", 1, 1);
+		dana.setEmail(" dana@example.test ");
+		dana.setPhone("000-2001");
+		dana.setSource("AGENCY");
+		dana.setApplieddate(LocalDate.of(2026, 9, 20));
+		dana.setJobkey(1);
+		String id = dao.addCandidate(dana);
+
+		CandidateInfo saved = dao.findCandidateById(id);
+		assertThat(saved.getEmail()).isEqualTo("dana@example.test");
+		assertThat(saved.getSource()).isEqualTo("AGENCY");
+		assertThat(saved.getApplieddate()).isEqualTo(LocalDate.of(2026, 9, 20));
+		assertThat(saved.getJobkey()).isEqualTo(1);
+
+		saved.setEmail("");
+		saved.setPhone(" ");
+		saved.setSource("");
+		saved.setApplieddate(null);
+		saved.setJobkey(0);
+		dao.updateCandidate(saved);
+
+		Map<String, Object> row = jdbcTemplate.queryForMap("select * from candidate where candidateid=?", id);
+		assertThat(row.get("email")).isNull();
+		assertThat(row.get("phone")).isNull();
+		assertThat(row.get("source")).isNull();
+		assertThat(row.get("applieddate")).isNull();
+		assertThat(row.get("jobkey")).isNull();
 	}
 
 	private static CandidateInfo candidate(String id, String first, String last, int positionkey, int languagekey) {

@@ -133,6 +133,39 @@ class SmokeTest {
 		assertThat(CSRF_FIELD.matcher(body).find()).isTrue();
 	}
 
+	/** Phase 2: jobs, and the seed candidate C1's profile with its documents. Needs a Super Admin smoke user. */
+	@Test
+	@EnabledIfEnvironmentVariable(named = "RMS_SMOKE_USER", matches = ".+")
+	@EnabledIfEnvironmentVariable(named = "RMS_SMOKE_PASSWORD", matches = ".+")
+	void jobAndProfilePagesRender() throws IOException {
+		HttpURLConnection login = postLogin(System.getenv("RMS_SMOKE_USER"), System.getenv("RMS_SMOKE_PASSWORD"));
+		String cookie = sessionCookie(login);
+
+		HttpURLConnection jobs = open("/viewjoblist", cookie);
+		assertThat(jobs.getResponseCode()).isEqualTo(200);
+		String body = read(jobs);
+		assertThat(body).contains("<title>Jobs - RMS</title>");
+		assertThat(body).contains("id=\"jobtable\"");
+
+		HttpURLConnection form = open("/createjob", cookie);
+		assertThat(form.getResponseCode()).isEqualTo(200);
+		body = read(form);
+		assertThat(body).contains("id=\"closingdate\"");
+		assertThat(CSRF_FIELD.matcher(body).find()).isTrue();
+
+		HttpURLConnection profile = open("/viewcandidate?candidateid=C1", cookie);
+		assertThat(profile.getResponseCode()).isEqualTo(200);
+		body = read(profile);
+		assertThat(body).contains("id=\"documenttable\"");
+		assertThat(body).contains("CV &#10003;");
+		// The Super Admin's permanent delete; the upload form only when RMS_DOC_DIR is set
+		assertThat(body).contains("id=\"purgedocuments\"");
+
+		// A seed document has metadata but no file
+		HttpURLConnection download = open("/downloaddocument/1", cookie);
+		assertThat(download.getResponseCode()).isIn(404, 503);
+	}
+
 	/** Needs a Super Admin smoke user (test.admin in the seed). */
 	@Test
 	@EnabledIfEnvironmentVariable(named = "RMS_SMOKE_USER", matches = ".+")

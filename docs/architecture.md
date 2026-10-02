@@ -1,7 +1,7 @@
 # Architecture
 
 Purpose: How RMS is layered and how a request moves through it.
-Last updated: 2026-10-02 (roles plan, Phase 1: four roles, deny by default, AccountCheckFilter, LoginThrottle, User and Account controllers, the first transaction). 2026-10-02 (Candidate controller added, G1). 2026-10-01 (Spring Security 7 replaces AuthInterceptor: filter chain, login, CSRF, logout, password check in Java). 2026-10-01 (UI redesign: layout tag replaces the `<object>` menu frame). 2026-10-01 (small fixes batch: login redirects to `/home`, two interceptor registrations, 404 handling, soft delete, cookie-only sessions). 2026-09-30 (G11 login check; G27 output escaping)
+Last updated: 2026-10-02 (roles plan Phase 2: Job and Document controllers, file storage in `RMS_DOC_DIR`, multipart, the second transaction). 2026-10-02 (roles plan, Phase 1: four roles, deny by default, AccountCheckFilter, LoginThrottle, User and Account controllers, the first transaction). 2026-10-02 (Candidate controller added, G1). 2026-10-01 (Spring Security 7 replaces AuthInterceptor: filter chain, login, CSRF, logout, password check in Java). 2026-10-01 (UI redesign: layout tag replaces the `<object>` menu frame). 2026-10-01 (small fixes batch: login redirects to `/home`, two interceptor registrations, 404 handling, soft delete, cookie-only sessions). 2026-09-30 (G11 login check; G27 output escaping)
 Read this when: you need the overall picture before changing code, or you're deciding which layer a change belongs in.
 
 ## Overall diagram
@@ -28,9 +28,9 @@ Evidence: `src/main/java/rms/config/WebInitializer.java`, `rms/config/WebConfig.
 | Config | `rms.config.WebConfig` | Sets up MVC, component scanning of `rms`, the DataSource and JdbcTemplate beans, the view resolver, and static resources | `WebConfig.java` |
 | Security | `rms.config.SecurityInitializer`, `rms.config.SecurityConfig` | Spring Security 7.0.7 filter chain in front of the DispatcherServlet: form login, access rules by role, CSRF tokens, logout ([config.md](config.md), [business-flows/login.md](business-flows/login.md)) | `SecurityConfig.java` |
 | Controller | `rms.controller` | `@Controller` classes returning `ModelAndView` | `rms/controller/*.java` |
-| Service | `rms.service` | `@Service` classes that pass calls straight to the DAO, with no logic. The exceptions: `LoginServiceImpl.loadUserByUsername`, which Spring Security calls (it refuses an unknown or ambiguous username and builds the `RmsUserDetails` with the role), and `UserServiceImpl`, which encodes passwords as `{bcrypt}` and checks the current one | `rms/service/*Impl.java` |
-| DAO | `rms.dao` | `@Repository` classes with SQL as string fields and `RowMapper` inner classes | `rms/dao/*Impl.java` |
-| Model | `rms.model` | Plain `*Info` POJOs | `rms/model/*.java` |
+| Service | `rms.service` | `@Service` classes that pass calls straight to the DAO, with no logic. The exceptions: `LoginServiceImpl.loadUserByUsername`, which Spring Security calls (it refuses an unknown or ambiguous username and builds the `RmsUserDetails` with the role), and `UserServiceImpl`, which encodes passwords as `{bcrypt}` and checks the current one, and `DocumentServiceImpl` (Phase 2), which checks uploads (`DocumentRules`) and coordinates the file and the row | `rms/service/*Impl.java` |
+| DAO | `rms.dao` | `@Repository` classes with SQL as string fields and `RowMapper` inner classes; `DocumentFileStore` (Phase 2) is the file-system counterpart for `RMS_DOC_DIR` | `rms/dao/*Impl.java`, `DocumentFileStore.java` |
+| Model | `rms.model` | Plain `*Info` POJOs, plus the enums `Role`, `DocumentType`, `CandidateSource` and the record `DocumentUpload` | `rms/model/*.java` |
 | View | `src/main/webapp/WEB-INF/jsp` | JSP pages with JSTL and EL (no scriptlets since 2026-10-01), sharing the `layout.tag` shell | `WEB-INF/jsp/*.jsp`, `WEB-INF/tags/layout.tag` |
 
 ## Request lifecycle
@@ -43,8 +43,9 @@ Evidence: `src/main/java/rms/config/WebInitializer.java`, `rms/config/WebConfig.
 7. **UI shell:** every page behind the login is a normal page wrapped in the `layout.tag` tag file, which renders the sidebar menu, the top bar and the content area (`WEB-INF/tags/layout.tag`). Menu items are plain links, so back, refresh and bookmarks work. `main.jsp` is the home page with quick links per role. Until the 2026-10-01 redesign, `main.jsp` was a frame that loaded each page into an `<object>` element.
 
 ## Cross-cutting concerns
-- **Transactions:** one, since 2026-10-02: adding a user writes `users` and `admin` together through a `TransactionTemplate` inside `UserDaoImpl.addUser`. Everything else is a single statement and runs without one. There's no `@Transactional` or transaction-manager bean (G19, closed as not a gap). `spring-tx` is declared on purpose, because the DAOs use its `DataAccessException` hierarchy (`pom.xml:83-87`).
-- **Error handling:** no `@ExceptionHandler` or `@ControllerAdvice`.
+- **Transactions:** two, both `TransactionTemplate`s inside a DAO: adding a user writes `users` and `admin` together (`UserDaoImpl.addUser`, 2026-10-02), and an upload locks the candidate's row, replaces or counts, and inserts (`DocumentDaoImpl.addDocument`, Phase 2). Everything else is a single statement and runs without one. There's no `@Transactional` or transaction-manager bean (G19, closed as not a gap). `spring-tx` is declared on purpose, because the DAOs use its `DataAccessException` hierarchy (`pom.xml:83-87`).
+- **Error handling:** no `@ExceptionHandler` or `@ControllerAdvice`. An upload over the container's size limit is handled in `SecurityConfig.refuse` (`tooLargeUpload`), because the CSRF check fails first.
+- **Files** (since Phase 2): candidate documents on disk in `RMS_DOC_DIR`, written, found and removed only by `rms.dao.DocumentFileStore` under random names; multipart limits in `WebInitializer`; downloads only through `DocumentController` ([business-flows/documents.md](business-flows/documents.md)).
   - The DAOs catch `EmptyResultDataAccessException` and return `null`: `LoginDaoImpl.getUserInfo`, `PositionDaoImpl.findPositionById` (`:109-111`), `LanguageDaoImpl.findLanguageById` (`:92-94`).
   - A `null` from the finders becomes HTTP 404 through `ResponseStatusException` in the controllers (`PositionController.java:46-50,78-80`, `LanguageController.java:55-59,78-80`).
   - A business refusal (duplicate name, blank name) isn't an exception: the DAO returns `false` or the controller checks, and the create form is shown again with `errorMessage` (`PositionController.java:40-43,55-57`).
@@ -59,5 +60,5 @@ Evidence: `src/main/java/rms/config/WebInitializer.java`, `rms/config/WebConfig.
   - **Output:** the JSPs print user and database text through `<c:out>` (G27).
   - **CSRF (G32):** every POST needs the session's token, which `<form:form>` adds; logout is POST `/logout`.
   - **Passwords (G13):** checked in Java: `{bcrypt}` rows with bcrypt, other rows as exact plain text (`SecurityConfig.passwordEncoder`). Since 2026-10-02 new, reset and changed passwords are stored as `{bcrypt}`. Still open: the existing rows stay plain text until the owner runs `db/migrations/003-hash-passwords/`.
-- **Validation:** no `@Valid` or `BindingResult`. The controllers refuse a blank or missing name (`PositionController.java:40-43`, `LanguageController.java:49-52`); the DAOs upper-case and trim names and refuse duplicates among active rows. There's no length check (G28).
+- **Validation:** no `@Valid`. `BindingResult` only to catch typed fields that don't convert (`JobController`, `CandidateController`, since Phase 2). The controllers refuse a blank or missing name (`PositionController.java:40-43`, `LanguageController.java:49-52`); the DAOs upper-case and trim names and refuse duplicates among active rows. There's no length check (G28).
 - **Deletes:** POST only. They set `isactive=0` instead of removing the row, and adding the same name again reactivates the oldest deleted row (rules in [data-model.md](data-model.md); flow in [business-flows/masters.md](business-flows/masters.md)).

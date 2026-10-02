@@ -1,6 +1,6 @@
 # RMS Business Analyst Guide
 @ Recruitment Management System — roles, screens, permissions, business flows and how to use the system
-@ Describes the version on the dev branch as of 2 October 2026 (roles plan, Phase 1). Prepared from the code and the project documentation.
+@ Describes the version on the dev branch as of 2 October 2026 (roles plan, Phase 2). Prepared from the code and the project documentation.
 
 > **Purpose of this document:** explain what RMS does today, who can use which screen, how each business process works, and what is still missing, so that new features can be analysed and proposed.
 
@@ -11,8 +11,8 @@ RMS is a small web application for running interviews. The HR or recruitment sid
 |---|---|
 |Who uses it|Super Admins, HR staff, hiring managers and interviewers. Each person has one login and one role.|
 |Where it runs|In a web browser, on desktop or phone. Nothing is installed on the user's computer.|
-|What works today|Login, Users and Roles, Change password, Positions, Languages/skills, Candidates, and the Candidate Status results page.|
-|What is not built yet|Score entry by interviewers, interview schedules, job openings, candidate documents, and the Selected/Rejected decision. They are planned as Phases 2 to 4.|
+|What works today|Login, Users and Roles, Change password, Positions, Languages/skills, Jobs, Candidates with their profile and documents, and the Candidate Status results page.|
+|What is not built yet|Score entry by interviewers, interview schedules, and the Selected/Rejected decision. They are planned as Phases 3 and 4.|
 
 The menu already shows the full recruitment workflow, but the unbuilt parts are greyed out and marked "Soon". They can't be clicked.
 
@@ -21,9 +21,9 @@ RMS has four roles. A Super Admin sets each person's role on the **Users and Rol
 
 |Role|Purpose|What they can do today|
 |---|---|---|
-|**Super Admin**|Runs the system: users, roles and everything HR can do.|Everything: Users and Roles, Candidate Status, Candidates, Positions, Languages.|
-|**HR**|Runs recruitment: reference lists, candidates, results.|Candidate Status, Candidates (add, edit, delete), Positions, Languages. No user management.|
-|**Hiring Manager**|Follows recruitment for their team.|Candidate Status and the Candidates list, read-only.|
+|**Super Admin**|Runs the system: users, roles and everything HR can do.|Everything: Users and Roles, Candidate Status, Candidates and their documents, Jobs, Positions, Languages, and permanently deleting a candidate's documents.|
+|**HR**|Runs recruitment: reference lists, candidates, results.|Candidate Status, Candidates (add, edit, delete, profile, documents), Jobs, Positions, Languages. No user management.|
+|**Hiring Manager**|Follows recruitment for their team.|Candidate Status, the Candidates list and profiles, Jobs, and opening documents; read-only.|
 |**Interviewer**|Interviews candidates and scores them on 10 criteria.|Home and Change password. Score entry ("Evaluation", "Show Evaluation") comes in Phase 3.|
 |No role|Not intended; a data error.|Can log in, but sees only Home and Change password.|
 
@@ -38,11 +38,16 @@ The menu shows each role only its own entries. Typing a page's address directly 
 |Home (welcome page)|Live|Yes|Yes|Yes|Yes|
 |Recruitment › Candidate Status|Live|Yes|Yes|Read-only|Refused|
 |Recruitment › Candidates|Live|Yes|Yes|List only|Refused|
+|Candidate profile (click a name)|Live|Yes|Yes|Read-only|Refused|
+|Documents: upload, replace, delete|Live|Yes|Yes|Refused|Refused|
+|Documents: open (download)|Live|Yes|Yes|Yes|Refused (Phase 3: own candidates)|
+|Permanently delete documents|Live|Yes|Refused|Refused|Refused|
+|Recruitment › Jobs|Live|Yes|Yes|Read-only|Refused|
 |Master data › Positions|Live|Yes|Yes|Refused|Refused|
 |Master data › Languages|Live|Yes|Yes|Refused|Refused|
 |Administration › Users and Roles|Live|Yes|Refused|Refused|Refused|
 |Account › Change password|Live|Yes|Yes|Yes|Yes|
-|Interview Schedules, Jobs|Coming soon|Greyed out|Greyed out|—|—|
+|Interview Schedules|Coming soon|Greyed out|Greyed out|—|—|
 |Evaluation, Show Evaluation|Coming soon|—|—|—|Greyed out|
 |Log out (top bar)|Live|Yes|Yes|Yes|Yes|
 
@@ -91,11 +96,27 @@ The menu shows each role only its own entries. Typing a page's address directly 
 - The languages or skills candidates are assessed on, for example "JAVA". Works exactly like Positions.
 
 ### Candidates
-- Super Admin and HR can add, list, edit and delete candidates. Hiring Managers see the list only. Each candidate has a first name, a last name, one position and one language.
+- Super Admin and HR can add, list, edit and delete candidates. Hiring Managers see the list and the profiles. Each candidate has a first name, a last name, one position and one language, and optionally an e-mail, a phone number, a source (Referral, Job board, Website, Agency, Walk-in, Other), the date they applied, and a job.
+- **Job link:** choosing an open job sets the candidate's position to the job's position automatically.
 - RMS gives each new candidate an ID automatically: C1, C2, C3… The ID can't be changed and is never reused, even after a delete.
 - Only active positions and languages can be chosen. If a candidate's position is deleted later, the candidate keeps it (shown as "NAME (deleted)" when editing).
 - Delete is a soft delete: the candidate leaves the Candidates list, but their scores still appear on Candidate Status (until Phase 3, which hides them there).
 - The list shows each candidate's status: Selected, Rejected or Pending.
+- The list also shows each candidate's documents at a glance: "CV ✓ · 4/6" means a CV is there and 4 of the 6 document kinds (CV, SSC, HSC, BSc / Honours, Masters, PhD) are uploaded; "No CV" means the required CV is missing.
+
+### Candidate profile and documents
+- Click a candidate's name to open their profile: details, job, and documents grouped by kind. Interviewers, evaluations and decisions are added in Phase 3.
+- **Kinds:** CV (required), SSC, HSC, BSc / Honours, Masters and PhD certificates (one each), and up to 5 professional certificates, each with a title (for example PMP) and an optional issuer and year.
+- **Files:** PDF, JPG or PNG, at most 5 MB. RMS checks the file name, the type the browser reports and the file's content; anything else is refused with a message.
+- **Replace:** uploading a CV or certificate again replaces the old one. A sixth professional certificate is refused until one is deleted.
+- **Delete** (Super Admin, HR) hides a document after a confirmation. The file itself is kept until a Super Admin deletes the candidate's documents permanently.
+- **Permanently delete documents** (Super Admin only): removes all the candidate's stored files, including replaced and deleted ones, after a confirmation and with a required reason. It can't be undone. RMS never deletes documents by itself.
+- Documents open as downloads; only staff can open them (interviewers from Phase 3, for their own candidates).
+
+### Jobs
+- A job is an opening for a position, with a number of vacancies, an optional closing date and a status, Open or Closed, set by HR. Nothing closes a job automatically.
+- Super Admin and HR can add, edit and delete jobs (a soft delete: candidates linked to it keep the link). Hiring Managers see the list.
+- Only open jobs can be chosen for a candidate. A candidate whose job is later closed or deleted keeps it.
 
 ### Candidate Status (results)
 - A read-only table of every score sheet: candidate name, position, language, the 10 scores, the total and the status.
@@ -130,6 +151,11 @@ The intended process. Dashed, orange steps are not built yet.
 2. Enter the first and last name, choose a position and a language, then **Save**. RMS assigns the next ID (for example C3).
 3. To correct details later, click **Edit** on the candidate's row. To remove a candidate, click **Delete** and confirm.
 
+### Super Admin or HR: add a job and documents
+1. Open **Jobs**, then **Add job**: choose the position, enter the vacancies and (optionally) a closing date, keep the status Open, **Save**.
+2. When registering or editing a candidate, choose the job; the position is set from it.
+3. Open the candidate (click their name). Under **Upload a document**, choose the kind (for a professional certificate, also enter its title), choose the file and click **Upload**. Use **Replace** next to an existing document to upload a newer version.
+
 ### Super Admin, HR or Hiring Manager: review results
 1. Open **Candidate Status**.
 2. Use the search box to find a candidate, or click a column heading to sort (for example by Total Score).
@@ -149,7 +175,9 @@ The intended process. Dashed, orange steps are not built yet.
 |User profile|First and last name, e-mail, phone, designation, role, active flag|Yes (Users and Roles)|
 |Position|Name (capitals), active flag|Yes|
 |Language / skill|Name (capitals), active flag|Yes|
-|Candidate|ID (C1, C2…), first and last name, position, language, status (S/R/empty), active flag|Yes, except the status|
+|Candidate|ID (C1, C2…), first and last name, position, language, e-mail, phone, source, applied date, job, status (S/R/empty), active flag|Yes, except the status|
+|Job|Position, vacancies, closing date, status (Open/Closed), active flag|Yes|
+|Candidate document|Kind, file name (shown only), file type and size, title/issuer/year (professional certificates), who uploaded it and when, deleted or permanently deleted (who, when, why). The file itself is stored outside the database|Yes|
 |Score sheet|Interviewer, candidate and 10 scores|No (score entry is Phase 3)|
 
 ### The 10 scoring criteria
@@ -167,6 +195,8 @@ Work Experience, Technical Knowledge, Leadership Skill, Decision Making, Problem
 - Deleting a position, language or candidate, or deactivating a user, hides or blocks it; nothing is physically removed, so history stays intact.
 - Candidate IDs (C…) and user IDs (U…) are generated and never reused.
 - A candidate needs a first name, a last name, an active position and an active language.
+- A candidate's e-mail, phone, source and applied date are optional; the applied date can't be in the future. A job sets the position.
+- Documents: PDF, JPG or PNG, at most 5 MB; one of each kind except professional certificates (up to 5, each with a title). Only a Super Admin can remove files, with a reason.
 - Passwords must match exactly, including upper and lower case. An empty password never works. New and changed passwords are at least 8 characters and stored scrambled.
 - A deactivated user can't sign in. A username that appears twice in the database can't log in. A user with a login but no profile can't log in.
 - 5 wrong passwords in 15 minutes lock that username on that computer for 15 minutes.
@@ -177,8 +207,6 @@ Work Experience, Technical Knowledge, Leadership Skill, Decision Making, Problem
 |---|---|---|---|
 |G5–G7|Interviewers entering and viewing their scores|Planned: Phase 3|High: the core interview step can't be done in RMS.|
 |G9|Selected / Rejected / On hold decision|Planned: Phase 3|High: nothing sets a candidate's status.|
-|—|Candidate profile and documents (CV, certificates)|Planned: Phase 2|Medium.|
-|G4|Job openings|Planned: Phase 2|Medium.|
 |G3|Interview schedules and a dashboard|Planned: Phase 4|Medium.|
 |G34|Names in non-Latin scripts (for example Bengali, Cyrillic)|Partial|Such names are stored as codes and display incorrectly.|
 |—|Reports or export (Excel, PDF)|Not built|Results can only be viewed on screen.|
@@ -188,12 +216,12 @@ Work Experience, Technical Knowledge, Leadership Skill, Decision Making, Problem
 1. **Scoring:** each of the 10 criteria is scored 1–10 (total up to 100). Several interviewers can score one candidate; the result is the average of all evaluations, per criterion and in total. Interviewers can add comments.
 2. **Selection:** Selected, Rejected or On hold is decided manually by a Super Admin or HR, never automatically.
 3. **Jobs:** a Job is an opening built on a Position, with vacancies, a closing date and an open/closed status.
-4. **Deleted candidates** will be hidden on the Phase 3 Candidate Status.
-5. **Inactive users** can't sign in (built).
+. **Documents** (built in Phase 2): only the CV is required; uploads are PDF, JPG or PNG up to 5 MB; HR's delete keeps the file; only a Super Admin removes files, with a reason; RMS never deletes documents automatically.
+7. **A job sets the candidate's position** (built in Phase 2).
 
 ## 12. Open business questions
 1. **One role per user:** is a second login acceptable for someone who both manages and interviews, or should a user hold several roles later?
 2. **Schedules:** are e-mail notifications needed for interviews?
-3. **Reports:** which exports or counts are needed first?
+. **Documents of deleted candidates:** a permanent delete is started from the candidate's profile, which a deleted candidate no longer has. Should that be possible for deleted candidates too, and is there a retention period after which documents must be removed?
 
 > Gap references (G…) and question numbers match the project's docs/gaps.md and docs/open-questions.md, so the development team can trace each item.

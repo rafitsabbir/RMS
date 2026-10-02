@@ -1,7 +1,10 @@
 package rms.config;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import jakarta.servlet.DispatcherType;
@@ -64,11 +67,15 @@ public class SecurityConfig {
 	/** Users and Roles: Super Admin only. */
 	static final String[] USER_ADMIN_PAGES = { "/viewuserlist", "/createuser", "/updateuser", "/saveuser",
 			"/deactivateuser", "/reactivateuser", "/resetpassword" };
-	/** Read-only staff pages: Super Admin, HR and Hiring Manager. */
-	static final String[] STAFF_READ_PAGES = { "/adminviewmarks", "/viewcandidatelist" };
-	/** Candidate changes and master data: Super Admin and HR. */
+	/** The permanent delete of a candidate's document files: Super Admin only. */
+	static final String[] SUPER_ADMIN_PAGES = { "/purgedocuments" };
+	/** Read-only staff pages: Super Admin, HR and Hiring Manager. Interviewers get assigned profiles in Phase 3. */
+	static final String[] STAFF_READ_PAGES = { "/adminviewmarks", "/viewcandidatelist", "/viewcandidate",
+			"/downloaddocument/*", "/viewjoblist" };
+	/** Candidate and document changes, jobs and master data: Super Admin and HR. */
 	static final String[] HR_PAGES = { "/createcandidate", "/updatecandidate", "/savecandidate",
-			"/deletecandidate", "/viewpositionlist", "/createposition", "/updateposition/*", "/saveposition",
+			"/deletecandidate", "/uploaddocument", "/deletedocument/*", "/createjob", "/updatejob/*", "/savejob",
+			"/deletejob/*", "/viewpositionlist", "/createposition", "/updateposition/*", "/saveposition",
 			"/deleteposition/*", "/viewlanguagelist", "/createlanguage", "/updatelanguage/*", "/savelanguage",
 			"/deletelanguage/*" };
 
@@ -93,6 +100,7 @@ public class SecurityConfig {
 						.requestMatchers("/login", "/welcome").permitAll()
 						.requestMatchers("/", "/home", "/changepassword", "/savepassword").authenticated()
 						.requestMatchers(USER_ADMIN_PAGES).hasRole(SUPER_ADMIN)
+						.requestMatchers(SUPER_ADMIN_PAGES).hasRole(SUPER_ADMIN)
 						.requestMatchers(STAFF_READ_PAGES).hasAnyRole(SUPER_ADMIN, HR, HIRING_MANAGER)
 						.requestMatchers(HR_PAGES).hasAnyRole(SUPER_ADMIN, HR)
 						// Deny by default: a new page needs its own rule above, and cases in SecurityConfigTest
@@ -200,11 +208,46 @@ public class SecurityConfig {
 				response.sendRedirect(request.getContextPath() + "/login?expired");
 				return;
 			}
+			// An upload over the size limit: the container didn't read the form, so its CSRF token is missing too
+			String candidateid = tooLargeUpload(request);
+			if (candidateid != null) {
+				response.sendRedirect(request.getContextPath() + "/viewcandidate?candidateid="
+						+ URLEncoder.encode(candidateid, StandardCharsets.UTF_8) + "&toolarge");
+				return;
+			}
 			log.warn("Missing or invalid CSRF token; {} {} refused", request.getMethod(), pathOf(request));
 		} else {
 			log.warn("User {} may not open {}; refused", currentUserid(), pathOf(request));
 		}
 		response.sendError(HttpServletResponse.SC_FORBIDDEN);
+	}
+
+	/**
+	 * The candidate ID of a document upload the container refused as too large (WebInitializer's limits), or
+	 * null. The ID comes from the form's URL (candidateprofile.jsp), the only part of the request still read.
+	 * Only a redirect to the profile follows, which changes nothing.
+	 */
+	static String tooLargeUpload(HttpServletRequest request) {
+		String contentType = request.getContentType();
+		if (!"POST".equals(request.getMethod()) || !"/uploaddocument".equals(pathOf(request)) || contentType == null
+				|| !contentType.toLowerCase(Locale.ROOT).startsWith("multipart/")) {
+			return null;
+		}
+		try {
+			request.getParts();
+			return null;
+		} catch (IllegalStateException e) {
+			// Tomcat: the parts couldn't be read because a size limit was exceeded
+			for (Throwable cause = e; cause != null; cause = cause.getCause()) {
+				String message = cause.getMessage();
+				if (message != null && message.toLowerCase(Locale.ROOT).contains("exceed")) {
+					return request.getParameter("candidateid");
+				}
+			}
+			return null;
+		} catch (IOException | ServletException e) {
+			return null;
+		}
 	}
 
 	/** The path inside the app, without the query string, which can carry form data. */

@@ -1,8 +1,9 @@
 flowchart TD
-  A[Admin sets up<br/>Positions and Languages] --> B[Admin adds Candidate<br/>with position and language]
-  B -.-> C[Admin schedules interview<br/>NOT BUILT - G3]
+  A[HR sets up Positions,<br/>Languages and Jobs] --> B[HR adds Candidate<br/>with a job or position]
+  B --> G[HR uploads CV<br/>and certificates]
+  G -.-> C[HR schedules interview<br/>NOT BUILT - G3]
   C -.-> D[Interviewer enters<br/>10 scores<br/>NOT BUILT - G5-G7]
-  D --> E[Admin reviews<br/>Candidate Status]
-  E -.-> F[Selected / Rejected decision<br/>NOT BUILT - G9]
+  D --> E[HR reviews<br/>Candidate Status]
+  E -.-> F[Selected / Rejected / On hold<br/>NOT BUILT - G9]
   classDef todo fill:#fdf1dc,stroke:#9a5b00,stroke-dasharray: 5 5
   class C,D,F todo

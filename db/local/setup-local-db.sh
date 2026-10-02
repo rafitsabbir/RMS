@@ -50,7 +50,9 @@ UNION ALL SELECT 'admin', COUNT(*) FROM admin
 UNION ALL SELECT 'position', COUNT(*) FROM position
 UNION ALL SELECT 'language', COUNT(*) FROM language
 UNION ALL SELECT 'candidate', COUNT(*) FROM candidate
-UNION ALL SELECT 'marks', COUNT(*) FROM marks;
+UNION ALL SELECT 'marks', COUNT(*) FROM marks
+UNION ALL SELECT 'job', COUNT(*) FROM job
+UNION ALL SELECT 'candidate_document', COUNT(*) FROM candidate_document;
 SQL
 } | mysql "${args[@]}"
 

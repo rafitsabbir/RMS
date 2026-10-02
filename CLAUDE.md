@@ -6,7 +6,7 @@ Use subagents in .claude/agents/ — see ROUTER.md.
 ## Summary
 - RMS is a small recruitment management web app (`README.md`) with four roles in `admin.role`: Super Admin, HR, Hiring Manager (read-only) and Interviewer (`rms/model/Role.java`; NULL falls back to `isinterviewer`). Access is deny-by-default in `SecurityConfig`.
 - Super Admins manage users (Users and Roles: add, role, deactivate, reset password; IDs U1, U2, …). Super Admins and HR maintain candidates (add, list, edit, soft delete; IDs C1, C2, …) and the job-position and language/skill lists, and view candidates' scores on 10 criteria with a total and a selected/rejected status (`rms/controller/*`, `viewmarks.jsp`). Everyone can change their own password.
-- Job and schedule modules, and interviewer score entry, show only as disabled "Coming soon" menu entries, with no backend (`layout.tag`, `MarksDaoImpl.java`). They are Phases 2–4 of the roles plan ([docs/upgrade-status.md](docs/upgrade-status.md)).
+- The schedule module and interviewer score entry show only as disabled "Coming soon" menu entries, with no backend (`layout.tag`, `MarksDaoImpl.java`). They are Phases 3–4 of the roles plan ([docs/upgrade-status.md](docs/upgrade-status.md)).
 
 **Stack:**
 - Java: 21 (`maven.compiler.release` in `pom.xml`), built with JDK 21.
@@ -20,7 +20,7 @@ Evidence: `pom.xml`, `.mvn/wrapper/maven-wrapper.properties`, `rms/config/WebCon
 
 ## Build / run / test
 - **Build:** with `JAVA_HOME` set to a JDK 21, `./mvnw -B verify` (or `mvnw.cmd`) runs the tests and builds `target/rmsv2-1.0.1-SNAPSHOT.war`.
-- **Run:** deploy the WAR to a Servlet 6.1 container (Tomcat 11) on a JDK 21+ runtime that provides the JNDI DataSource `jdbc/springrms`. Open `/login`. See [docs/build-run.md](docs/build-run.md).
+- **Run:** deploy the WAR to a Servlet 6.1 container (Tomcat 11) on a JDK 21+ runtime that provides the JNDI DataSource `jdbc/springrms` and the environment variable `RMS_DOC_DIR` (a writable folder for candidate documents). Open `/login`. See [docs/build-run.md](docs/build-run.md).
 - **Test:** characterization tests live in `src/test/java/rms/`. Controller tests always run; DAO tests need Docker (throwaway MySQL via Testcontainers, never a real DB); `SmokeTest` needs `RMS_BASE_URL`. See [docs/build-run.md](docs/build-run.md).
 
 ## Critical rules
@@ -40,17 +40,17 @@ Evidence: `pom.xml`, `.mvn/wrapper/maven-wrapper.properties`, `rms/config/WebCon
 pom.xml                       Maven build (WAR)
 src/main/java/rms/
   config/                     WebInitializer (bootstrap), WebConfig (MVC, DataSource), SecurityConfig + SecurityInitializer (Spring Security), AccountCheckFilter, LoginThrottle
-  controller/                 Login, Account, User, Position, Language, Candidate, Marks
+  controller/                 Login, Account, User, Position, Language, Candidate, Job, Document, Marks
   service/  dao/  model/      *Service(+Impl), *Dao(+Impl), *Info
 src/main/webapp/
-  WEB-INF/jsp/                12 JSP views (main.jsp = home page)
+  WEB-INF/jsp/                15 JSP views (main.jsp = home page)
   WEB-INF/tags/layout.tag     shared page shell: head, sidebar menu, top bar
   WEB-INF/web.xml             Servlet 6.1: request encoding ISO-8859-1, metadata-complete
   resources/                  css (rms.css theme), js (rms.js), img (SVG logo, icon sprite)
 src/test/java/rms/            controller, security, service, DAO (Testcontainers) and smoke tests
 db/                           schema.sql (inferred), test-seed.sql (synthetic)
   local/                      local MySQL setup: create DB + load schema and seed (README.md)
-  migrations/                 numbered changes for existing databases, run by the owner (001 candidate.isactive, 002 roles, 003 password hashing)
+  migrations/                 numbered changes for existing databases, run by the owner (001 candidate.isactive, 002 roles, 003 password hashing, 004 candidate documents and jobs)
 mvnw, .mvn/wrapper/           Maven Wrapper
 .github/workflows/            CI: build + tests (JDK 21, Testcontainers), OSV-Scanner
 deploy/tomcat/rms.xml         JNDI context template (env-var placeholders only)

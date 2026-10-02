@@ -27,9 +27,30 @@ INSERT INTO language (languagekey, languagename, isactive) VALUES
 	(2, 'PYTHON', 1),
 	(3, 'COBOL', 0);
 
-INSERT INTO candidate (candidateid, firstname, lastname, positionkey, languagekey, candidatestatus) VALUES
-	('C1', 'Carla', 'Candidate', 1, 1, 'S'),
-	('C2', 'Cody', 'Candidate', 2, 2, 'R');
+-- Job 1 is open, job 2 closed, job 3 deleted
+INSERT INTO job (jobkey, positionkey, vacancies, closingdate, status, isactive) VALUES
+	(1, 1, 2, '2030-12-31', 'OPEN', 1),
+	(2, 2, 1, '2026-01-31', 'CLOSED', 1),
+	(3, 1, 1, NULL, 'OPEN', 0);
+
+INSERT INTO candidate (candidateid, firstname, lastname, positionkey, languagekey, candidatestatus,
+		email, phone, source, applieddate, jobkey) VALUES
+	('C1', 'Carla', 'Candidate', 1, 1, 'S', 'carla@example.test', '000-1001', 'REFERRAL', '2026-09-01', 1),
+	('C2', 'Cody', 'Candidate', 2, 2, 'R', NULL, NULL, 'JOB_BOARD', '2026-09-15', NULL);
+
+-- Document metadata only: no files exist for these stored names (a download answers 404, "file missing").
+-- The DAO and service tests write their own small synthetic files. C1 has a CV, an SSC certificate and one
+-- professional certificate (CV, 2 of 6 types, 1 professional); row 4 is the CV that row 1 replaced. C2 has none.
+INSERT INTO candidate_document (documentkey, candidateid, doctype, originalname, storedname, contenttype, filesize,
+		title, issuer, issueyear, uploadedby, uploadedat, isactive, deletedby, deletedat) VALUES
+	(1, 'C1', 'CV', 'carla-cv.pdf', 'a0000000000000000000000000000001', 'application/pdf', 2048,
+		NULL, NULL, NULL, 'U3', '2026-09-03 10:00:00', 1, NULL, NULL),
+	(2, 'C1', 'SSC', 'ssc.jpg', 'a0000000000000000000000000000002', 'image/jpeg', 1024,
+		NULL, NULL, NULL, 'U3', '2026-09-03 10:05:00', 1, NULL, NULL),
+	(3, 'C1', 'PROFESSIONAL', 'pmp.png', 'a0000000000000000000000000000003', 'image/png', 512,
+		'PMP', 'Example Institute', 2024, 'U1', '2026-09-03 10:10:00', 1, NULL, NULL),
+	(4, 'C1', 'CV', 'old-cv.pdf', 'a0000000000000000000000000000004', 'application/pdf', 1536,
+		NULL, NULL, NULL, 'U3', '2026-09-02 09:00:00', 0, 'U3', '2026-09-03 10:00:00');
 
 INSERT INTO marks (isactive, interviewerid, candidateid, workexp, techknowledge, leadership, decision,
 		probsolving, stress, education, comskill, attitude, personality) VALUES

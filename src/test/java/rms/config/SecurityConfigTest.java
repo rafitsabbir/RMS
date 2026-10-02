@@ -16,6 +16,7 @@ import static org.springframework.security.test.web.servlet.response.SecurityMoc
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.head;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
@@ -35,7 +36,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpSession;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
@@ -49,6 +52,7 @@ import org.springframework.test.context.junit.jupiter.web.SpringJUnitWebConfig;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultMatcher;
+import org.springframework.test.web.servlet.request.AbstractMockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -60,6 +64,8 @@ import org.springframework.web.servlet.view.InternalResourceViewResolver;
 
 import rms.controller.AccountController;
 import rms.controller.CandidateController;
+import rms.controller.DocumentController;
+import rms.controller.JobController;
 import rms.controller.LanguageController;
 import rms.controller.LoginController;
 import rms.controller.MarksController;
@@ -71,6 +77,8 @@ import rms.model.LoginInfo;
 import rms.model.Role;
 import rms.model.UserInfo;
 import rms.service.CandidateService;
+import rms.service.DocumentService;
+import rms.service.JobService;
 import rms.service.LanguageService;
 import rms.service.LoginServiceImpl;
 import rms.service.MarksService;
@@ -119,6 +127,16 @@ class SecurityConfigTest {
 		@Bean
 		CandidateController candidatecontroller() {
 			return new CandidateController();
+		}
+
+		@Bean
+		JobController jobcontroller() {
+			return new JobController();
+		}
+
+		@Bean
+		DocumentController documentcontroller() {
+			return new DocumentController();
 		}
 
 		@Bean
@@ -172,6 +190,12 @@ class SecurityConfigTest {
 	CandidateService candidateservice;
 
 	@MockitoBean
+	JobService jobservice;
+
+	@MockitoBean
+	DocumentService documentservice;
+
+	@MockitoBean
 	UserService userservice;
 
 	MockMvc mockMvc;
@@ -190,7 +214,7 @@ class SecurityConfigTest {
 	// --- Access: who may open what ---
 
 	/** One request per page, with the roles allowed to open it; everyone else gets HTTP 403. */
-	private record Page(MockHttpServletRequestBuilder request, Set<Role> allowed) {
+	private record Page(AbstractMockHttpServletRequestBuilder<?> request, Set<Role> allowed) {
 	}
 
 	private static final Set<Role> ALL = EnumSet.allOf(Role.class);
@@ -210,6 +234,18 @@ class SecurityConfigTest {
 				new Page(get("/updatecandidate").param("candidateid", "C1"), HR_AND_UP),
 				new Page(post("/savecandidate").with(csrf()), HR_AND_UP),
 				new Page(post("/deletecandidate").with(csrf()).param("candidateid", "C1"), HR_AND_UP),
+				new Page(get("/viewcandidate").param("candidateid", "C1"), STAFF),
+				new Page(get("/viewjoblist"), STAFF),
+				new Page(get("/createjob"), HR_AND_UP),
+				new Page(get("/updatejob/1"), HR_AND_UP),
+				new Page(post("/savejob").with(csrf()), HR_AND_UP),
+				new Page(post("/deletejob/1").with(csrf()), HR_AND_UP),
+				new Page(multipart("/uploaddocument").file(new MockMultipartFile("file", "cv.pdf", "application/pdf",
+						"%PDF-1".getBytes())).with(csrf()).param("candidateid", "C1").param("doctype", "CV"), HR_AND_UP),
+				new Page(get("/downloaddocument/1"), STAFF),
+				new Page(post("/deletedocument/1").with(csrf()), HR_AND_UP),
+				new Page(post("/purgedocuments").with(csrf()).param("candidateid", "C1").param("reason", "x"),
+						SUPER_ADMIN_ONLY),
 				new Page(get("/viewpositionlist"), HR_AND_UP),
 				new Page(get("/createposition"), HR_AND_UP),
 				new Page(get("/updateposition/1"), HR_AND_UP),
@@ -270,7 +306,7 @@ class SecurityConfigTest {
 		mockMvc.perform(get("/")).andExpect(redirectsToLogin());
 		mockMvc.perform(head("/home")).andExpect(redirectsToLogin());
 
-		verifyNoInteractions(positionservice, marksservice, candidateservice, userservice);
+		verifyNoInteractions(positionservice, marksservice, candidateservice, userservice, jobservice, documentservice);
 	}
 
 	@Test
@@ -532,6 +568,87 @@ class SecurityConfigTest {
 
 		assertThat(session.isInvalid()).isFalse();
 		mockMvc.perform(get("/home").session(session)).andExpect(status().isOk());
+	}
+
+	// --- Documents (Phase 2) ---
+
+	/** A multipart POST to /uploaddocument whose parts the container refused, as Tomcat does over its limits. */
+	static class TooLargeUpload extends MockHttpServletRequest {
+
+		private final String message;
+
+		TooLargeUpload(jakarta.servlet.ServletContext context, String message) {
+			super(context, "POST", "/uploaddocument");
+			setServletPath("/uploaddocument");
+			setContentType("multipart/form-data; boundary=x");
+			// Only the query string is still readable
+			setQueryString("candidateid=C1%2B2");
+			addParameter("candidateid", "C1+2");
+			this.message = message;
+		}
+
+		@Override
+		public java.util.Collection<jakarta.servlet.http.Part> getParts() {
+			throw new IllegalStateException(new Exception(message));
+		}
+	}
+
+	@Test
+	void uploadOverTheSizeLimitReturnsToTheProfile() throws Exception {
+		// No CSRF token: the container didn't read the body. The ID is encoded again for the redirect
+		mockMvc.perform(post("/uploaddocument").with(as(Role.HR)).with(request -> new TooLargeUpload(
+				request.getServletContext(), "the request was rejected because its size (9000000) exceeds the "
+						+ "configured maximum (6291456)")))
+				.andExpect(redirectedUrl("/viewcandidate?candidateid=C1%2B2&toolarge"));
+
+		verifyNoInteractions(documentservice);
+	}
+
+	@Test
+	void tooLargeUploadIsOnlyTheSizeFailureOfAnUploadPost() throws Exception {
+		jakarta.servlet.ServletContext servletContext = context.getServletContext();
+		assertThat(SecurityConfig.tooLargeUpload(new TooLargeUpload(servletContext,
+				"The field file exceeds its maximum permitted size of 5242880 bytes."))).isEqualTo("C1+2");
+		// Another parse failure, a working upload, another path, another method
+		assertThat(SecurityConfig.tooLargeUpload(new TooLargeUpload(servletContext, "Stream ended unexpectedly")))
+				.isNull();
+		MockHttpServletRequest readable = new MockHttpServletRequest(servletContext, "POST", "/uploaddocument");
+		readable.setServletPath("/uploaddocument");
+		readable.setContentType("multipart/form-data; boundary=x");
+		readable.addParameter("candidateid", "C1");
+		assertThat(SecurityConfig.tooLargeUpload(readable)).isNull();
+		TooLargeUpload otherPath = new TooLargeUpload(servletContext, "size exceeds the configured maximum");
+		otherPath.setServletPath("/savecandidate");
+		assertThat(SecurityConfig.tooLargeUpload(otherPath)).isNull();
+		TooLargeUpload get = new TooLargeUpload(servletContext, "size exceeds the configured maximum");
+		get.setMethod("GET");
+		assertThat(SecurityConfig.tooLargeUpload(get)).isNull();
+	}
+
+	@Test
+	void uploadWithoutCsrfTokenIsStillRefused() throws Exception {
+		mockMvc.perform(multipart("/uploaddocument").file(new MockMultipartFile("file", "cv.pdf", "application/pdf",
+				"%PDF-1".getBytes())).with(as(Role.HR)).param("candidateid", "C1").param("doctype", "CV"))
+				.andExpect(status().isForbidden());
+
+		verifyNoInteractions(documentservice);
+	}
+
+	@Test
+	void hiringManagerAndInterviewerCantChangeDocuments() throws Exception {
+		mockMvc.perform(multipart("/uploaddocument").file(new MockMultipartFile("file", "cv.pdf", "application/pdf",
+				"%PDF-1".getBytes())).with(csrf()).with(as(Role.HIRING_MANAGER)).param("candidateid", "C1"))
+				.andExpect(status().isForbidden());
+		mockMvc.perform(post("/deletedocument/1").with(csrf()).with(as(Role.HIRING_MANAGER)))
+				.andExpect(status().isForbidden());
+		mockMvc.perform(post("/purgedocuments").with(csrf()).with(as(Role.HR)).param("candidateid", "C1")
+				.param("reason", "x")).andExpect(status().isForbidden());
+		// Interviewers get their assigned candidates' documents in Phase 3; until then none
+		mockMvc.perform(get("/downloaddocument/1").with(as(Role.INTERVIEWER))).andExpect(status().isForbidden());
+		mockMvc.perform(get("/viewcandidate").param("candidateid", "C1").with(as(Role.INTERVIEWER)))
+				.andExpect(status().isForbidden());
+
+		verifyNoInteractions(documentservice, jobservice);
 	}
 
 	// --- Login lock (G42) ---

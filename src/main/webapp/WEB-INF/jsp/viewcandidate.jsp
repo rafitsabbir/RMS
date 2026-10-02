@@ -15,7 +15,7 @@
 	<div class="rms-page-header">
 		<div>
 			<h1>Candidates</h1>
-			<p>The people being interviewed, with the position and language they are assessed on.</p>
+			<p>The people being interviewed, with the position and language they are assessed on. Open a name for the profile and documents.</p>
 		</div>
 		<c:if test="${canedit}">
 		<a class="btn btn-primary d-inline-flex align-items-center gap-2" href="${createURL}">
@@ -31,6 +31,7 @@
 						<th>Name</th>
 						<th>Position</th>
 						<th>Language</th>
+						<th>Documents</th>
 						<th>Status</th>
 						<c:if test="${canedit}">
 						<th class="rms-col-actions text-end" data-orderable="false" data-searchable="false">Actions</th>
@@ -42,9 +43,21 @@
 					<tr>
 						<%-- Sorting the ID column keeps the server order (C2 before C10), not text order --%>
 						<td data-order="${row.index}"><c:out value="${candidate.candidateid}"/></td>
-						<td class="rms-name"><c:out value="${candidate.firstname} ${candidate.lastname}"/></td>
+						<%-- The profile, with the documents; the ID is free text, so c:param encodes it --%>
+						<c:url value="/viewcandidate" var="profileURL">
+							<c:param name="candidateid" value="${candidate.candidateid}" />
+						</c:url>
+						<td class="rms-name"><a href="<c:out value='${profileURL}'/>"><c:out value="${candidate.firstname} ${candidate.lastname}"/></a></td>
 						<td><c:out value="${candidate.positionname}"/></td>
 						<td><c:out value="${candidate.languagename}"/></td>
+						<%-- Only the CV is required; n/6 counts the single-slot kinds (rms.model.DocumentType) --%>
+						<td class="text-nowrap" data-order="${candidate.hascv ? 10 : 0}${candidate.slotcount}">
+							<c:choose>
+								<c:when test="${candidate.hascv}"><span class="badge rounded-pill text-bg-success">CV &#10003;</span></c:when>
+								<c:otherwise><span class="badge rounded-pill text-bg-warning">No CV</span></c:otherwise>
+							</c:choose>
+							&middot; ${candidate.slotcount}/${candidate.slottypes}
+						</td>
 						<td>
 						<c:choose>
 							<c:when test="${fn:toUpperCase(candidate.candidatestatus) eq 'S'}">
