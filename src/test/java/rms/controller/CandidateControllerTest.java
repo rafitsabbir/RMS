@@ -87,16 +87,17 @@ class CandidateControllerTest {
 
 	@Test
 	void saveNewCandidateTrimsAddsAndRedirectsToList() throws Exception {
-		when(candidateservice.addCandidate(any(CandidateInfo.class))).thenReturn(true);
+		when(candidateservice.addCandidate(any(CandidateInfo.class))).thenReturn("C3");
 
-		mockMvc.perform(save(" C3 ", " Dana ", " Doe ", "2", "1"))
+		mockMvc.perform(save(null, " Dana ", " Doe ", "2", "1"))
 				.andExpect(redirectedUrl("/viewcandidatelist"));
 
 		ArgumentCaptor<CandidateInfo> captor = ArgumentCaptor.forClass(CandidateInfo.class);
 		verify(candidateservice).addCandidate(captor.capture());
 		verify(candidateservice, never()).updateCandidate(any(CandidateInfo.class));
 		CandidateInfo saved = captor.getValue();
-		assertThat(saved.getCandidateid()).isEqualTo("C3");
+		// The DAO generates the ID
+		assertThat(saved.getCandidateid()).isNull();
 		assertThat(saved.getFirstname()).isEqualTo("Dana");
 		assertThat(saved.getLastname()).isEqualTo("Doe");
 		assertThat(saved.getPositionkey()).isEqualTo(2);
@@ -104,19 +105,19 @@ class CandidateControllerTest {
 	}
 
 	@Test
-	void saveNewCandidateWithTakenIdShowsTheFormAgain() throws Exception {
-		when(candidateservice.addCandidate(any(CandidateInfo.class))).thenReturn(false);
+	void saveNewCandidateIgnoresAPostedId() throws Exception {
+		when(candidateservice.addCandidate(any(CandidateInfo.class))).thenReturn("C3");
 
 		mockMvc.perform(save("C1", "Dana", "Doe", "1", "1"))
-				.andExpect(status().isOk())
-				.andExpect(view().name("createcandidate"))
-				.andExpect(model().attribute("errorMessage", "Candidate ID C1 already exists."))
-				.andExpect(model().attribute("candidateinfo", hasProperty("firstname", is("Dana"))));
-	}
+				.andExpect(redirectedUrl("/viewcandidatelist"));
 
+		ArgumentCaptor<CandidateInfo> captor = ArgumentCaptor.forClass(CandidateInfo.class);
+		verify(candidateservice).addCandidate(captor.capture());
+		verify(candidateservice, never()).findCandidateById(any());
+		assertThat(captor.getValue().getCandidateid()).isNull();
+	}
 	@Test
 	void saveRefusesMissingValues() throws Exception {
-		expectError(save("  ", "Dana", "Doe", "1", "1"), "Please enter a candidate ID.");
 		expectError(save("C3", " ", "Doe", "1", "1"), "Please enter the first name.");
 		expectError(post("/savecandidate").param("candidateid", "C3").param("lastname", "Doe")
 				.param("positionkey", "1").param("languagekey", "1"), "Please enter the first name.");
@@ -246,7 +247,11 @@ class CandidateControllerTest {
 
 	private static MockHttpServletRequestBuilder save(String id, String first, String last, String positionkey,
 			String languagekey) {
-		return post("/savecandidate").param("candidateid", id).param("firstname", first).param("lastname", last)
+		MockHttpServletRequestBuilder request = post("/savecandidate");
+		if (id != null) {
+			request.param("candidateid", id);
+		}
+		return request.param("firstname", first).param("lastname", last)
 				.param("positionkey", positionkey).param("languagekey", languagekey);
 	}
 

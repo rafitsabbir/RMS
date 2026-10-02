@@ -19,7 +19,7 @@ public class CandidateServiceImpl implements CandidateService {
 	}
 
 	@Override
-	public boolean addCandidate(CandidateInfo candidateinfo) {
+	public String addCandidate(CandidateInfo candidateinfo) {
 		return candidatedao.addCandidate(candidateinfo);
 	}
 

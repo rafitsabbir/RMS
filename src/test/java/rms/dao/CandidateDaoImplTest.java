@@ -53,8 +53,8 @@ class CandidateDaoImplTest extends MySqlContainerSupport {
 	}
 
 	@Test
-	void addInsertsTrimmedValuesWithNoStatus() {
-		assertThat(dao.addCandidate(candidate(" C3 ", " Dana ", " Doe ", 2, 1))).isTrue();
+	void addGeneratesTheNextIdAndInsertsTrimmedValuesWithNoStatus() {
+		assertThat(dao.addCandidate(candidate(null, " Dana ", " Doe ", 2, 1))).isEqualTo("C3");
 
 		Map<String, Object> row = jdbcTemplate.queryForMap("select * from candidate where candidateid='C3'");
 		assertThat(row.get("firstname")).isEqualTo("Dana");
@@ -63,14 +63,43 @@ class CandidateDaoImplTest extends MySqlContainerSupport {
 		assertThat(row.get("languagekey")).isEqualTo(1);
 		// G9: nothing sets the status yet
 		assertThat(row.get("candidatestatus")).isNull();
+		assertThat(dao.addCandidate(candidate(null, "Eve", "Doe", 1, 1))).isEqualTo("C4");
 	}
 
 	@Test
-	void addRefusesATakenId() {
-		assertThat(dao.addCandidate(candidate("C1", "Dana", "Doe", 2, 1))).isFalse();
+	void addIgnoresAGivenId() {
+		assertThat(dao.addCandidate(candidate("C1", "Dana", "Doe", 2, 1))).isEqualTo("C3");
 
-		assertThat(jdbcTemplate.queryForObject("select count(*) from candidate", Integer.class)).isEqualTo(2);
 		assertThat(dao.findCandidateById("C1").getFirstname()).isEqualTo("Carla");
+	}
+
+	@Test
+	void addContinuesFromTheHighestNumberNotTheLatestRow() {
+		jdbcTemplate.update("insert into candidate (candidateid, firstname, lastname) values ('C10', 'X', 'Y')");
+		jdbcTemplate.update("insert into candidate (candidateid, firstname, lastname) values ('C9', 'X', 'Y')");
+
+		assertThat(dao.addCandidate(candidate(null, "Dana", "Doe", 1, 1))).isEqualTo("C11");
+		// Shorter IDs first, so the numbers sort as numbers
+		assertThat(dao.getAllCandidate()).extracting(CandidateInfo::getCandidateid)
+				.containsExactly("C1", "C2", "C9", "C10", "C11");
+	}
+
+	@Test
+	void addSkipsIdsOfOtherFormats() {
+		// IDs that don't look like C<number> (up to 9 digits) don't count
+		for (String id : new String[] { "X99", "C12A", "C-50", "C1234567890", "CAND7" }) {
+			jdbcTemplate.update("insert into candidate (candidateid, firstname, lastname) values (?, 'X', 'Y')", id);
+		}
+
+		assertThat(dao.addCandidate(candidate(null, "Dana", "Doe", 1, 1))).isEqualTo("C3");
+	}
+
+	@Test
+	void addStartsAtC1OnAnEmptyTable() {
+		jdbcTemplate.update("delete from marks");
+		jdbcTemplate.update("delete from candidate");
+
+		assertThat(dao.addCandidate(candidate(null, "Dana", "Doe", 1, 1))).isEqualTo("C1");
 	}
 
 	@Test

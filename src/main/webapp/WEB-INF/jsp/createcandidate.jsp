@@ -12,7 +12,7 @@
 	<div class="rms-page-header">
 		<div>
 			<h1><c:out value="${heading}" /></h1>
-			<p>The position the candidate applies for and the language they are assessed on.</p>
+			<p>The position the candidate applies for and the language they are assessed on.<c:if test="${not update}"> The candidate ID is assigned when you save.</c:if></p>
 		</div>
 	</div>
 	<div class="card rms-card rms-form-card">
@@ -24,22 +24,16 @@
 			</div>
 			</c:if>
 			<form:form id="candidate" modelAttribute="candidateinfo" method="POST" action="${saveURL}">
-				<c:if test="${update}"><input type="hidden" name="update" value="true"/></c:if>
+				<%-- A new candidate gets the next ID (C1, C2, ...) when saved; an existing one keeps its ID --%>
+				<c:if test="${update}">
+				<input type="hidden" name="update" value="true"/>
 				<div class="mb-3">
 					<label for="candidateid" class="form-label">Candidate ID</label>
-					<c:choose>
-						<c:when test="${update}">
-							<form:input path="candidateid" cssClass="form-control" id="candidateid" readonly="true"
-								aria-describedby="candidateid-help"/>
-							<div id="candidateid-help" class="form-text">The ID can't be changed.</div>
-						</c:when>
-						<c:otherwise>
-							<form:input path="candidateid" cssClass="form-control" id="candidateid" autocomplete="off"
-								aria-describedby="candidateid-help"/>
-							<div id="candidateid-help" class="form-text">Must be unique.</div>
-						</c:otherwise>
-					</c:choose>
+					<form:input path="candidateid" cssClass="form-control" id="candidateid" readonly="true"
+						aria-describedby="candidateid-help"/>
+					<div id="candidateid-help" class="form-text">The ID can't be changed.</div>
 				</div>
+				</c:if>
 				<div class="row g-3 mb-3">
 					<div class="col-sm-6">
 						<label for="firstname" class="form-label">First name</label>

@@ -1,7 +1,7 @@
 # Data Model
 
 Purpose: The database tables and columns RMS uses, as seen in the SQL in the code.
-Last updated: 2026-10-02 (candidate is now written: `CandidateDaoImpl`, `CandidateInfo`, G1). 2026-10-01 (Spring Security 7 replaces AuthInterceptor). 2026-10-01 (small fixes batch: duplicates among active rows, soft delete and reactivation, active-only lookups, unused model fields removed). 2026-09-26
+Last updated: 2026-10-02 (generated candidate IDs). 2026-10-02 (candidate is now written: `CandidateDaoImpl`, `CandidateInfo`, G1). 2026-10-01 (Spring Security 7 replaces AuthInterceptor). 2026-10-01 (small fixes batch: duplicates among active rows, soft delete and reactivation, active-only lookups, unused model fields removed). 2026-09-26
 Read this when: you're changing SQL, adding a column or table, or fixing a data-mapping bug.
 
 - **Database:** MySQL (`pom.xml`, Connector/J 8.2.0 since Phase 1; 5.1.36 before).
@@ -30,7 +30,7 @@ Read this when: you're changing SQL, adding a column or table, or fixing a data-
 
 ## Data rules in code
 - Position and language names are stored in uppercase and trimmed (`PositionDaoImpl.java:60-61,78-79`, `LanguageDaoImpl.java:70-71,104-105`).
-- **Candidates** (`CandidateDaoImpl`, since 2026-10-02): the ID and names are trimmed and stored as typed, not upper-cased. Add refuses an ID that already has a row (`select count(*)`, then the insert; `synchronized`, and a `DuplicateKeyException` from a racing insert is a refusal too). Add and edit never write `candidatestatus`, so a new candidate has it NULL (G9). There is no delete (open question #26).
+- **Candidates** (`CandidateDaoImpl`, since 2026-10-02): RMS generates the ID as `C` plus the next number after the highest `C<number>` ID (up to 9 digits; other formats are ignored), and retries up to 3 times on a duplicate key. The names are trimmed and stored as typed, not upper-cased. The list sorts by ID length, then text, so C2 comes before C10. Add and edit never write `candidatestatus`, so a new candidate has it NULL (G9). There is no delete (open question #26).
 - **Duplicates:** add and update refuse a name used by another **active** row. The check is `select count(*) … where name=… and isactive=1` (and `key<>…` on update): `PositionDaoImpl.java:25-26`, `LanguageDaoImpl.java:27-28`. Existing duplicate rows no longer make the check throw (G33). Names are compared with `=`, so the collation decides about accents and case (open question #22). There's no unique index in the inferred schema (G22, G33).
 - **Active flag:** new rows get `isActive = 1`. Lists and `findById` return only rows with `isactive = 1` (`PositionDaoImpl.java:30,32`, `LanguageDaoImpl.java:30-31`), and so does the update (`and isactive=1`, `PositionDaoImpl.java:29`, `LanguageDaoImpl.java:32`). A row whose `isactive` is NULL is neither listed nor reactivated (open question #23).
 - **Soft delete:** delete sets `isactive = 0` and keeps the row (`PositionDaoImpl.java:31`, `LanguageDaoImpl.java:33`; owner decision 2026-10-01, G17). The Candidate Status query joins candidates to `position` and `language` without an `isactive` filter, so deleted ones still show (`MarksDaoImpl.java:22-24`, `MarksDaoImplTest.deletedPositionAndLanguageStillShowWithTheirCandidates`).

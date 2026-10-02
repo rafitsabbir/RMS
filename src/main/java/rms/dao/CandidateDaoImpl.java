@@ -25,9 +25,12 @@ public class CandidateDaoImpl implements CandidateDao {
 	private String selectcandidate = "select c.candidateid, c.firstname, c.lastname, c.positionkey, c.languagekey, "
 			+ "c.candidatestatus, p.positionname, l.languagename from candidate c "
 			+ "left join position p on p.positionkey=c.positionkey left join language l on l.languagekey=c.languagekey";
-	private String allcandidate = selectcandidate + " order by c.candidateid";
+	// Shorter IDs first, so C2 comes before C10
+	private String allcandidate = selectcandidate + " order by length(c.candidateid), c.candidateid";
 	private String findcandidatebyid = selectcandidate + " where c.candidateid=:candidateid";
-	private String ifexist = "select count(*) from candidate where candidateid=:candidateid";
+	// The highest number among IDs of the form C<number> (up to 9 digits); 0 when there is none
+	private String lastnumber = "select coalesce(max(cast(substring(candidateid, 2) as unsigned)), 0) from candidate "
+			+ "where candidateid regexp '^C[0-9]{1,9}$'";
 	private String savecandidate = "insert into candidate (candidateid, firstname, lastname, positionkey, languagekey) "
 			+ "VALUES (:candidateid, :firstname, :lastname, :positionkey, :languagekey)";
 	private String updatecandidate = "update candidate set firstname=:firstname, lastname=:lastname, "
@@ -59,24 +62,27 @@ public class CandidateDaoImpl implements CandidateDao {
 	}
 
 	@Override
-	// synchronized: the id check and the insert must not interleave with another add, in case the table
-	// has no primary key (G22). This covers one Tomcat only.
-	public synchronized boolean addCandidate(CandidateInfo candidateinfo) {
+	// synchronized: reading the highest number and inserting the next one must not interleave with another
+	// add. This covers one Tomcat only; on several nodes a clash on the key is retried (when candidateid is a
+	// key, G22).
+	public synchronized String addCandidate(CandidateInfo candidateinfo) {
 		Map<String, Object> paramMap = paramMap(candidateinfo);
 
-		// The ID isn't logged: it is free text and may be personal data (open question #26)
-		if (namedParameterJdbcTemplate.queryForObject(ifexist, paramMap, Integer.class) > 0) {
-			log.warn("Candidate ID already exists; not added");
-			return false;
+		for (int attempt = 1; ; attempt++) {
+			int last = namedParameterJdbcTemplate.queryForObject(lastnumber, new HashMap<String, Object>(),
+					Integer.class);
+			String candidateid = "C" + (last + 1);
+			paramMap.put("candidateid", candidateid);
+			try {
+				namedParameterJdbcTemplate.update(savecandidate, paramMap);
+				return candidateid;
+			} catch (DuplicateKeyException e) {
+				if (attempt == 3) {
+					throw e;
+				}
+				log.warn("Candidate {} was added meanwhile; trying the next number", candidateid);
+			}
 		}
-		try {
-			namedParameterJdbcTemplate.update(savecandidate, paramMap);
-		} catch (DuplicateKeyException e) {
-			// Another node or writer added the same ID since the check (when candidateid is a key)
-			log.warn("Candidate ID was added meanwhile; not added");
-			return false;
-		}
-		return true;
 	}
 
 	@Override
@@ -100,10 +106,10 @@ public class CandidateDaoImpl implements CandidateDao {
 		return list.isEmpty() ? null : list.get(0);
 	}
 
-	/** The id and names trimmed; the names are stored as typed, not upper-cased. */
+	/** The id (null for a new candidate) and names trimmed; the names are stored as typed, not upper-cased. */
 	private static Map<String, Object> paramMap(CandidateInfo candidateinfo) {
 		Map<String, Object> paramMap = new HashMap<String, Object>();
-		paramMap.put("candidateid", candidateinfo.getCandidateid().trim());
+		paramMap.put("candidateid", candidateinfo.getCandidateid() == null ? null : candidateinfo.getCandidateid().trim());
 		paramMap.put("firstname", candidateinfo.getFirstname().trim());
 		paramMap.put("lastname", candidateinfo.getLastname().trim());
 		paramMap.put("positionkey", candidateinfo.getPositionkey());

@@ -30,9 +30,10 @@
 					</tr>
 				</thead>
 				<tbody>
-				<c:forEach items="${candidatelist}" var="candidate">
+				<c:forEach items="${candidatelist}" var="candidate" varStatus="row">
 					<tr>
-						<td><c:out value="${candidate.candidateid}"/></td>
+						<%-- Sorting the ID column keeps the server order (C2 before C10), not text order --%>
+						<td data-order="${row.index}"><c:out value="${candidate.candidateid}"/></td>
 						<td class="rms-name"><c:out value="${candidate.firstname} ${candidate.lastname}"/></td>
 						<td><c:out value="${candidate.positionname}"/></td>
 						<td><c:out value="${candidate.languagename}"/></td>

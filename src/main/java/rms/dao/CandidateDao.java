@@ -6,7 +6,8 @@ import rms.model.CandidateInfo;
 
 public interface CandidateDao {
 
-	public boolean addCandidate(CandidateInfo candidateinfo);
+	/** Saves a new candidate under the next generated ID (C1, C2, ...) and returns that ID. */
+	public String addCandidate(CandidateInfo candidateinfo);
 
 	public void updateCandidate(CandidateInfo candidateinfo);
 

@@ -211,7 +211,8 @@ Not run yet: this machine has no Tomcat or Docker ([upgrade-status.md](../upgrad
 |---|---|
 | Menu and home | Admins see *Candidates* under *Recruitment* and a Candidates tile; it is no longer under *Coming soon*. Interviewers don't see it, and `/viewcandidatelist` gives them 403 |
 | List | C1 Carla Candidate (SOFTWARE ENGINEER, JAVA, Selected) and C2 Cody Candidate (QA ENGINEER, PYTHON, Rejected) from the seed; DataTables search and sort work |
-| Add | "C3", "Dana", "Doe", a position and a language → back on the list with Pending. An existing ID shows "Candidate ID C3 already exists." with the typed values kept. A blank ID, name, or no position or language shows the matching message. Deleted positions and languages aren't offered |
+| Add | The form has no ID field. "Dana", "Doe", a position and a language → back on the list as C3, Pending; the next one is C4. A blank name, or no position or language, shows the matching message with the typed values kept. Deleted positions and languages aren't offered |
 | Edit | The ID is read-only; changing a name, position or language saves. Delete a position used by a candidate, then edit that candidate: the position shows as "NAME (deleted)" and saving keeps it |
-| Awkward IDs | Add IDs with `+`, `&`, a space and `<b>`; each Edit link opens the right candidate, and the list shows the ID as text |
+| Older IDs | Insert test rows with IDs such as `A+B`, `X&Y`, `two words` and `<b>` straight into the local test database; each Edit link opens the right candidate, the list shows the ID as text, and a new candidate still gets the next C-number |
+| Order | With C2 and C10 present, the list and the ID column sort C2 before C10 |
 | Layout | The two dropdowns and the first and last name fields line up on desktop and stack on a phone width |

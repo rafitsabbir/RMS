@@ -21,8 +21,8 @@ import rms.service.LanguageService;
 import rms.service.PositionService;
 
 /**
- * Candidate management (G1): add, list and edit. The admin types the candidate ID; there is no delete,
- * because the candidate table has no known isactive column (open question #26).
+ * Candidate management (G1): add, list and edit. RMS generates the candidate ID (C1, C2, ...; owner decision
+ * 2026-10-02). There is no delete, because the candidate table has no known isactive column (open question #26).
  */
 @Controller
 @RequestMapping(value = "/")
@@ -48,7 +48,8 @@ public class CandidateController {
 			@ModelAttribute("candidateinfo") CandidateInfo candidateinfo,
 			@RequestParam(value = "update", defaultValue = "false") boolean update) {
 
-		candidateinfo.setCandidateid(trim(candidateinfo.getCandidateid()));
+		// A new candidate's ID is generated on save; an ID posted with it is ignored
+		candidateinfo.setCandidateid(update ? trim(candidateinfo.getCandidateid()) : null);
 		candidateinfo.setFirstname(trim(candidateinfo.getFirstname()));
 		candidateinfo.setLastname(trim(candidateinfo.getLastname()));
 
@@ -67,8 +68,8 @@ public class CandidateController {
 
 		if (update) {
 			candidateservice.updateCandidate(candidateinfo);
-		} else if (!candidateservice.addCandidate(candidateinfo)) {
-			return form(candidateinfo, null, "Candidate ID " + candidateinfo.getCandidateid() + " already exists.");
+		} else {
+			candidateservice.addCandidate(candidateinfo);
 		}
 
 		return new ModelAndView("redirect:/viewcandidatelist");
@@ -81,7 +82,7 @@ public class CandidateController {
 		return mv;
 	}
 
-	/** A request parameter, not a path variable: candidate IDs are free text (G22). */
+	/** A request parameter, not a path variable: IDs from before the generator may be any text (G22). */
 	@RequestMapping(value = "/updatecandidate", method = RequestMethod.GET)
 	public ModelAndView update(@RequestParam("candidateid") String candidateid) {
 		CandidateInfo candidateinfo = candidateservice.findCandidateById(candidateid);
@@ -93,9 +94,6 @@ public class CandidateController {
 
 	/** The first problem with the entered values, or null. stored is the saved candidate when editing. */
 	private String check(CandidateInfo candidateinfo, CandidateInfo stored) {
-		if (stored == null && candidateinfo.getCandidateid().isEmpty()) {
-			return "Please enter a candidate ID.";
-		}
 		if (candidateinfo.getFirstname().isEmpty()) {
 			return "Please enter the first name.";
 		}
