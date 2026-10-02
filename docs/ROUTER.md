@@ -1,7 +1,7 @@
 # Docs Router
 
 Purpose: Points each kind of task to the minimum set of docs and code to read.
-Last updated: 2026-10-02 (`db/migrations/`). 2026-10-02 (candidate management, G1: flow file and CRUD template). 2026-10-01 (Spring Security 7 replaces AuthInterceptor). 2026-10-01 (UI redesign: `layout.tag` replaces the `main.jsp` menu shell; new UI row). 2026-10-01 (CI workflows and the Tomcat context template). 2026-10-01 (Phase 1 release runbook; Phase 3: `jakarta.servlet`)
+Last updated: 2026-10-02 (Word handbooks in `docs/handbooks/`). 2026-10-02 (`db/migrations/`). 2026-10-02 (candidate management, G1: flow file and CRUD template). 2026-10-01 (Spring Security 7 replaces AuthInterceptor). 2026-10-01 (UI redesign: `layout.tag` replaces the `main.jsp` menu shell; new UI row). 2026-10-01 (CI workflows and the Tomcat context template). 2026-10-01 (Phase 1 release runbook; Phase 3: `jakarta.servlet`)
 Read this when: you're starting any task. Start here, not with every doc.
 
 **Rule:** read only the files listed for your task. Open other docs only if those files point you there, or the task clearly spans categories.
@@ -23,6 +23,7 @@ Read this when: you're starting any task. Start here, not with every doc.
 | Auth / security change | [business-flows/login.md](business-flows/login.md), plus the "Cross-cutting concerns" section of [architecture.md](architecture.md) | `SecurityConfig.java` (rules, login, CSRF, logout, password check), `SecurityInitializer.java`, `LoginServiceImpl.java` + `RmsUserDetails.java`, `LoginDaoImpl.java`, `LoginController.java`, `login.jsp`, `layout.tag` (role-based menu, Log out form), `SecurityConfigTest` |
 | Working on incomplete/missing features | [gaps.md](gaps.md), then the relevant [business-flows/](business-flows/README.md) file | `layout.tag` ("Coming soon" entries for unbuilt modules), `MarksDaoImpl.java` (stubs) |
 | Writing or running tests | [build-run.md](build-run.md) (Test section), [conventions.md](conventions.md) (Tests section) | `src/test/java/rms/`, `rms/config/SecurityConfigTest.java` (security, MockMvc), `rms/dao/MySqlContainerSupport.java`, `db/schema.sql`, `db/test-seed.sql` |
+| Handing documentation to business analysts, IT or new developers | [handbooks/README.md](handbooks/README.md) (Word handbooks; snapshots that may lag the Markdown docs) | — |
 | Unclear behaviour or missing module | [open-questions.md](open-questions.md) | `layout.tag` ("Coming soon" entries for unbuilt modules) |
 
 ## Subagents
