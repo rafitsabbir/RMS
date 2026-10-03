@@ -22,7 +22,7 @@
 |src/main/java/rms/dao/|*Dao interfaces and *DaoImpl classes — all SQL lives here; DocumentFileStore, the files in RMS_DOC_DIR|
 |src/main/java/rms/model/|*Info beans: PositionInfo, LanguageInfo, CandidateInfo, JobInfo, DocumentInfo, MarksInfo, UserInfo, LoginInfo, ResultInfo, AssignmentInfo, DecisionInfo, ScheduleInfo, DashboardInfo, ActivityInfo; the enums Role, DocumentType, CandidateSource, DecisionStatus, Criterion; the record DocumentUpload|
 |src/main/resources/logback.xml|Logging configuration|
-|src/main/webapp/WEB-INF/jsp/|23 views: login, main (home, with the dashboard), create*/view* per module, candidateprofile, changepassword, viewmarks, myschedule, myevaluations, reports, viewactivity|
+|src/main/webapp/WEB-INF/jsp/|24 views: login, main (home, with the dashboard), create*/view* per module, candidateprofile, changepassword, viewmarks, myschedule, myevaluations, reports, viewactivity, viewdeletedcandidates|
 |src/main/webapp/WEB-INF/tags/layout.tag|Page shell: head, sidebar menu, top bar, Log out (schedulestatus.tag and status.tag are the status badges)|
 |src/main/webapp/WEB-INF/web.xml|Request encoding ISO-8859-1, cookie-only sessions|
 |src/main/webapp/resources/|css/rms.css, js/rms.js, img/ (logo, icons.svg sprite)|
@@ -69,7 +69,7 @@
 |Logging|SLF4J; `private static final Logger log` as the first field; {} placeholders; never log passwords or personal data|log.warn("Position {} already exists", name)|
 |Style|Tabs for indentation; match the surrounding code|—|
 |English only|Check new free-text fields with EnglishText.isEnglish (single line) or isEnglishMultiline (comments, reasons) and refuse with EnglishText.PROBLEM|CandidateController.check, DecisionServiceImpl|
-|Activity log|After an action that matters works, call activityservice.record(userid, ACTION, ENTITYTYPE, entityid, detail); the detail holds codes and keys only; record never throws|MarksServiceImpl logs MARKED, DecisionServiceImpl logs SELECTED, REJECTED or ON_HOLD|
+|Activity log|After an action that matters works, call activityservice.record(userid, ACTION, ENTITYTYPE, entityid, detail); the detail holds codes and keys only; record never throws|MarksServiceImpl logs MARKED, DecisionServiceImpl logs SELECTED, REJECTED or ON_HOLD; sign-ins in SecurityConfig, documents in DocumentServiceImpl, jobs and master data in their controllers|
 |CSV reports|Build them with CsvWriter (UTF-8 BOM, CRLF, formula cells made text); log the download as REPORT_DOWNLOADED|ReportController|
 
 ## 6. Pages and UI
@@ -145,7 +145,7 @@ Messages are set in the controller (the form(info, "message") helper) and shown 
 - These are **characterization tests**: they pin what the code does today. A test that pins a known defect carries a comment such as `// characterizes G10`.
 - Use only synthetic data: no real names, credentials or hostnames.
 - Mockito runs as a Java agent configured in pom.xml. When running tests from an IDE, add -javaagent:<path to the mockito-core jar> to the run configuration, or let Maven run them.
-- Current numbers on a machine without Docker: 488 tests, 343 pass, 145 skipped (129 DAO, 16 smoke). The activity log hooks are pinned in ActivityLoggingTest; add a case there for each new logged action.
+- Current numbers on a machine without Docker: 502 tests, 356 pass, 146 skipped (130 DAO, 16 smoke). The activity log hooks are pinned in ActivityLoggingTest; add a case there for each new logged action.
 
 ## 10. Pitfalls
 |Pitfall|What happens|What to do|

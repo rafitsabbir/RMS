@@ -594,4 +594,15 @@ class CandidateControllerTest {
 		verify(activityservice).record("U1", "CANDIDATE_ADDED", "CANDIDATE", "C9", null);
 		verify(activityservice).record("U1", "CANDIDATE_DELETED", "CANDIDATE", "C2", null);
 	}
+
+	@Test
+	void deletedCandidatesAreListedForTheSuperAdmin() throws Exception {
+		CandidateInfo deleted = candidate("C2", 1, 1);
+		when(candidateservice.getDeletedCandidates()).thenReturn(List.of(deleted));
+
+		mockMvc.perform(get("/viewdeletedcandidates").session(staff))
+				.andExpect(status().isOk())
+				.andExpect(view().name("viewdeletedcandidates"))
+				.andExpect(model().attribute("candidatelist", List.of(deleted)));
+	}
 }

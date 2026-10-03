@@ -46,12 +46,16 @@ class DocumentServiceImplTest {
 	@Mock
 	DocumentDao documentdao;
 
+	@Mock
+	ActivityService activityservice;
+
 	DocumentServiceImpl service;
 
 	@BeforeEach
 	void setUp() {
 		service = new DocumentServiceImpl();
 		service.setDocumentDao(documentdao);
+		service.setActivityService(activityservice);
 		service.setDocumentFileStore(new DocumentFileStore(folder.toString()));
 	}
 
@@ -319,5 +323,29 @@ class DocumentServiceImplTest {
 		document.setCandidateid("C1");
 		document.setStoredname(storedname);
 		return document;
+	}
+
+	@Test
+	void uploadsDeletesAndPurgesAreLogged() throws IOException {
+		when(documentdao.addDocument(any(DocumentInfo.class), eq(1))).thenReturn(7);
+		when(documentdao.deleteDocument(1, "U3")).thenReturn(true);
+		String stored = new DocumentFileStore(folder.toString()).store(PDF);
+		when(documentdao.getUnpurgedDocuments("C1")).thenReturn(List.of(document(1, stored)));
+
+		service.upload(upload("CV", "cv.pdf", "application/pdf", PDF), "U3");
+		service.deleteDocument(1, "U3");
+		service.purge("C1", "Retention period ended", "U1");
+
+		verify(activityservice).record("U3", "DOCUMENT_UPLOADED", "CANDIDATE", "C1", "document 7, CV");
+		verify(activityservice).record("U3", "DOCUMENT_DELETED", "DOCUMENT", "1", null);
+		verify(activityservice).record("U1", "DOCUMENTS_PURGED", "CANDIDATE", "C1", "1 files");
+	}
+
+	@Test
+	void thePurgeReasonMustBeEnglish() {
+		Outcome outcome = service.purge("C1", "Fin de période", "U1");
+
+		assertThat(outcome.done()).isFalse();
+		assertThat(outcome.message()).contains("English");
 	}
 }

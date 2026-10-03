@@ -34,6 +34,11 @@ public class CandidateServiceImpl implements CandidateService {
 	}
 
 	@Override
+	public List<CandidateInfo> getDeletedCandidates() {
+		return candidatedao.getDeletedCandidates();
+	}
+
+	@Override
 	public CandidateInfo findCandidateById(String candidateid) {
 		return candidatedao.findCandidateById(candidateid);
 	}

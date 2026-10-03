@@ -33,6 +33,13 @@ public class DocumentServiceImpl implements DocumentService {
 	static final int FIRST_YEAR = 1950;
 
 	DocumentDao documentdao;
+
+	ActivityService activityservice;
+
+	@Autowired
+	public void setActivityService(ActivityService activityservice) {
+		this.activityservice = activityservice;
+	}
 	DocumentFileStore filestore;
 
 	@Autowired
@@ -122,6 +129,7 @@ public class DocumentServiceImpl implements DocumentService {
 			return Outcome.refused(tooMany(type));
 		}
 
+		activityservice.record(userid, "DOCUMENT_UPLOADED", "CANDIDATE", document.getCandidateid(), "document " + documentkey + ", " + type.name());
 		log.info("Document {} uploaded by {}", documentkey, userid);
 		if (type.isSingleSlot() && active > 0) {
 			return Outcome.ok(type.getLabel() + " replaced. The previous file is kept until a Super Admin "
@@ -164,6 +172,7 @@ public class DocumentServiceImpl implements DocumentService {
 	public boolean deleteDocument(int documentkey, String userid) {
 		boolean deleted = documentdao.deleteDocument(documentkey, userid);
 		if (deleted) {
+			activityservice.record(userid, "DOCUMENT_DELETED", "DOCUMENT", String.valueOf(documentkey), null);
 			log.info("Document {} deleted by {}", documentkey, userid);
 		}
 		return deleted;
@@ -174,6 +183,9 @@ public class DocumentServiceImpl implements DocumentService {
 		String why = trim(reason);
 		if (why.isEmpty()) {
 			return Outcome.refused("Please give the reason for deleting the documents permanently.");
+		}
+		if (!EnglishText.isEnglish(why)) {
+			return Outcome.refused("The reason can use English only. " + EnglishText.PROBLEM);
 		}
 		if (why.length() > MAX_REASON) {
 			return Outcome.refused("The reason can have at most " + MAX_REASON + " characters.");
@@ -203,6 +215,9 @@ public class DocumentServiceImpl implements DocumentService {
 			purged++;
 		}
 
+		if (purged > 0) {
+			activityservice.record(userid, "DOCUMENTS_PURGED", "CANDIDATE", candidateid, purged + " files");
+		}
 		log.info("Documents of candidate {} deleted permanently by {}: {}", candidateid, userid, purged);
 		if (failed > 0) {
 			log.error("Documents of candidate {}: {} files couldn't be removed from {}", candidateid, failed,

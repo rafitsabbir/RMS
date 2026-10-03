@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -255,5 +256,51 @@ class ScheduleServiceImplTest {
 		info.setInterviewerid(interviewerid);
 		info.setStartat(startat);
 		return info;
+	}
+
+	@Test
+	void aNewScheduledInterviewCantBeInThePast() {
+		Outcome outcome = service.save(info(0, "C1", "U2", LocalDateTime.now().minusDays(1)), "U3");
+
+		assertThat(outcome.done()).isFalse();
+		assertThat(outcome.message()).contains("hasn't passed");
+		verify(scheduledao, never()).addSchedule(any(ScheduleInfo.class), anyString());
+	}
+
+	@Test
+	void movingAScheduledInterviewIntoThePastIsRefused() {
+		ScheduleInfo stored = info(5, "C1", "U2", START);
+		stored.setStatus(ScheduleInfo.SCHEDULED);
+		when(scheduledao.findScheduleById(5)).thenReturn(stored);
+		ScheduleInfo change = info(5, "C1", "U2", LocalDateTime.now().minusHours(2));
+		change.setStatus(ScheduleInfo.SCHEDULED);
+
+		assertThat(service.save(change, "U3").message()).contains("hasn't passed");
+	}
+
+	@Test
+	void anInterviewInThePastCanStillBeChangedWithoutMovingIt() {
+		LocalDateTime past = LocalDateTime.now().minusDays(1).truncatedTo(ChronoUnit.MINUTES);
+		ScheduleInfo stored = info(5, "C1", "U2", past);
+		stored.setStatus(ScheduleInfo.SCHEDULED);
+		when(scheduledao.findScheduleById(5)).thenReturn(stored);
+		when(scheduledao.updateSchedule(any(ScheduleInfo.class), anyString())).thenReturn(true);
+		ScheduleInfo change = info(5, "C1", "U2", past);
+		change.setStatus(ScheduleInfo.SCHEDULED);
+		change.setLocation("Room 2");
+
+		assertThat(service.save(change, "U3").done()).isTrue();
+	}
+
+	@Test
+	void aDoneInterviewIsPastByNature() {
+		ScheduleInfo stored = info(5, "C1", "U2", START);
+		stored.setStatus(ScheduleInfo.SCHEDULED);
+		when(scheduledao.findScheduleById(5)).thenReturn(stored);
+		when(scheduledao.updateSchedule(any(ScheduleInfo.class), anyString())).thenReturn(true);
+		ScheduleInfo change = info(5, "C1", "U2", LocalDateTime.now().minusHours(3));
+		change.setStatus(ScheduleInfo.DONE);
+
+		assertThat(service.save(change, "U3").done()).isTrue();
 	}
 }

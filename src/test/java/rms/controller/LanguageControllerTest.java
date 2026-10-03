@@ -1,5 +1,7 @@
 package rms.controller;
 
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
@@ -30,6 +32,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import rms.config.WebConfig;
 import rms.model.LanguageInfo;
+import rms.service.ActivityService;
 import rms.service.LanguageService;
 
 /** Characterization tests: pin current Language master behaviour. */
@@ -38,6 +41,9 @@ class LanguageControllerTest {
 
 	@Mock
 	LanguageService languageservice;
+
+	@Mock
+	ActivityService activityservice;
 
 	@InjectMocks
 	LanguageController controller;
@@ -188,5 +194,17 @@ class LanguageControllerTest {
 				.andExpect(view().name("createlanguage"));
 
 		org.mockito.Mockito.verifyNoInteractions(languageservice);
+	}
+
+	@Test
+	void languageChangesAreLogged() throws Exception {
+		when(languageservice.addLanguage(any(LanguageInfo.class))).thenReturn(true);
+
+		mockMvc.perform(post("/savelanguage").param("languagekey", "0").param("languagename", "kotlin"))
+				.andExpect(redirectedUrl("/viewlanguagelist"));
+		mockMvc.perform(post("/deletelanguage/3")).andExpect(redirectedUrl("/viewlanguagelist"));
+
+		verify(activityservice).record(isNull(), eq("LANGUAGE_SAVED"), eq("LANGUAGE"), isNull(), eq("kotlin"));
+		verify(activityservice).record(isNull(), eq("LANGUAGE_DELETED"), eq("LANGUAGE"), eq("3"), isNull());
 	}
 }

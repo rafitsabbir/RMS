@@ -1,5 +1,7 @@
 package rms.controller;
 
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasProperty;
@@ -35,6 +37,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import rms.config.WebConfig;
 import rms.model.JobInfo;
 import rms.model.PositionInfo;
+import rms.service.ActivityService;
 import rms.service.JobService;
 import rms.service.PositionService;
 
@@ -47,6 +50,9 @@ class JobControllerTest {
 
 	@Mock
 	PositionService positionservice;
+
+	@Mock
+	ActivityService activityservice;
 
 	@InjectMocks
 	JobController controller;
@@ -214,5 +220,14 @@ class JobControllerTest {
 		position.setPositionkey(key);
 		position.setPositionname(name);
 		return position;
+	}
+
+	@Test
+	void jobChangesAreLogged() throws Exception {
+		mockMvc.perform(save("0", "2", "3", "2030-12-31", "OPEN")).andExpect(redirectedUrl("/viewjoblist"));
+		mockMvc.perform(post("/deletejob/2")).andExpect(redirectedUrl("/viewjoblist"));
+
+		verify(activityservice).record(isNull(), eq("JOB_ADDED"), eq("JOB"), isNull(), eq("position 2"));
+		verify(activityservice).record(isNull(), eq("JOB_DELETED"), eq("JOB"), eq("2"), isNull());
 	}
 }

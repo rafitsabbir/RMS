@@ -1,5 +1,6 @@
 package rms.service;
 
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
@@ -90,6 +91,13 @@ public class ScheduleServiceImpl implements ScheduleService {
 		ScheduleInfo stored = update ? scheduledao.findScheduleById(scheduleinfo.getSchedulekey()) : null;
 		if (update && stored == null) {
 			return Outcome.refused("That interview was cancelled or removed, so it can't be changed.");
+		}
+		// A scheduled interview can't be put in the past: a new one, or one whose time changes. An unchanged time stays
+		// editable, so a past interview can still get a place or be marked Done
+		boolean timeChanged = stored == null || !scheduleinfo.getStartat().equals(stored.getStartat());
+		if (ScheduleInfo.SCHEDULED.equals(scheduleinfo.getStatus()) && timeChanged
+				&& scheduleinfo.getStartat().isBefore(LocalDateTime.now())) {
+			return Outcome.refused("Please choose a time that hasn't passed yet.");
 		}
 		// A new or changed interviewer must be assigned to the candidate now, with an active account (the list the form
 		// offers). A change that keeps the stored interviewer needs no check, so an interview can still be marked Done

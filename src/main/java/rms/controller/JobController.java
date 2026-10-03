@@ -3,6 +3,8 @@ package rms.controller;
 import java.util.ArrayList;
 import java.util.List;
 
+import jakarta.servlet.http.HttpSession;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -18,6 +20,7 @@ import org.springframework.web.servlet.ModelAndView;
 
 import rms.model.JobInfo;
 import rms.model.PositionInfo;
+import rms.service.ActivityService;
 import rms.service.JobService;
 import rms.service.PositionService;
 
@@ -33,6 +36,9 @@ public class JobController {
 
 	@Autowired
 	JobService jobservice;
+
+	@Autowired
+	ActivityService activityservice;
 
 	@Autowired
 	PositionService positionservice;
@@ -65,7 +71,7 @@ public class JobController {
 	}
 
 	@RequestMapping(value = "/savejob", method = RequestMethod.POST)
-	public ModelAndView save(@ModelAttribute("jobinfo") JobInfo jobinfo, BindingResult binding) {
+	public ModelAndView save(@ModelAttribute("jobinfo") JobInfo jobinfo, BindingResult binding, HttpSession session) {
 		JobInfo stored = null;
 		if (jobinfo.getJobkey() > 0) {
 			// The job may have been deleted while the form was open
@@ -82,16 +88,19 @@ public class JobController {
 
 		if (stored != null) {
 			jobservice.updateJob(jobinfo);
+			activityservice.record(CurrentUser.userid(session), "JOB_CHANGED", "JOB", String.valueOf(jobinfo.getJobkey()), null);
 		} else {
 			jobservice.addJob(jobinfo);
+			activityservice.record(CurrentUser.userid(session), "JOB_ADDED", "JOB", null, "position " + jobinfo.getPositionkey());
 		}
 		return new ModelAndView("redirect:/viewjoblist");
 	}
 
 	/** Soft delete: candidates linked to the job keep the link. */
 	@RequestMapping(value = "/deletejob/{jobkey}", method = RequestMethod.POST)
-	public ModelAndView delete(@PathVariable("jobkey") int jobkey) {
+	public ModelAndView delete(@PathVariable("jobkey") int jobkey, HttpSession session) {
 		jobservice.deleteJob(jobkey);
+		activityservice.record(CurrentUser.userid(session), "JOB_DELETED", "JOB", String.valueOf(jobkey), null);
 		return new ModelAndView("redirect:/viewjoblist");
 	}
 

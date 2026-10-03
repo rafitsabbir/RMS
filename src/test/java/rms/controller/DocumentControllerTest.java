@@ -318,4 +318,18 @@ class DocumentControllerTest {
 		document.setStoredname("a0000000000000000000000000000001");
 		return document;
 	}
+
+	@Test
+	void theDocumentsOfADeletedCandidateArePurgedFromTheDeletedCandidatesPage() throws Exception {
+		CandidateInfo deleted = new CandidateInfo();
+		deleted.setCandidateid("C2");
+		when(candidateservice.getDeletedCandidates()).thenReturn(java.util.List.of(deleted));
+		when(documentservice.purge("C2", "Retention period ended", "U3"))
+				.thenReturn(new Outcome(true, "2 files deleted permanently."));
+
+		mockMvc.perform(post("/purgedocuments").session(session).param("candidateid", "C2")
+				.param("reason", "Retention period ended"))
+				.andExpect(redirectedUrl("/viewdeletedcandidates"))
+				.andExpect(flash().attribute("documentMessage", "2 files deleted permanently."));
+	}
 }

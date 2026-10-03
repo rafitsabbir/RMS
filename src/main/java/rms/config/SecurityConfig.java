@@ -38,6 +38,7 @@ import org.springframework.security.web.csrf.CsrfException;
 import org.springframework.security.web.savedrequest.NullRequestCache;
 
 import rms.model.Role;
+import rms.service.ActivityService;
 import rms.service.LoginService;
 import rms.service.RmsUserDetails;
 
@@ -69,7 +70,7 @@ public class SecurityConfig {
 	static final String[] USER_ADMIN_PAGES = { "/viewuserlist", "/createuser", "/updateuser", "/saveuser",
 			"/deactivateuser", "/reactivateuser", "/resetpassword" };
 	/** The permanent delete of a candidate's document files: Super Admin only. */
-	static final String[] SUPER_ADMIN_PAGES = { "/purgedocuments", "/viewactivity", "/exportactivity" };
+	static final String[] SUPER_ADMIN_PAGES = { "/purgedocuments", "/viewactivity", "/exportactivity", "/viewdeletedcandidates" };
 	/** Read-only staff pages: Super Admin, HR and Hiring Manager. */
 	static final String[] STAFF_READ_PAGES = { "/adminviewmarks", "/viewcandidatelist", "/viewevaluations",
 			"/viewjoblist", "/viewschedulelist", "/reports", "/exportcandidates", "/exportresults",
@@ -102,7 +103,8 @@ public class SecurityConfig {
 
 	@Bean
 	@Order(2)
-	public SecurityFilterChain appFilterChain(HttpSecurity http, LoginThrottle throttle, LoginService loginservice)
+	public SecurityFilterChain appFilterChain(HttpSecurity http, LoginThrottle throttle, LoginService loginservice,
+			ActivityService activityservice)
 			throws Exception {
 		http.authorizeHttpRequests(auth -> auth
 						// A JSP forward belongs to a request that was already checked
@@ -123,8 +125,8 @@ public class SecurityConfig {
 						.loginProcessingUrl("/welcome")
 						.usernameParameter("username")
 						.passwordParameter("password")
-						.successHandler(new LoginSuccessHandler(throttle))
-						.failureHandler(loginFailed(throttle)))
+						.successHandler(new LoginSuccessHandler(throttle, activityservice))
+						.failureHandler(loginFailed(throttle, activityservice)))
 				.logout(logout -> logout
 						.logoutUrl("/logout")
 						.logoutSuccessUrl("/login"))
@@ -200,12 +202,16 @@ public class SecurityConfig {
 	 * kept in the session (SimpleUrlAuthenticationFailureHandler would keep it, with the typed password).
 	 * Every failure except a database error counts towards the lock.
 	 */
-	private static AuthenticationFailureHandler loginFailed(LoginThrottle throttle) {
+	private static AuthenticationFailureHandler loginFailed(LoginThrottle throttle, ActivityService activityservice) {
 		return (request, response, failure) -> {
 			// The database failing isn't a wrong password; Spring Security has logged it at ERROR
 			boolean unavailable = failure instanceof InternalAuthenticationServiceException;
 			if (!unavailable) {
 				throttle.loginFailed(request.getParameter("username"), request.getRemoteAddr());
+				// The typed name is logged only when it looks like a username: a password typed in the wrong box doesn't
+				String typed = request.getParameter("username");
+				boolean plausible = typed != null && typed.matches("[A-Za-z0-9._]{3,100}");
+				activityservice.record("", "LOGIN_FAILED", "USER", null, plausible ? "username " + typed : null);
 			}
 			response.sendRedirect(request.getContextPath() + (unavailable ? "/login?unavailable" : "/login?error"));
 		};
@@ -288,11 +294,13 @@ public class SecurityConfig {
 	static class LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
 		private final LoginThrottle throttle;
+		private final ActivityService activityservice;
 
-		LoginSuccessHandler(LoginThrottle throttle) {
+		LoginSuccessHandler(LoginThrottle throttle, ActivityService activityservice) {
 			super("/home");
 			setAlwaysUseDefaultTargetUrl(true);
 			this.throttle = throttle;
+			this.activityservice = activityservice;
 		}
 
 		@Override
@@ -301,6 +309,7 @@ public class SecurityConfig {
 			RmsUserDetails user = (RmsUserDetails) authentication.getPrincipal();
 			throttle.loginSucceeded(request.getParameter("username"), request.getRemoteAddr());
 			request.getSession().setAttribute("user", user.getUserinfo());
+			activityservice.record(user.getUserinfo().getUserid(), "LOGIN", "USER", user.getUserinfo().getUserid(), null);
 			super.onAuthenticationSuccess(request, response, authentication);
 		}
 

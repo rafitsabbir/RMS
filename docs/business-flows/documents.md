@@ -43,7 +43,7 @@ sequenceDiagram
 | Upload / replace | `POST /uploaddocument` (multipart; `candidateid` in the URL and the body) | Super Admin, HR | `DocumentController.upload` → redirect to the profile with `documentMessage` or `documentError` |
 | Download | `GET /downloaddocument/{documentkey}` | Super Admin, HR, Hiring Manager; Interviewers for assigned candidates (Phase 3) | `DocumentController.download`; 404 for an unknown or inactive document, a deleted candidate or a missing file; 503 without storage |
 | Delete (soft) | `POST /deletedocument/{documentkey}` | Super Admin, HR | `DocumentController.delete` → redirect to the profile |
-| Permanent delete | `POST /purgedocuments` (`candidateid`, `reason`) | Super Admin | `DocumentController.purge` → redirect to the profile |
+| Permanent delete | `POST /purgedocuments` (`candidateid`, `reason`) | Super Admin | `DocumentController.purge` → redirect to the profile; for a deleted candidate → redirect to `GET /viewdeletedcandidates` (the Deleted Candidates page lists them, [reports-activity.md](reports-activity.md)) |
 
 Since Phase 3 interviewers can open the profile and download the documents of candidates assigned to them (checked in `CandidateController.profile` and `DocumentController.download`; 403 and a WARN with keys otherwise), and the evaluation form lists the documents too. They never see the upload, delete or permanent-delete controls.
 

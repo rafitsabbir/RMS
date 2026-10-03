@@ -37,6 +37,8 @@ public class CandidateInfo {
 	private LocalDate decisiondate = null;
 	private String decidedby = null;
 	private String decidedbyname = null;
+	/** Only on the deleted candidates list: documents whose files are still stored. */
+	private int unpurgedcount = 0;
 
 	/** No names, e-mail or phone: they are personal data. */
 	@Override
@@ -184,6 +186,14 @@ public class CandidateInfo {
 
 	public void setJobstatus(String jobstatus) {
 		this.jobstatus = jobstatus;
+	}
+
+	public int getUnpurgedcount() {
+		return unpurgedcount;
+	}
+
+	public void setUnpurgedcount(int unpurgedcount) {
+		this.unpurgedcount = unpurgedcount;
 	}
 
 	public int getCvcount() {

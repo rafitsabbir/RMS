@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import jakarta.servlet.http.HttpSession;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -15,6 +17,7 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.ModelAndView;
 
 import rms.model.PositionInfo;
+import rms.service.ActivityService;
 import rms.service.EnglishText;
 import rms.service.PositionService;
 
@@ -24,6 +27,9 @@ public class PositionController {
 
 	@Autowired
 	PositionService positionservice;
+
+	@Autowired
+	ActivityService activityservice;
 
 	@RequestMapping(value = "/createposition", method = RequestMethod.GET)
 	public ModelAndView createPosition() {
@@ -36,7 +42,7 @@ public class PositionController {
 
 	@RequestMapping(value = "/saveposition", method = RequestMethod.POST)
 	public ModelAndView save(
-			@ModelAttribute("positioninfo") PositionInfo positioninfo) {
+			@ModelAttribute("positioninfo") PositionInfo positioninfo, HttpSession session) {
 
 		String name = positioninfo.getPositionname();
 		if (name == null || name.trim().isEmpty()) {
@@ -60,6 +66,8 @@ public class PositionController {
 			return form(positioninfo, "Position " + name.trim().toUpperCase(Locale.ROOT) + " already exists.");
 		}
 
+		activityservice.record(CurrentUser.userid(session), "POSITION_SAVED", "POSITION", positioninfo.getPositionkey() > 0 ? String.valueOf(positioninfo.getPositionkey()) : null,
+				name.trim());
 		return new ModelAndView("redirect:/viewpositionlist");
 
 	}
@@ -89,9 +97,10 @@ public class PositionController {
 	}
 
 	@RequestMapping(value = "/deleteposition/{positionkey}", method = RequestMethod.POST)
-	public ModelAndView delete(@PathVariable("positionkey") int positionkey) {
+	public ModelAndView delete(@PathVariable("positionkey") int positionkey, HttpSession session) {
 
 		positionservice.deletePosition(positionkey);
+		activityservice.record(CurrentUser.userid(session), "POSITION_DELETED", "POSITION", String.valueOf(positionkey), null);
 
 		return new ModelAndView("redirect:/viewpositionlist");
 	}

@@ -1,10 +1,10 @@
 # Reports, Activity Log and English-only: Manual Checks
 
 Purpose: The manual SQL checklist and browser test steps for the reports, the activity log (migration 007) and the English-only rule.
-Last updated: 2026-10-03 (written with the change; nothing below has been run yet)
+Last updated: 2026-10-03 (written with the change; section E added with the second round; nothing below has been run yet)
 Read this when: you're verifying this change on a machine with Docker, MySQL and Tomcat 11, or signing it off.
 
-**DB-verified: NO.** `ActivityDaoImplTest` (4 tests) was written but skipped on 2026-10-03, because the machine had no Docker, MySQL or Tomcat. The SQL in `ActivityDaoImpl`, migration 007 and the new JSPs (`reports.jsp`, `viewactivity.jsp`) have never run; they were checked by hand against the seed only.
+**DB-verified: NO.** `ActivityDaoImplTest` (4 tests) and `CandidateDaoImplTest.deletedCandidatesListWithTheirStoredFiles` was written but skipped on 2026-10-03, because the machine had no Docker, MySQL or Tomcat. The SQL in `ActivityDaoImpl`, migration 007 and the new JSPs (`reports.jsp`, `viewactivity.jsp`) have never run; they were checked by hand against the seed only.
 
 **Where:** only a throwaway local MySQL (for example `rms_local` from [db/local](../../db/local/README.md)). Never a shared or production server. Only the synthetic seed values below.
 

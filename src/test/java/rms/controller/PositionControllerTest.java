@@ -1,5 +1,7 @@
 package rms.controller;
 
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
@@ -30,6 +32,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import rms.config.WebConfig;
 import rms.model.PositionInfo;
+import rms.service.ActivityService;
 import rms.service.PositionService;
 
 /** Characterization tests: pin current Position master behaviour. */
@@ -38,6 +41,9 @@ class PositionControllerTest {
 
 	@Mock
 	PositionService positionservice;
+
+	@Mock
+	ActivityService activityservice;
 
 	@InjectMocks
 	PositionController controller;
@@ -188,5 +194,17 @@ class PositionControllerTest {
 				.andExpect(view().name("createposition"));
 
 		verifyNoInteractions(positionservice);
+	}
+
+	@Test
+	void positionChangesAreLogged() throws Exception {
+		when(positionservice.addPosition(any(PositionInfo.class))).thenReturn(true);
+
+		mockMvc.perform(post("/saveposition").param("positionkey", "0").param("positionname", " dev ops "))
+				.andExpect(redirectedUrl("/viewpositionlist"));
+		mockMvc.perform(post("/deleteposition/5")).andExpect(redirectedUrl("/viewpositionlist"));
+
+		verify(activityservice).record(isNull(), eq("POSITION_SAVED"), eq("POSITION"), isNull(), eq("dev ops"));
+		verify(activityservice).record(isNull(), eq("POSITION_DELETED"), eq("POSITION"), eq("5"), isNull());
 	}
 }

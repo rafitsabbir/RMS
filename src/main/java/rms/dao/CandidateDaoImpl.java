@@ -46,6 +46,10 @@ public class CandidateDaoImpl implements CandidateDao {
 			+ "left join language l on l.languagekey=c.languagekey left join job j on j.jobkey=c.jobkey";
 	// Active candidates only (deleted ones keep isactive=0); shorter IDs first, so C2 comes before C10
 	private String allcandidate = selectcandidate + " where c.isactive=1 order by length(c.candidateid), c.candidateid";
+	// Deleted candidates, for the permanent delete of their documents (Super Admin)
+	private String deletedcandidates = "select c.candidateid, c.firstname, c.lastname, (select count(*) from "
+			+ "candidate_document d where d.candidateid=c.candidateid and d.purgedat is null) as unpurgedcount "
+			+ "from candidate c where c.isactive=0 order by length(c.candidateid), c.candidateid";
 	private String findcandidatebyid = selectcandidate + " where c.candidateid=:candidateid and c.isactive=1";
 	// The highest number among IDs of the form C<number> (up to 9 digits), deleted ones included so an ID is
 	// never reused; 0 when there is none
@@ -134,6 +138,18 @@ public class CandidateDaoImpl implements CandidateDao {
 		Map<String, Object> paramMap = new HashMap<String, Object>();
 		paramMap.put("slottypes", SLOT_TYPES);
 		return namedParameterJdbcTemplate.query(allcandidate, paramMap, new CandidateMapper());
+	}
+
+	@Override
+	public List<CandidateInfo> getDeletedCandidates() {
+		return namedParameterJdbcTemplate.query(deletedcandidates, new HashMap<String, Object>(), (rs, rowNum) -> {
+			CandidateInfo candidate = new CandidateInfo();
+			candidate.setCandidateid(rs.getString("candidateid"));
+			candidate.setFirstname(rs.getString("firstname"));
+			candidate.setLastname(rs.getString("lastname"));
+			candidate.setUnpurgedcount(rs.getInt("unpurgedcount"));
+			return candidate;
+		});
 	}
 
 	@Override

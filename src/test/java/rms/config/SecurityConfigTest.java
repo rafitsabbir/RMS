@@ -309,6 +309,7 @@ class SecurityConfigTest {
 				new Page(get("/exportschedule"), STAFF),
 				new Page(get("/viewactivity"), SUPER_ADMIN_ONLY),
 				new Page(get("/exportactivity"), SUPER_ADMIN_ONLY),
+				new Page(get("/viewdeletedcandidates"), SUPER_ADMIN_ONLY),
 				new Page(multipart("/uploaddocument").file(new MockMultipartFile("file", "cv.pdf", "application/pdf",
 						"%PDF-1".getBytes())).with(csrf()).param("candidateid", "C1").param("doctype", "CV"), HR_AND_UP),
 				new Page(get("/downloaddocument/1"), EVERY_ROLE),
@@ -1040,4 +1041,21 @@ class SecurityConfigTest {
 		};
 	}
 
+
+	@Test
+	void signInsAreLoggedWithTheUser() throws Exception {
+		mockMvc.perform(login("test.admin", "test-only-1")).andExpect(redirectedUrl("/home"));
+
+		verify(activityservice).record("U1", "LOGIN", "USER", "U1", null);
+	}
+
+	@Test
+	void failedSignInsAreLoggedAndATypedPasswordIsNot() throws Exception {
+		mockMvc.perform(login("test.admin", "wrong")).andExpect(redirectedUrl("/login?error"));
+		// Not a plausible username (spaces): maybe a password typed in the wrong box
+		mockMvc.perform(login("my secret password", "x")).andExpect(redirectedUrl("/login?error"));
+
+		verify(activityservice).record("", "LOGIN_FAILED", "USER", null, "username test.admin");
+		verify(activityservice).record("", "LOGIN_FAILED", "USER", null, null);
+	}
 }

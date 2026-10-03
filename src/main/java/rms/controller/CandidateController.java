@@ -138,6 +138,14 @@ public class CandidateController {
 		return mv;
 	}
 
+	/** Super Admin only (SecurityConfig): deleted candidates, whose documents can still be deleted permanently. */
+	@RequestMapping(value = "/viewdeletedcandidates", method = RequestMethod.GET)
+	public ModelAndView viewDeleted() {
+		ModelAndView mv = new ModelAndView("viewdeletedcandidates");
+		mv.addObject("candidatelist", candidateservice.getDeletedCandidates());
+		return mv;
+	}
+
 	/** A request parameter, not a path variable: IDs from before the generator may be any text (G22). */
 	@RequestMapping(value = "/updatecandidate", method = RequestMethod.GET)
 	public ModelAndView update(@RequestParam("candidateid") String candidateid) {

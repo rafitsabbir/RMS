@@ -56,6 +56,7 @@ The menu shows each role only its own entries. Typing a page's address directly 
 |Home page figures (dashboard)|Live|All figures|All figures|All figures|Own evaluations and interviews only|
 |Reports (CSV downloads: candidates, candidate status, interview schedule)|Live|Yes|Yes|Yes|Refused|
 |Administration › Activity Log, and its CSV download|Live|Yes|Refused|Refused|Refused|
+|Administration › Deleted Candidates (delete their document files permanently)|Live|Yes|Refused|Refused|Refused|
 |Log out (top bar)|Live|Yes|Yes|Yes|Yes|
 
 "Refused" means the user sees an "access denied" error page (HTTP 403) and the attempt is written to the server log. Anyone not logged in is sent to the login page.
@@ -145,7 +146,7 @@ The menu shows each role only its own entries. Typing a page's address directly 
 
 ### Interview schedule
 - Super Admin and HR schedule an interview from **Interview Schedule › Schedule interview**: first choose the candidate, then the interviewer (only people assigned to that candidate whose account is active are offered), the date and time, and an optional location.
-- Times are the server's local time, as typed. Two interviews for the same interviewer at the same start time are refused. Past times are accepted.
+- Times are the server's local time, as typed. Two interviews for the same interviewer at the same start time are refused. A scheduled interview can't be put in a time that has passed; an interview already in the past can still get a location or be marked Done.
 - An interview can be changed, marked Done or cancelled. Cancelling keeps it in the list, marked Cancelled, and a cancelled interview can't be changed. RMS never marks an interview Done by itself and sends no notification.
 - Hiring Managers see the whole list read-only. Interviewers see only their own interviews, under **My Schedule**.
 
@@ -157,7 +158,7 @@ The menu shows each role only its own entries. Typing a page's address directly 
 ### Activity log (Super Admin)
 - **Activity Log** (menu, Super Admin only) shows the newest 500 recorded actions with the time, the user, the action, the candidate or user it concerned and a short detail. It can be filtered by action and downloaded as CSV. Nobody can edit or delete an entry in RMS.
 - Recorded: **Marked** (an interviewer saved an evaluation, with the total score only), **Selected**, **Rejected** and **On hold** (decisions; the reason stays in the decision history), interviewer assigned or unassigned, interview scheduled, changed or cancelled, candidate added, changed or deleted, user added, changed, deactivated, reactivated or given a new password, and report downloaded.
-- Not recorded yet: sign-ins and sign-outs, document uploads and deletes, jobs and master data. Details never hold scores per criterion, comments, reasons, names or passwords.
+- Also recorded: sign-ins and failed sign-ins (the typed username only if it looks like a username), document uploads, deletes and permanent deletes, and changes to jobs, positions and languages. Not recorded: sign-outs and a user's own password changes. Details never hold scores per criterion, comments, reasons, names or passwords.
 
 ### English only
 - RMS accepts English text only: letters, digits and common punctuation (no accented letters and no other scripts). It is checked for candidate and user names, designations, position and language names, decision reasons, evaluation comments and interview locations; anything else is refused with a message.
@@ -212,6 +213,10 @@ The process as built: every step is a working screen.
 ### Super Admin, HR or Hiring Manager: download a report
 1. Open **Reports** and click the report you want (Candidates, Candidate Status or Interview Schedule).
 2. Open the downloaded CSV file in Excel. Use only English when you enter data, so that names read correctly.
+
+### Super Admin: delete the files of a deleted candidate
+1. Open **Deleted Candidates**. Candidates with files still stored show the number of files.
+2. Enter the reason (English) and click **Delete**, then confirm. The records stay; only the files are removed, and it can't be undone.
 
 ### Super Admin: see who did what
 1. Open **Activity Log**. Choose an action in the filter (for example Selected) and click **Show**.
@@ -293,14 +298,15 @@ Work Experience, Technical Knowledge, Leadership Skill, Decision Making, Problem
 6. **Documents** (built in Phase 2): only the CV is required; uploads are PDF, JPG or PNG up to 5 MB; HR's delete keeps the file; only a Super Admin removes files, with a reason; RMS never deletes documents automatically.
 7. **A job sets the candidate's position** (built in Phase 2).
 8. **Evaluations and decisions** (built in Phase 3): averages per criterion and in total; evaluations lock on Selected or Rejected, not On hold; decisions can change and are all kept; a deactivated interviewer's assignments stay, flagged.
+11. **Past interview times and deleted candidates** (3 October 2026): a scheduled interview can't be put in the past; a Super Admin can delete the files of deleted candidates; sign-ins, document actions, jobs and master data are logged.
 10. **Reports, activity log and English only** (3 October 2026): reports are CSV files for Excel; the activity log records marking, selecting, rejecting and the other actions listed above and is read by Super Admin only; only English text is accepted; e-mail notifications will be decided later.
 9. **Interview schedule and dashboard** (built in Phase 4): an interview is for an assigned, active interviewer; times are the server's local time; no notifications yet; the home page shows the figures listed above.
 
 ## 12. Open business questions
 1. **One role per user:** is a second login acceptable for someone who both manages and interviews, or should a user hold several roles later?
-2. **Schedules:** e-mail or calendar notifications will be decided later. Should past times be refused, and do all users work in the server's time zone?
+2. **Schedules:** e-mail or calendar notifications will be decided later. Do all users work in the server's time zone?
 3. **Reports:** which further reports are needed (counts per position, per status or per month; Excel or PDF files)?
-5. **Activity log:** should sign-ins, document uploads and deletes, jobs and master data be recorded too? How long must entries be kept, and who archives them?
+5. **Retention:** how long must activity log entries and candidate documents be kept, and who deletes or archives them? RMS deletes nothing by itself; a Super Admin deletes files by hand under Deleted Candidates.
 4. **Documents of deleted candidates:** a permanent delete is started from the candidate's profile, which a deleted candidate no longer has. Should that be possible for deleted candidates too, and is there a retention period after which documents must be removed?
 
 > Gap references (G…) and question numbers match the project's docs/gaps.md and docs/open-questions.md, so the development team can trace each item.

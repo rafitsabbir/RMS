@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import jakarta.servlet.http.HttpSession;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -15,6 +17,7 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.ModelAndView;
 
 import rms.model.LanguageInfo;
+import rms.service.ActivityService;
 import rms.service.EnglishText;
 import rms.service.LanguageService;
 
@@ -24,6 +27,9 @@ public class LanguageController {
 
 	@Autowired
 	LanguageService languageservice;
+
+	@Autowired
+	ActivityService activityservice;
 
 	@RequestMapping(value = "/createlanguage", method = RequestMethod.GET)
 	public ModelAndView createLanguage() {
@@ -45,7 +51,7 @@ public class LanguageController {
 
 	@RequestMapping(value = "/savelanguage", method = RequestMethod.POST)
 	public ModelAndView save(
-			@ModelAttribute("languageinfo") LanguageInfo languageinfo) {
+			@ModelAttribute("languageinfo") LanguageInfo languageinfo, HttpSession session) {
 
 		String name = languageinfo.getLanguagename();
 		if (name == null || name.trim().isEmpty()) {
@@ -69,6 +75,8 @@ public class LanguageController {
 			return form(languageinfo, "Language " + name.trim().toUpperCase(Locale.ROOT) + " already exists.");
 		}
 
+		activityservice.record(CurrentUser.userid(session), "LANGUAGE_SAVED", "LANGUAGE", languageinfo.getLanguagekey() > 0 ? String.valueOf(languageinfo.getLanguagekey()) : null,
+				name.trim());
 		return new ModelAndView("redirect:/viewlanguagelist");
 
 	}
@@ -89,9 +97,10 @@ public class LanguageController {
 	}
 	
 	@RequestMapping(value = "/deletelanguage/{languagekey}", method = RequestMethod.POST)
-	public ModelAndView delete(@PathVariable("languagekey") int languagekey) {
+	public ModelAndView delete(@PathVariable("languagekey") int languagekey, HttpSession session) {
 
 		languageservice.deleteLanguage(languagekey);
+		activityservice.record(CurrentUser.userid(session), "LANGUAGE_DELETED", "LANGUAGE", String.valueOf(languagekey), null);
 
 		return new ModelAndView("redirect:/viewlanguagelist");
 	}

@@ -241,4 +241,22 @@ class CandidateDaoImplTest extends MySqlContainerSupport {
 		candidate.setLanguagekey(languagekey);
 		return candidate;
 	}
+
+	@Test
+	void deletedCandidatesListWithTheirStoredFiles() {
+		assertThat(dao.getDeletedCandidates()).isEmpty();
+
+		int stored = jdbcTemplate.queryForObject("select count(*) from candidate_document where candidateid='C1' and purgedat is null", Integer.class);
+		// C1 has documents in the seed (one of them replaced, its file still stored); C2 has none
+		jdbcTemplate.update("update candidate set isactive=0");
+		assertThat(dao.getDeletedCandidates()).extracting("candidateid", "unpurgedcount")
+				.containsExactly(tuple("C1", stored), tuple("C2", 0));
+
+		// A purged file no longer counts
+		jdbcTemplate.update("update candidate_document set purgedat=now() where documentkey=1");
+		assertThat(dao.getDeletedCandidates().get(0).getUnpurgedcount()).isEqualTo(stored - 1);
+		// Active candidates never list
+		jdbcTemplate.update("update candidate set isactive=1 where candidateid='C1'");
+		assertThat(dao.getDeletedCandidates()).extracting("candidateid").containsExactly("C2");
+	}
 }

@@ -142,10 +142,15 @@ public class DocumentController {
 			@RequestParam(value = "reason", required = false) String reason, HttpSession session,
 			RedirectAttributes redirect) {
 		String userid = CurrentUser.requireUserid(session);
-		requireCandidate(candidateid);
+		// A deleted candidate has no profile any more: their documents are purged from the Deleted Candidates page
+		boolean deleted = candidateservice.findCandidateById(candidateid) == null && candidateservice.getDeletedCandidates()
+				.stream().anyMatch(candidate -> candidateid.equals(candidate.getCandidateid()));
+		if (!deleted) {
+			requireCandidate(candidateid);
+		}
 		Outcome outcome = documentservice.purge(candidateid, reason, userid);
 		redirect.addFlashAttribute(outcome.done() ? "documentMessage" : "documentError", outcome.message());
-		return profile(candidateid, null);
+		return deleted ? new ModelAndView("redirect:/viewdeletedcandidates") : profile(candidateid, null);
 	}
 
 	private void requireCandidate(String candidateid) {
