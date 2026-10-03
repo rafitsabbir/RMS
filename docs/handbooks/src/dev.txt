@@ -1,6 +1,6 @@
 # RMS Developer Handbook
 @ Recruitment Management System — code structure, request flow, security model, conventions, tests and recipes for common changes
-@ Branch dev as of 3 October 2026 (roles plan, Phase 4). Java 21, Spring 7, Tomcat 11, MySQL.
+@ Branches master and dev (same commit) as of 3 October 2026 (roles plan, Phases 1-4). Java 21, Spring 7, Tomcat 11, MySQL.
 
 ## 1. First day
 1. Install **JDK 21** (for example Eclipse Temurin 21) and set JAVA_HOME. A JRE isn't enough. Maven comes with the repository (Maven Wrapper).
@@ -170,7 +170,7 @@ Messages are set in the controller (the form(info, "message") helper) and shown 
 |---|---|
 |Which document for my task?|docs/ROUTER.md|
 |Coding patterns in detail|docs/conventions.md|
-|How a feature works end to end|docs/business-flows/*.md (login, users, masters, candidates, documents, jobs, evaluation)|
+|How a feature works end to end|docs/business-flows/*.md (login, users, masters, candidates, documents, jobs, evaluation, schedule)|
 |Tables and columns|docs/data-model.md|
 |Build, deploy and test details|docs/build-run.md|
 |Known gaps and defects (G numbers)|docs/gaps.md|

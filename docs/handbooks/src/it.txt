@@ -1,6 +1,6 @@
 # RMS Technical Operations Guide
 @ Recruitment Management System — technology stack, architecture, production requirements, sizing, deployment and security
-@ Describes the version on the dev branch as of 3 October 2026 (roles plan, Phase 4; not yet released). Contains no hostnames, passwords or connection strings.
+@ Describes the version on the master and dev branches as of 3 October 2026 (roles plan, Phases 1-4; not yet deployed). Contains no hostnames, passwords or connection strings.
 
 ## 1. At a glance
 |Item|Value|
@@ -141,7 +141,7 @@ The application has no properties files and no profiles. All environment-specifi
 |The login lock is in memory, per Tomcat node, by client address|Medium|Behind a reverse proxy, configure Tomcat's RemoteIpValve so the real client address is used; otherwise one user's failures lock that username for everyone. A restart clears the counts.|
 |The session cookie isn't marked Secure|Medium|Serve only over HTTPS and mark the cookie secure (Tomcat or proxy).|
 |HSTS includes subdomains|Check|Confirm this suits the production hostname.|
-|The production version (master branch) is old: Spring 4.3, Connector/J 5.1.36|High|GitHub reports 26 security alerts on master. Release the upgraded version.|
+|The production version is old: Spring 4.3, Connector/J 5.1.36|High|The master branch now holds the upgraded version but it is not deployed. GitHub still reports one high Dependabot alert on master. Release the upgraded version.|
 |User ids appear in WARN log lines (refused requests)|Low|Restrict log access if user ids are personal data.|
 |Uploaded files aren't virus-scanned|Medium|Scan RMS_DOC_DIR with the organisation's scanner (on access or scheduled). RMS checks only the file type.|
 |Document folder access|Medium|Only the Tomcat user should read RMS_DOC_DIR; never serve it from a web server. It holds candidates' personal documents.|
@@ -159,9 +159,9 @@ The application has no properties files and no profiles. All environment-specifi
 ## 10. Release status
 |Branch|Contents|Runtime|State|
 |---|---|---|---|
-|master|Phase 1 security upgrades (merged 2 October 2026)|Spring 5.3.39, Tomcat 9, JDK 8|Production still runs whatever was last deployed|
-|release/phase1|Security upgrades on Java 8|Spring 5.3.39, Tomcat 9, JDK 8|Tested and rehearsed; not released|
-|dev|Full upgrade, new UI, Spring Security, candidate management, four roles and user management, candidate documents and jobs, interviewer assignment, evaluations and decisions, interview schedule and dashboard|Spring 7, Tomcat 11, JDK 21|Built and unit-tested; a full run on Tomcat 11 is still due|
+|master|Same commit as dev: the full upgrade, roles plan Phases 1-4 (merged 3 October 2026)|Spring 7, Tomcat 11, JDK 21|Merged, not deployed: production still runs whatever was last deployed|
+|release/phase1|Security upgrades on Java 8 (already in master history)|Spring 5.3.39, Tomcat 9, JDK 8|Tested and rehearsed; not released|
+|dev|Full upgrade, new UI, Spring Security, candidate management, four roles and user management, candidate documents and jobs, interviewer assignment, evaluations and decisions, interview schedule and dashboard|Spring 7, Tomcat 11, JDK 21|Built and unit-tested (same as master); a full run with MySQL and Tomcat 11 is still due|
 
 **Deadline:** Tomcat 9 support ends on 31 March 2027. Production should move to the dev line (Tomcat 11) before then.
 

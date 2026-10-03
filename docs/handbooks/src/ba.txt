@@ -1,6 +1,6 @@
 # RMS Business Analyst Guide
 @ Recruitment Management System — roles, screens, permissions, business flows and how to use the system
-@ Describes the version on the dev branch as of 3 October 2026 (roles plan, Phase 4). Prepared from the code and the project documentation.
+@ Describes the version on the master and dev branches as of 3 October 2026 (roles plan, Phases 1-4). Prepared from the code and the project documentation.
 
 > **Purpose of this document:** explain what RMS does today, who can use which screen, how each business process works, and what is still missing, so that new features can be analysed and proposed.
 
