@@ -36,6 +36,9 @@ class EvaluationServicesTest {
 		@Mock
 		MarksDao marksdao;
 
+		@Mock
+		ActivityService activityservice;
+
 		@InjectMocks
 		MarksServiceImpl service;
 
@@ -101,6 +104,9 @@ class EvaluationServicesTest {
 		@Mock
 		AssignmentDao assignmentdao;
 
+		@Mock
+		ActivityService activityservice;
+
 		@InjectMocks
 		AssignmentServiceImpl service;
 
@@ -149,6 +155,9 @@ class EvaluationServicesTest {
 
 		@Mock
 		DecisionDao decisiondao;
+
+		@Mock
+		ActivityService activityservice;
 
 		@InjectMocks
 		DecisionServiceImpl service;

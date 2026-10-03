@@ -34,6 +34,9 @@ class ScheduleServiceImplTest {
 	@Mock
 	AssignmentDao assignmentdao;
 
+	@Mock
+	ActivityService activityservice;
+
 	ScheduleServiceImpl service;
 
 	@BeforeEach
@@ -41,6 +44,7 @@ class ScheduleServiceImplTest {
 		service = new ScheduleServiceImpl();
 		service.setScheduleDao(scheduledao);
 		service.setAssignmentDao(assignmentdao);
+		service.setActivityService(activityservice);
 	}
 
 	@Test

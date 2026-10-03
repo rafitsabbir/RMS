@@ -204,3 +204,20 @@ CREATE TABLE interview_schedule (
 	KEY interview_schedule_candidate (candidateid, isactive),
 	KEY interview_schedule_interviewer (interviewerid, isactive, startat)
 ) ENGINE=InnoDB;
+
+-- The activity log (migration 007): one row per action that matters (evaluations, decisions, interviews, candidates,
+-- users, report downloads). No foreign keys, so a row survives its user or record. detail holds codes, never
+-- personal data. Nothing in RMS updates or deletes a row.
+CREATE TABLE activity_log (
+	activitykey BIGINT NOT NULL AUTO_INCREMENT,
+	userid VARCHAR(50) NOT NULL,
+	action VARCHAR(30) NOT NULL,
+	entitytype VARCHAR(20) NULL,
+	entityid VARCHAR(50) NULL,
+	detail VARCHAR(300) NULL,
+	createdat DATETIME NOT NULL,
+	PRIMARY KEY (activitykey),
+	KEY activity_log_action (action, activitykey),
+	KEY activity_log_entity (entitytype, entityid),
+	KEY activity_log_user (userid, activitykey)
+) ENGINE=InnoDB;

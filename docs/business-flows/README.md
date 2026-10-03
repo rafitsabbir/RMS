@@ -1,7 +1,7 @@
 # Business Flows — Index
 
 Purpose: The business capabilities RMS implements, and which code implements each one.
-Last updated: 2026-10-03 (roles plan Phase 4: interview schedule and dashboard, schedule.md). 2026-10-02 (roles plan Phase 3: assignment, evaluation and decision). 2026-10-02 (roles plan Phase 2: jobs.md, documents.md, candidate profile). 2026-10-02 (four roles; Users and Roles; Change password: users.md). 2026-10-02 (candidate management, G1, with soft delete). 2026-10-01 (Spring Security 7: login, roles, logout). 2026-10-01 (UI redesign: menu in `layout.tag`). 2026-10-01 (entry points `GET /`, `GET /home`; deletes are POST). 2026-09-25
+Last updated: 2026-10-03 (reports, activity log and English-only text: reports-activity.md). 2026-10-03 (roles plan Phase 4: interview schedule and dashboard, schedule.md). 2026-10-02 (roles plan Phase 3: assignment, evaluation and decision). 2026-10-02 (roles plan Phase 2: jobs.md, documents.md, candidate profile). 2026-10-02 (four roles; Users and Roles; Change password: users.md). 2026-10-02 (candidate management, G1, with soft delete). 2026-10-01 (Spring Security 7: login, roles, logout). 2026-10-01 (UI redesign: menu in `layout.tag`). 2026-10-01 (entry points `GET /`, `GET /home`; deletes are POST). 2026-09-25
 Read this when: you're working on a feature and need to find its flow file. Open only the module file you need.
 
 - RMS is a recruitment management system (`README.md`).
@@ -37,5 +37,6 @@ Read this when: you're working on a feature and need to find its flow file. Open
 | Jobs | `rms.controller.JobController` | `rms.service.JobServiceImpl` | `rms.dao.JobDaoImpl` | `rms.model.JobInfo` | `viewjob.jsp`, `createjob.jsp` |
 | Assignment, evaluation and decision | `rms.controller.EvaluationController`, `AssignmentController`, `MarksController` | `rms.service.MarksServiceImpl`, `AssignmentServiceImpl`, `DecisionServiceImpl` | `rms.dao.MarksDaoImpl`, `AssignmentDaoImpl`, `DecisionDaoImpl` | `rms.model.MarksInfo`, `ResultInfo`, `AssignmentInfo`, `DecisionInfo`, `DecisionStatus`, `Criterion` | `viewmarks.jsp`, `viewevaluations.jsp`, `evaluate.jsp`, `myevaluations.jsp`, `candidateprofile.jsp` |
 | Interview schedule and dashboard | `rms.controller.ScheduleController`, `rms.controller.LoginController` (`home`) | `rms.service.ScheduleServiceImpl`, `DashboardServiceImpl` | `rms.dao.ScheduleDaoImpl`, `DashboardDaoImpl` | `rms.model.ScheduleInfo`, `DashboardInfo` | `viewschedule.jsp`, `myschedule.jsp`, `createschedule.jsp`, `main.jsp`, `schedulestatus.tag` |
+| Reports, activity log and English-only text | `rms.controller.ReportController`, `ActivityController` | `rms.service.ActivityServiceImpl`, `CsvWriter`, `EnglishText` | `rms.dao.ActivityDaoImpl` | `rms.model.ActivityInfo` | `reports.jsp`, `viewactivity.jsp` |
 
-No flow is left as a "Coming soon" menu entry (the schedule was the last, built in Phase 4). What is still open is listed in [open-questions.md](../open-questions.md). Interviewers are now users with the Interviewer role ([users.md](users.md)).
+Reports and the activity log: [reports-activity.md](reports-activity.md). No flow is left as a "Coming soon" menu entry (the schedule was the last, built in Phase 4). What is still open is listed in [open-questions.md](../open-questions.md). Interviewers are now users with the Interviewer role ([users.md](users.md)).

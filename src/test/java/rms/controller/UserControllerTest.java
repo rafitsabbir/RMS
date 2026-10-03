@@ -34,6 +34,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import rms.config.WebConfig;
 import rms.model.Role;
 import rms.model.UserInfo;
+import rms.service.ActivityService;
 import rms.service.UserService;
 
 /** Users and Roles (Phase 1 of the roles plan): add, edit, deactivate, reactivate and reset, with their guards. */
@@ -42,6 +43,9 @@ class UserControllerTest {
 
 	@Mock
 	UserService userservice;
+
+	@Mock
+	ActivityService activityservice;
 
 	@InjectMocks
 	UserController controller;
@@ -324,5 +328,29 @@ class UserControllerTest {
 		user.setRole(role.name());
 		user.setIsactive(isactive);
 		return user;
+	}
+
+	@Test
+	void namesMustBeEnglish() throws Exception {
+		mockMvc.perform(newUser("firstname", "José"))
+				.andExpect(model().attribute("errorMessage", org.hamcrest.Matchers.containsString("English")));
+		mockMvc.perform(newUser("designation", "主管"))
+				.andExpect(model().attribute("errorMessage", org.hamcrest.Matchers.containsString("English")));
+
+		verify(userservice, never()).addUser(any(UserInfo.class), anyString());
+	}
+
+	@Test
+	void userChangesAreLoggedWithTheActingUser() throws Exception {
+		when(userservice.addUser(any(UserInfo.class), eq("test-only-new"))).thenReturn("U6");
+		when(userservice.findUserById("U2")).thenReturn(user("U2", "test.interviewer", Role.INTERVIEWER, 1));
+
+		mockMvc.perform(newUser());
+		mockMvc.perform(post("/deactivateuser").param("userid", "U2").session(session));
+		mockMvc.perform(post("/reactivateuser").param("userid", "U2").session(session));
+
+		verify(activityservice).record("U1", "USER_ADDED", "USER", "U6", "role INTERVIEWER");
+		verify(activityservice).record("U1", "USER_DEACTIVATED", "USER", "U2", null);
+		verify(activityservice).record("U1", "USER_REACTIVATED", "USER", "U2", null);
 	}
 }

@@ -21,6 +21,13 @@ public class ScheduleServiceImpl implements ScheduleService {
 	ScheduleDao scheduledao;
 	AssignmentDao assignmentdao;
 
+	ActivityService activityservice;
+
+	
+	public void setActivityService(ActivityService activityservice) {
+		this.activityservice = activityservice;
+	}
+
 	@Autowired
 	public void setScheduleDao(ScheduleDao scheduledao) {
 		this.scheduledao = scheduledao;
@@ -67,6 +74,9 @@ public class ScheduleServiceImpl implements ScheduleService {
 		if (location.length() > ScheduleInfo.MAX_LOCATION) {
 			return Outcome.refused("Please keep the location to " + ScheduleInfo.MAX_LOCATION + " characters.");
 		}
+		if (!EnglishText.isEnglish(location)) {
+			return Outcome.refused("The location can use English only. " + EnglishText.PROBLEM);
+		}
 		scheduleinfo.setLocation(location.isEmpty() ? null : location);
 		// A new interview is always SCHEDULED; a change may mark it DONE. Cancelling has its own action
 		if (!update) {
@@ -98,10 +108,14 @@ public class ScheduleServiceImpl implements ScheduleService {
 			if (!scheduledao.updateSchedule(scheduleinfo, userid)) {
 				return Outcome.refused("That interview was cancelled or removed, so it can't be changed.");
 			}
+			activityservice.record(userid, "INTERVIEW_CHANGED", "INTERVIEW", String.valueOf(scheduleinfo.getSchedulekey()),
+					"candidate " + scheduleinfo.getCandidateid() + ", status " + scheduleinfo.getStatus());
 			log.info("Interview {} changed by {}", scheduleinfo.getSchedulekey(), userid);
 			return Outcome.ok("Interview updated.");
 		}
 		scheduledao.addSchedule(scheduleinfo, userid);
+		activityservice.record(userid, "INTERVIEW_SCHEDULED", "CANDIDATE", scheduleinfo.getCandidateid(),
+				"interviewer " + interviewerid);
 		log.info("Interview of candidate {} with interviewer {} scheduled by {}", scheduleinfo.getCandidateid(),
 				interviewerid, userid);
 		return Outcome.ok("Interview scheduled.");
@@ -112,6 +126,7 @@ public class ScheduleServiceImpl implements ScheduleService {
 		if (!scheduledao.cancelSchedule(schedulekey, userid)) {
 			return Outcome.refused("Only a scheduled interview can be cancelled.");
 		}
+		activityservice.record(userid, "INTERVIEW_CANCELLED", "INTERVIEW", String.valueOf(schedulekey), null);
 		log.info("Interview {} cancelled by {}", schedulekey, userid);
 		return Outcome.ok("Interview cancelled.");
 	}

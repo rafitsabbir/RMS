@@ -15,6 +15,7 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.ModelAndView;
 
 import rms.model.LanguageInfo;
+import rms.service.EnglishText;
 import rms.service.LanguageService;
 
 @Controller
@@ -49,6 +50,9 @@ public class LanguageController {
 		String name = languageinfo.getLanguagename();
 		if (name == null || name.trim().isEmpty()) {
 			return form(languageinfo, "Please enter a language name.");
+		}
+		if (!EnglishText.isEnglish(name)) {
+			return form(languageinfo, "The language name can use English letters only. " + EnglishText.PROBLEM);
 		}
 
 		boolean saved;

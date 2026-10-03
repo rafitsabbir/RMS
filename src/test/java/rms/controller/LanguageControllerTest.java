@@ -180,4 +180,13 @@ class LanguageControllerTest {
 		verifyNoInteractions(languageservice);
 	}
 
+
+	@Test
+	void theNameMustBeEnglish() throws Exception {
+		mockMvc.perform(post("/savelanguage").param("languagekey", "0").param("languagename", "હિં"))
+				.andExpect(status().isOk())
+				.andExpect(view().name("createlanguage"));
+
+		org.mockito.Mockito.verifyNoInteractions(languageservice);
+	}
 }

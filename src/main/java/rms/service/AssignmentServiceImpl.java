@@ -18,6 +18,13 @@ public class AssignmentServiceImpl implements AssignmentService {
 
 	AssignmentDao assignmentdao;
 
+	ActivityService activityservice;
+
+	
+	public void setActivityService(ActivityService activityservice) {
+		this.activityservice = activityservice;
+	}
+
 	@Autowired
 	public void setAssignmentDao(AssignmentDao assignmentdao) {
 		this.assignmentdao = assignmentdao;
@@ -49,6 +56,7 @@ public class AssignmentServiceImpl implements AssignmentService {
 		if (!assignmentdao.assign(candidateid, interviewerid, userid)) {
 			return Outcome.refused("That interviewer is assigned already.");
 		}
+		activityservice.record(userid, "ASSIGNED", "CANDIDATE", candidateid, "interviewer " + interviewerid);
 		log.info("Interviewer {} assigned to candidate {} by {}", interviewerid, candidateid, userid);
 		return Outcome.ok("Interviewer assigned.");
 	}
@@ -58,6 +66,7 @@ public class AssignmentServiceImpl implements AssignmentService {
 		if (interviewerid == null || !assignmentdao.unassign(candidateid, interviewerid, userid)) {
 			return Outcome.refused("That interviewer isn't assigned any more.");
 		}
+		activityservice.record(userid, "UNASSIGNED", "CANDIDATE", candidateid, "interviewer " + interviewerid);
 		log.info("Interviewer {} unassigned from candidate {} by {}", interviewerid, candidateid, userid);
 		return Outcome.ok("Interviewer unassigned. Their evaluation, if any, still counts.");
 	}

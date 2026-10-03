@@ -24,6 +24,13 @@ public class MarksServiceImpl implements MarksService {
 
 	MarksDao marksdao;
 
+	ActivityService activityservice;
+
+	
+	public void setActivityService(ActivityService activityservice) {
+		this.activityservice = activityservice;
+	}
+
 	@Autowired
 	public void setMarksDao(MarksDao marksdao) {
 		this.marksdao = marksdao;
@@ -43,9 +50,15 @@ public class MarksServiceImpl implements MarksService {
 		if (comments != null && comments.length() > MAX_COMMENTS) {
 			return Outcome.refused("The overall comment can have at most " + MAX_COMMENTS + " characters.");
 		}
+		if (!EnglishText.isEnglishMultiline(comments)) {
+			return Outcome.refused("Comments can use English only. " + EnglishText.PROBLEM);
+		}
 		marksinfo.setComments(comments);
 		for (Criterion criterion : Criterion.values()) {
 			String comment = blankToNull(marksinfo.getComment(criterion));
+			if (!EnglishText.isEnglishMultiline(comment)) {
+				return Outcome.refused("Comments can use English only. " + EnglishText.PROBLEM);
+			}
 			if (comment != null && comment.length() > MAX_CRITERION_COMMENT) {
 				return Outcome.refused("The comment on " + criterion.getLabel() + " can have at most "
 						+ MAX_CRITERION_COMMENT + " characters.");
@@ -58,6 +71,7 @@ public class MarksServiceImpl implements MarksService {
 		if (markkey == 0) {
 			return Outcome.refused(NOT_SAVED);
 		}
+		activityservice.record(interviewerid, "MARKED", "CANDIDATE", marksinfo.getCandidateid(), "total " + marksinfo.getTotal());
 		log.info("Evaluation {} of candidate {} saved by {}", markkey, marksinfo.getCandidateid(), interviewerid);
 		return Outcome.ok("Evaluation saved.");
 	}

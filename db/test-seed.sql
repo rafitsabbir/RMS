@@ -89,3 +89,8 @@ INSERT INTO interview_schedule (schedulekey, candidateid, interviewerid, startat
 	(1, 'C1', 'U2', '2099-01-15 10:00:00', 'Room 1', 'SCHEDULED', 'U3', '2026-09-05 09:00:00', NULL, NULL, 1),
 	(2, 'C2', 'U2', '2026-09-18 14:00:00', 'Online', 'DONE', 'U3', '2026-09-16 10:00:00', 'U3', '2026-09-18 15:00:00', 1),
 	(3, 'C1', 'U5', '2099-01-16 09:00:00', NULL, 'CANCELLED', 'U3', '2026-09-05 09:10:00', 'U3', '2026-09-06 08:00:00', 1);
+
+-- Activity log (migration 007): two entries, newest last.
+INSERT INTO activity_log (activitykey, userid, action, entitytype, entityid, detail, createdat) VALUES
+	(1, 'U2', 'MARKED', 'CANDIDATE', 'C1', 'total 80', '2026-09-09 10:00:00'),
+	(2, 'U3', 'SELECTED', 'CANDIDATE', 'C1', NULL, '2026-09-10 11:00:00');

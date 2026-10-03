@@ -32,6 +32,8 @@ import rms.model.DocumentType;
 import rms.model.JobInfo;
 import rms.model.LanguageInfo;
 import rms.model.PositionInfo;
+import rms.service.ActivityService;
+import rms.service.EnglishText;
 import rms.service.AssignmentService;
 import rms.service.CandidateService;
 import rms.service.DocumentService;
@@ -52,6 +54,9 @@ public class CandidateController {
 
 	@Autowired
 	CandidateService candidateservice;
+
+	@Autowired
+	ActivityService activityservice;
 
 	@Autowired
 	PositionService positionservice;
@@ -90,7 +95,8 @@ public class CandidateController {
 	@RequestMapping(value = "/savecandidate", method = RequestMethod.POST)
 	public ModelAndView save(
 			@ModelAttribute("candidateinfo") CandidateInfo candidateinfo, BindingResult binding,
-			@RequestParam(value = "update", defaultValue = "false") boolean update) {
+			@RequestParam(value = "update", defaultValue = "false") boolean update,
+			HttpSession session) {
 
 		// A new candidate's ID is generated on save; an ID posted with it is ignored
 		candidateinfo.setCandidateid(update ? trim(candidateinfo.getCandidateid()) : null);
@@ -113,10 +119,13 @@ public class CandidateController {
 			return form(candidateinfo, stored, errorMessage);
 		}
 
+		String userid = CurrentUser.userid(session);
 		if (update) {
 			candidateservice.updateCandidate(candidateinfo);
+			activityservice.record(userid, "CANDIDATE_CHANGED", "CANDIDATE", candidateinfo.getCandidateid(), null);
 		} else {
-			candidateservice.addCandidate(candidateinfo);
+			String candidateid = candidateservice.addCandidate(candidateinfo);
+			activityservice.record(userid, "CANDIDATE_ADDED", "CANDIDATE", candidateid, null);
 		}
 
 		return new ModelAndView("redirect:/viewcandidatelist");
@@ -141,9 +150,10 @@ public class CandidateController {
 
 	/** Soft delete; the ID is a form field, not in the path, because older IDs may be any text. */
 	@RequestMapping(value = "/deletecandidate", method = RequestMethod.POST)
-	public ModelAndView delete(@RequestParam("candidateid") String candidateid) {
+	public ModelAndView delete(@RequestParam("candidateid") String candidateid, HttpSession session) {
 
 		candidateservice.deleteCandidate(candidateid);
+		activityservice.record(CurrentUser.userid(session), "CANDIDATE_DELETED", "CANDIDATE", candidateid, null);
 
 		return new ModelAndView("redirect:/viewcandidatelist");
 	}
@@ -208,6 +218,9 @@ public class CandidateController {
 		}
 		if (candidateinfo.getLastname().isEmpty()) {
 			return "Please enter the last name.";
+		}
+		if (!EnglishText.isEnglish(candidateinfo.getFirstname()) || !EnglishText.isEnglish(candidateinfo.getLastname())) {
+			return "Names can use English letters only. " + EnglishText.PROBLEM;
 		}
 		String email = candidateinfo.getEmail();
 		if (!email.isEmpty() && (email.length() > MAX_EMAIL || !EMAIL.matcher(email).matches())) {

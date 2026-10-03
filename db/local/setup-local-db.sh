@@ -55,7 +55,8 @@ UNION ALL SELECT 'job', COUNT(*) FROM job
 UNION ALL SELECT 'candidate_document', COUNT(*) FROM candidate_document
 UNION ALL SELECT 'candidate_interviewer', COUNT(*) FROM candidate_interviewer
 UNION ALL SELECT 'candidate_decision', COUNT(*) FROM candidate_decision
-UNION ALL SELECT 'interview_schedule', COUNT(*) FROM interview_schedule;
+UNION ALL SELECT 'interview_schedule', COUNT(*) FROM interview_schedule
+UNION ALL SELECT 'activity_log', COUNT(*) FROM activity_log;
 SQL
 } | mysql "${args[@]}"
 

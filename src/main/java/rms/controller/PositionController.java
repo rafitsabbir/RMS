@@ -15,6 +15,7 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.ModelAndView;
 
 import rms.model.PositionInfo;
+import rms.service.EnglishText;
 import rms.service.PositionService;
 
 @Controller
@@ -40,6 +41,9 @@ public class PositionController {
 		String name = positioninfo.getPositionname();
 		if (name == null || name.trim().isEmpty()) {
 			return form(positioninfo, "Please enter a position name.");
+		}
+		if (!EnglishText.isEnglish(name)) {
+			return form(positioninfo, "The position name can use English letters only. " + EnglishText.PROBLEM);
 		}
 
 		boolean saved;

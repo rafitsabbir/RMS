@@ -26,6 +26,13 @@ public class DecisionServiceImpl implements DecisionService {
 
 	DecisionDao decisiondao;
 
+	ActivityService activityservice;
+
+	
+	public void setActivityService(ActivityService activityservice) {
+		this.activityservice = activityservice;
+	}
+
 	@Autowired
 	public void setDecisionDao(DecisionDao decisiondao) {
 		this.decisiondao = decisiondao;
@@ -40,6 +47,9 @@ public class DecisionServiceImpl implements DecisionService {
 		String reason = decision.getReason() == null ? "" : decision.getReason().trim();
 		if (reason.isEmpty()) {
 			return Outcome.refused("Please give the reason for the decision.");
+		}
+		if (!EnglishText.isEnglishMultiline(reason)) {
+			return Outcome.refused("The reason can use English only. " + EnglishText.PROBLEM);
 		}
 		if (reason.length() > MAX_REASON) {
 			return Outcome.refused("The reason can have at most " + MAX_REASON + " characters.");
@@ -60,6 +70,8 @@ public class DecisionServiceImpl implements DecisionService {
 		if (!decisiondao.saveDecision(decision)) {
 			return Outcome.refused("The candidate no longer exists.");
 		}
+		activityservice.record(userid, status.getLabel().toUpperCase(java.util.Locale.ROOT).replace(' ', '_'), "CANDIDATE",
+				decision.getCandidateid(), null);
 		log.info("Decision on candidate {} saved by {}", decision.getCandidateid(), userid);
 		String message = "Decision saved: " + status.getLabel() + ".";
 		if (status.isLocking()) {

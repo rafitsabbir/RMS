@@ -180,4 +180,13 @@ class PositionControllerTest {
 		verifyNoInteractions(positionservice);
 	}
 
+
+	@Test
+	void theNameMustBeEnglish() throws Exception {
+		mockMvc.perform(post("/saveposition").param("positionkey", "0").param("positionname", "Ingénieur"))
+				.andExpect(status().isOk())
+				.andExpect(view().name("createposition"));
+
+		verifyNoInteractions(positionservice);
+	}
 }

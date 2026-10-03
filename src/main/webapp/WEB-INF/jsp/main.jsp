@@ -109,6 +109,15 @@
 				</div>
 			</div>
 		</div>
+		<div class="col-sm-6 col-xl-4">
+			<div class="card rms-card rms-tile">
+				<div class="card-body">
+					<span class="rms-tile-icon"><svg class="rms-icon" aria-hidden="true"><use href="${icons}#list-check"/></svg></span>
+					<h2><a class="stretched-link text-reset text-decoration-none" href="${base}reports">Reports</a></h2>
+					<p>Download candidates, results and interviews as CSV files for Excel.</p>
+				</div>
+			</div>
+		</div>
 		<c:if test="${role eq 'SUPER_ADMIN' or role eq 'HR'}">
 		<div class="col-sm-6 col-xl-4">
 			<div class="card rms-card rms-tile">
@@ -135,6 +144,15 @@
 					<span class="rms-tile-icon"><svg class="rms-icon" aria-hidden="true"><use href="${icons}#person-badge"/></svg></span>
 					<h2><a class="stretched-link text-reset text-decoration-none" href="${base}viewuserlist">Users and Roles</a></h2>
 					<p>Who can sign in, with which role; reset passwords.</p>
+				</div>
+			</div>
+		</div>
+		<div class="col-sm-6 col-xl-4">
+			<div class="card rms-card rms-tile">
+				<div class="card-body">
+					<span class="rms-tile-icon"><svg class="rms-icon" aria-hidden="true"><use href="${icons}#clock"/></svg></span>
+					<h2><a class="stretched-link text-reset text-decoration-none" href="${base}viewactivity">Activity Log</a></h2>
+					<p>Who marked, selected, rejected, scheduled or changed what.</p>
 				</div>
 			</div>
 		</div>

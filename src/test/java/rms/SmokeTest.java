@@ -233,6 +233,31 @@ class SmokeTest {
 	@Test
 	@EnabledIfEnvironmentVariable(named = "RMS_SMOKE_USER", matches = ".+")
 	@EnabledIfEnvironmentVariable(named = "RMS_SMOKE_PASSWORD", matches = ".+")
+	void reportsAndActivityLogRender() throws IOException {
+		String cookie = sessionCookie(postLogin(System.getenv("RMS_SMOKE_USER"), System.getenv("RMS_SMOKE_PASSWORD")));
+
+		HttpURLConnection reports = open("/reports", cookie);
+		assertThat(reports.getResponseCode()).isEqualTo(200);
+		assertThat(read(reports)).contains("<title>Reports - RMS</title>").contains("exportcandidates");
+
+		HttpURLConnection csv = open("/exportcandidates", cookie);
+		assertThat(csv.getResponseCode()).isEqualTo(200);
+		assertThat(csv.getContentType()).startsWith("text/csv");
+		assertThat(csv.getHeaderField("Content-Disposition")).startsWith("attachment");
+		assertThat(read(csv)).contains("Candidate ID,First name");
+
+		HttpURLConnection log = open("/viewactivity", cookie);
+		assertThat(log.getResponseCode()).isEqualTo(200);
+		String body = read(log);
+		assertThat(body).contains("<title>Activity Log - RMS</title>").contains("id=\"activitytable\"");
+		// The download above is the newest entry
+		assertThat(body).contains("Report downloaded");
+	}
+
+	/** Needs a Super Admin smoke user (test.admin in the seed). */
+	@Test
+	@EnabledIfEnvironmentVariable(named = "RMS_SMOKE_USER", matches = ".+")
+	@EnabledIfEnvironmentVariable(named = "RMS_SMOKE_PASSWORD", matches = ".+")
 	void userAndPasswordPagesRender() throws IOException {
 		HttpURLConnection login = postLogin(System.getenv("RMS_SMOKE_USER"), System.getenv("RMS_SMOKE_PASSWORD"));
 		String cookie = sessionCookie(login);

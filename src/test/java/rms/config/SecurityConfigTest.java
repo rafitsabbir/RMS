@@ -65,6 +65,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.view.InternalResourceViewResolver;
 
 import rms.controller.AccountController;
+import rms.controller.ActivityController;
 import rms.controller.AssignmentController;
 import rms.controller.CandidateController;
 import rms.controller.DocumentController;
@@ -74,6 +75,7 @@ import rms.controller.LanguageController;
 import rms.controller.LoginController;
 import rms.controller.MarksController;
 import rms.controller.PositionController;
+import rms.controller.ReportController;
 import rms.controller.ScheduleController;
 import rms.controller.UserController;
 import rms.dao.LoginDao;
@@ -93,6 +95,7 @@ import rms.service.LanguageService;
 import rms.service.LoginServiceImpl;
 import rms.service.MarksService;
 import rms.service.PositionService;
+import rms.service.ActivityService;
 import rms.service.ScheduleService;
 import rms.service.RmsUserDetails;
 import rms.service.UserService;
@@ -166,6 +169,16 @@ class SecurityConfigTest {
 		}
 
 		@Bean
+		ReportController reportcontroller() {
+			return new ReportController();
+		}
+
+		@Bean
+		ActivityController activitycontroller() {
+			return new ActivityController();
+		}
+
+		@Bean
 		UserController usercontroller() {
 			return new UserController();
 		}
@@ -231,6 +244,9 @@ class SecurityConfigTest {
 	ScheduleService scheduleservice;
 
 	@MockitoBean
+	ActivityService activityservice;
+
+	@MockitoBean
 	DashboardService dashboardservice;
 
 	@MockitoBean
@@ -287,6 +303,12 @@ class SecurityConfigTest {
 				new Page(post("/saveschedule").with(csrf()), HR_AND_UP),
 				new Page(post("/cancelschedule/1").with(csrf()), HR_AND_UP),
 				new Page(get("/myschedule"), INTERVIEWER_ONLY),
+				new Page(get("/reports"), STAFF),
+				new Page(get("/exportcandidates"), STAFF),
+				new Page(get("/exportresults"), STAFF),
+				new Page(get("/exportschedule"), STAFF),
+				new Page(get("/viewactivity"), SUPER_ADMIN_ONLY),
+				new Page(get("/exportactivity"), SUPER_ADMIN_ONLY),
 				new Page(multipart("/uploaddocument").file(new MockMultipartFile("file", "cv.pdf", "application/pdf",
 						"%PDF-1".getBytes())).with(csrf()).param("candidateid", "C1").param("doctype", "CV"), HR_AND_UP),
 				new Page(get("/downloaddocument/1"), EVERY_ROLE),

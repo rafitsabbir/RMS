@@ -42,6 +42,7 @@ import rms.model.JobInfo;
 import rms.model.Role;
 import rms.model.LanguageInfo;
 import rms.model.PositionInfo;
+import rms.service.ActivityService;
 import rms.service.AssignmentService;
 import rms.service.CandidateService;
 import rms.service.DocumentService;
@@ -72,6 +73,9 @@ class CandidateControllerTest {
 	AssignmentService assignmentservice;
 
 	MockHttpSession staff = EvaluationControllerTest.session("U1", Role.SUPER_ADMIN);
+
+	@Mock
+	ActivityService activityservice;
 
 	@InjectMocks
 	CandidateController controller;
@@ -568,5 +572,26 @@ class CandidateControllerTest {
 		language.setLanguagekey(key);
 		language.setLanguagename(name);
 		return language;
+	}
+
+	@Test
+	void namesMustBeEnglish() throws Exception {
+		mockMvc.perform(save("C3", "José", "Doe", "1", "1"))
+				.andExpect(model().attribute("errorMessage", org.hamcrest.Matchers.containsString("English")));
+		mockMvc.perform(save("C3", "Dana", "আমি", "1", "1"))
+				.andExpect(model().attribute("errorMessage", org.hamcrest.Matchers.containsString("English")));
+
+		verify(candidateservice, never()).addCandidate(any(CandidateInfo.class));
+	}
+
+	@Test
+	void addingAndDeletingAreLoggedWithTheUser() throws Exception {
+		when(candidateservice.addCandidate(any(CandidateInfo.class))).thenReturn("C9");
+
+		mockMvc.perform(save(null, "Dana", "Doe", "1", "1").session(staff)).andExpect(redirectedUrl("/viewcandidatelist"));
+		mockMvc.perform(post("/deletecandidate").param("candidateid", "C2").session(staff));
+
+		verify(activityservice).record("U1", "CANDIDATE_ADDED", "CANDIDATE", "C9", null);
+		verify(activityservice).record("U1", "CANDIDATE_DELETED", "CANDIDATE", "C2", null);
 	}
 }

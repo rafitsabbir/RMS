@@ -20,6 +20,8 @@ import org.springframework.web.servlet.ModelAndView;
 
 import rms.model.Role;
 import rms.model.UserInfo;
+import rms.service.ActivityService;
+import rms.service.EnglishText;
 import rms.service.PasswordRules;
 import rms.service.UserService;
 
@@ -40,6 +42,9 @@ public class UserController {
 
 	@Autowired
 	UserService userservice;
+
+	@Autowired
+	ActivityService activityservice;
 
 	/** Only these fields bind from the form; the active flag, the forced-change flag and the like never do. */
 	@InitBinder("userinfo")
@@ -99,6 +104,7 @@ public class UserController {
 				return mv;
 			}
 			userservice.updateUser(userinfo);
+			activityservice.record(currentUserid(session), "USER_CHANGED", "USER", stored.getUserid(), "role " + userinfo.getRole());
 			log.info("User {} edited by {}", stored.getUserid(), currentUserid(session));
 			return new ModelAndView("redirect:/viewuserlist");
 		}
@@ -119,6 +125,7 @@ public class UserController {
 		if (userid == null) {
 			return form(userinfo, false, "That username is already taken.");
 		}
+		activityservice.record(currentUserid(session), "USER_ADDED", "USER", userid, "role " + userinfo.getRole());
 		log.info("User {} created by {}", userid, currentUserid(session));
 		return new ModelAndView("redirect:/viewuserlist");
 	}
@@ -134,6 +141,7 @@ public class UserController {
 			return list(session, "There must be at least one active Super Admin.");
 		}
 		userservice.setActive(stored.getUserid(), false);
+		activityservice.record(currentUserid(session), "USER_DEACTIVATED", "USER", stored.getUserid(), null);
 		log.info("User {} deactivated by {}", stored.getUserid(), currentUserid(session));
 		return new ModelAndView("redirect:/viewuserlist");
 	}
@@ -142,6 +150,7 @@ public class UserController {
 	public ModelAndView reactivate(HttpSession session, @RequestParam("userid") String userid) {
 		UserInfo stored = found(userservice.findUserById(userid));
 		userservice.setActive(stored.getUserid(), true);
+		activityservice.record(currentUserid(session), "USER_REACTIVATED", "USER", stored.getUserid(), null);
 		log.info("User {} reactivated by {}", stored.getUserid(), currentUserid(session));
 		return new ModelAndView("redirect:/viewuserlist");
 	}
@@ -170,6 +179,7 @@ public class UserController {
 		}
 
 		userservice.resetPassword(stored.getUserid(), newpassword);
+		activityservice.record(currentUserid(session), "PASSWORD_RESET", "USER", stored.getUserid(), null);
 		log.info("Password of user {} reset by {}", stored.getUserid(), currentUserid(session));
 		// The redirect encodes the model as query parameters
 		ModelAndView mv = new ModelAndView("redirect:/updateuser");
@@ -198,6 +208,10 @@ public class UserController {
 		}
 		if (userinfo.getFirstname().length() > 100 || userinfo.getLastname().length() > 100) {
 			return "The names can have at most 100 characters.";
+		}
+		if (!EnglishText.isEnglish(userinfo.getFirstname()) || !EnglishText.isEnglish(userinfo.getLastname())
+				|| !EnglishText.isEnglish(userinfo.getDesignation())) {
+			return "Names and designation can use English letters only. " + EnglishText.PROBLEM;
 		}
 		String email = userinfo.getEmail();
 		if (email != null && (email.length() > 150 || !EMAIL.matcher(email).matches())) {
