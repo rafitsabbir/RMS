@@ -1,7 +1,7 @@
 # Flow: Assignment, Evaluation and Decision
 
 Purpose: Traces assigning interviewers, interviewers' evaluations, the Candidate Status averages, and the Selected / Rejected / On hold decision.
-Last updated: 2026-10-02 (Phase 3 of the roles plan: rewritten; G5, G6, G7, G9, G10 fixed; migration 005, a draft). 2026-10-01 (Spring Security 7 replaces AuthInterceptor). 2026-10-01 (UI redesign). 2026-10-01 (`getFullmarks` removed, G8; null-safe status, G16). 2026-09-30 (names escaped, G27; G38)
+Last updated: 2026-10-03 (the dashboard flag for an inactive interviewer is built in Phase 4). 2026-10-02 (Phase 3 of the roles plan: rewritten; G5, G6, G7, G9, G10 fixed; migration 005, a draft). 2026-10-01 (Spring Security 7 replaces AuthInterceptor). 2026-10-01 (UI redesign). 2026-10-01 (`getFullmarks` removed, G8; null-safe status, G16). 2026-09-30 (names escaped, G27; G38)
 Read this when: you're working on scores, assignments, Candidate Status, decisions or interviewer pages.
 
 Evidence: `rms/controller/EvaluationController.java`, `AssignmentController.java`, `MarksController.java`, `CandidateController.profile`, `DocumentController.download`, `CurrentUser.java`; `rms/service/MarksServiceImpl.java`, `AssignmentServiceImpl.java`, `DecisionServiceImpl.java`; `rms/dao/MarksDaoImpl.java`, `AssignmentDaoImpl.java`, `DecisionDaoImpl.java`; `rms/model/MarksInfo.java`, `ResultInfo.java`, `AssignmentInfo.java`, `DecisionInfo.java`, `DecisionStatus.java`, `Criterion.java`; `WEB-INF/jsp/viewmarks.jsp`, `viewevaluations.jsp`, `evaluate.jsp`, `myevaluations.jsp`, `candidateprofile.jsp` (Interviewers card), `WEB-INF/tags/status.tag`. Tests: `EvaluationControllerTest`, `AssignmentControllerTest`, `MarksControllerTest`, `EvaluationServicesTest`, `EvaluationModelTest`, `SecurityConfigTest`, and `MarksDaoImplTest`, `AssignmentDaoImplTest`, `DecisionDaoImplTest` (need Docker; not run yet).
@@ -34,7 +34,7 @@ Staff can't evaluate, and interviewers can't open Candidate Status, other interv
 
 ## Assignment
 - On the profile, Super Admin and HR see the **Interviewers** card: each assigned interviewer, when, and whether their evaluation is in; Assign (a list of active Interviewer-role users not assigned yet, decision F) and Unassign (confirm prompt). Hiring Managers see the list only.
-- **Deactivated interviewer** (addition 1): the assignment stays and shows "interviewer inactive" (also when the user's role is no longer Interviewer), so HR can reassign. Reactivating the user restores everything. The dashboard flag comes in Phase 4.
+- **Deactivated interviewer** (addition 1): the assignment stays and shows "interviewer inactive" (also when the user's role is no longer Interviewer), so HR can reassign. Reactivating the user restores everything. The dashboard shows how many candidates have such an assignment ([schedule.md](schedule.md)).
 - **Unassigning** keeps the row (`isactive = 0`, `unassignedby`, `unassignedat`) and the interviewer's evaluation, which still counts; the interviewer can see it on My Evaluations ("No longer assigned") but not change it. Without an assignment the evaluation form no longer lists the candidate's documents.
 - The check and the insert are `synchronized` in `AssignmentDaoImpl.assign` (one Tomcat); on two nodes a double click could add the assignment twice, which shows twice and is ended by one Unassign.
 

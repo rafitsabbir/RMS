@@ -20,6 +20,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -73,15 +74,18 @@ import rms.controller.LanguageController;
 import rms.controller.LoginController;
 import rms.controller.MarksController;
 import rms.controller.PositionController;
+import rms.controller.ScheduleController;
 import rms.controller.UserController;
 import rms.dao.LoginDao;
 import rms.model.CandidateInfo;
+import rms.model.DashboardInfo;
 import rms.model.DocumentInfo;
 import rms.model.LoginInfo;
 import rms.model.Role;
 import rms.model.UserInfo;
 import rms.service.AssignmentService;
 import rms.service.CandidateService;
+import rms.service.DashboardService;
 import rms.service.DecisionService;
 import rms.service.DocumentService;
 import rms.service.JobService;
@@ -89,6 +93,7 @@ import rms.service.LanguageService;
 import rms.service.LoginServiceImpl;
 import rms.service.MarksService;
 import rms.service.PositionService;
+import rms.service.ScheduleService;
 import rms.service.RmsUserDetails;
 import rms.service.UserService;
 
@@ -156,6 +161,11 @@ class SecurityConfigTest {
 		}
 
 		@Bean
+		ScheduleController schedulecontroller() {
+			return new ScheduleController();
+		}
+
+		@Bean
 		UserController usercontroller() {
 			return new UserController();
 		}
@@ -218,6 +228,12 @@ class SecurityConfigTest {
 	DecisionService decisionservice;
 
 	@MockitoBean
+	ScheduleService scheduleservice;
+
+	@MockitoBean
+	DashboardService dashboardservice;
+
+	@MockitoBean
 	UserService userservice;
 
 	MockMvc mockMvc;
@@ -265,6 +281,12 @@ class SecurityConfigTest {
 				new Page(get("/updatejob/1"), HR_AND_UP),
 				new Page(post("/savejob").with(csrf()), HR_AND_UP),
 				new Page(post("/deletejob/1").with(csrf()), HR_AND_UP),
+				new Page(get("/viewschedulelist"), STAFF),
+				new Page(get("/createschedule"), HR_AND_UP),
+				new Page(get("/updateschedule/1"), HR_AND_UP),
+				new Page(post("/saveschedule").with(csrf()), HR_AND_UP),
+				new Page(post("/cancelschedule/1").with(csrf()), HR_AND_UP),
+				new Page(get("/myschedule"), INTERVIEWER_ONLY),
 				new Page(multipart("/uploaddocument").file(new MockMultipartFile("file", "cv.pdf", "application/pdf",
 						"%PDF-1".getBytes())).with(csrf()).param("candidateid", "C1").param("doctype", "CV"), HR_AND_UP),
 				new Page(get("/downloaddocument/1"), EVERY_ROLE),
@@ -339,7 +361,7 @@ class SecurityConfigTest {
 		mockMvc.perform(head("/home")).andExpect(redirectsToLogin());
 
 		verifyNoInteractions(positionservice, marksservice, candidateservice, userservice, jobservice, documentservice,
-				assignmentservice, decisionservice);
+				assignmentservice, decisionservice, scheduleservice, dashboardservice);
 	}
 
 	@Test
@@ -386,6 +408,37 @@ class SecurityConfigTest {
 		}
 		mockMvc.perform(get("/home").with(asUser(NO_ROLE_ID, null))).andExpect(status().isOk());
 		mockMvc.perform(get("/").with(as(Role.INTERVIEWER))).andExpect(redirectedUrl("/home"));
+	}
+
+	@Test
+	void schedulePagesRenderForTheirRoles() throws Exception {
+		mockMvc.perform(get("/viewschedulelist").with(as(Role.HIRING_MANAGER)))
+				.andExpect(status().isOk())
+				.andExpect(view().name("viewschedule"));
+		mockMvc.perform(get("/createschedule").with(as(Role.HR)))
+				.andExpect(status().isOk())
+				.andExpect(view().name("createschedule"));
+		// The interviewer's schedule is the session user's: there is no way to ask for another's
+		mockMvc.perform(get("/myschedule").param("interviewerid", "U9").with(as(Role.INTERVIEWER)))
+				.andExpect(status().isOk())
+				.andExpect(view().name("myschedule"));
+		verify(scheduleservice).getScheduleOf(INTERVIEWER_ID);
+		verify(scheduleservice, never()).getScheduleOf("U9");
+	}
+
+	@Test
+	void homeGetsTheDashboardOfTheUsersRole() throws Exception {
+		DashboardInfo dashboard = new DashboardInfo();
+		when(dashboardservice.getDashboard(Role.HR, HR_ID)).thenReturn(dashboard);
+
+		mockMvc.perform(get("/home").with(as(Role.HR)))
+				.andExpect(status().isOk())
+				.andExpect(view().name("main"))
+				.andExpect(model().attribute("dashboard", dashboard));
+		// A user without a role gets none
+		mockMvc.perform(get("/home").with(asUser(NO_ROLE_ID, null)))
+				.andExpect(status().isOk())
+				.andExpect(model().attributeDoesNotExist("dashboard"));
 	}
 
 	@Test

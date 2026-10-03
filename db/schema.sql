@@ -21,6 +21,8 @@
 --     candidate.decisionreason, decisiondate and decidedby, and the tables candidate_interviewer and
 --     candidate_decision are NEW (2026-10-02, assignment, evaluation and decision): production needs
 --     db/migrations/005-assignment-evaluation-decision.sql, checked against SHOW CREATE TABLE marks first.
+--   * interview_schedule is NEW (2026-10-03, interview schedule and dashboard): production needs
+--     db/migrations/006-interview-schedule.sql before a WAR with it.
 --   * Types, lengths, keys and NULL rules: guessed. No unique index on names,
 --     which keeps the current duplicate behaviour (G33).
 -- Used only by the Testcontainers DAO tests (src/test/java/rms/dao).
@@ -181,4 +183,24 @@ CREATE TABLE candidate_decision (
 	decidedat DATETIME NOT NULL,
 	PRIMARY KEY (decisionkey),
 	KEY candidate_decision_candidate (candidateid)
+) ENGINE=InnoDB;
+
+-- An interview of a candidate by an assigned interviewer (Phase 4). startat is a DATETIME with no time zone: the
+-- wall-clock time in the MySQL server's time zone, which is what NOW() uses. status is SCHEDULED, DONE or
+-- CANCELLED; cancelling keeps the row. isactive is reserved for hiding a row; nothing sets it to 0 yet.
+CREATE TABLE interview_schedule (
+	schedulekey INT NOT NULL AUTO_INCREMENT,
+	candidateid VARCHAR(50) NOT NULL,
+	interviewerid VARCHAR(50) NOT NULL,
+	startat DATETIME NOT NULL,
+	location VARCHAR(200),
+	status VARCHAR(10) NOT NULL DEFAULT 'SCHEDULED',
+	createdby VARCHAR(50) NOT NULL,
+	createdat DATETIME NOT NULL,
+	updatedby VARCHAR(50),
+	updatedat DATETIME,
+	isactive TINYINT NOT NULL DEFAULT 1,
+	PRIMARY KEY (schedulekey),
+	KEY interview_schedule_candidate (candidateid, isactive),
+	KEY interview_schedule_interviewer (interviewerid, isactive, startat)
 ) ENGINE=InnoDB;

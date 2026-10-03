@@ -192,6 +192,43 @@ class SmokeTest {
 		assertThat(download.getResponseCode()).isIn(404, 503);
 	}
 
+	/** Phase 4: the schedule pages and the dashboard; needs the seed's interviews (db/test-seed.sql). */
+	@Test
+	@EnabledIfEnvironmentVariable(named = "RMS_SMOKE_USER", matches = ".+")
+	@EnabledIfEnvironmentVariable(named = "RMS_SMOKE_PASSWORD", matches = ".+")
+	void schedulePagesAndDashboardRender() throws IOException {
+		HttpURLConnection login = postLogin(System.getenv("RMS_SMOKE_USER"), System.getenv("RMS_SMOKE_PASSWORD"));
+		String cookie = sessionCookie(login);
+
+		HttpURLConnection home = open("/home", cookie);
+		assertThat(home.getResponseCode()).isEqualTo(200);
+		String body = read(home);
+		assertThat(body).contains("Candidates by status");
+		assertThat(body).contains("Interview Schedule");
+		assertThat(body).doesNotContain("Coming soon");
+
+		HttpURLConnection list = open("/viewschedulelist", cookie);
+		assertThat(list.getResponseCode()).isEqualTo(200);
+		body = read(list);
+		assertThat(body).contains("<title>Interview Schedule - RMS</title>");
+		assertThat(body).contains("id=\"scheduletable\"");
+		assertThat(body).contains("Room 1");
+
+		// Step 1 chooses the candidate; step 2 is the form
+		HttpURLConnection choose = open("/createschedule", cookie);
+		assertThat(choose.getResponseCode()).isEqualTo(200);
+		assertThat(read(choose)).contains("id=\"candidateid\"");
+		HttpURLConnection form = open("/createschedule?candidateid=C1", cookie);
+		assertThat(form.getResponseCode()).isEqualTo(200);
+		body = read(form);
+		assertThat(body).contains("id=\"startat\"");
+		assertThat(body).contains("type=\"datetime-local\"");
+		assertThat(CSRF_FIELD.matcher(body).find()).isTrue();
+
+		// An interviewer's page isn't open to the Super Admin
+		assertThat(open("/myschedule", cookie).getResponseCode()).isEqualTo(403);
+	}
+
 	/** Needs a Super Admin smoke user (test.admin in the seed). */
 	@Test
 	@EnabledIfEnvironmentVariable(named = "RMS_SMOKE_USER", matches = ".+")

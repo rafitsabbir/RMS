@@ -72,19 +72,20 @@ public class SecurityConfig {
 	static final String[] SUPER_ADMIN_PAGES = { "/purgedocuments" };
 	/** Read-only staff pages: Super Admin, HR and Hiring Manager. */
 	static final String[] STAFF_READ_PAGES = { "/adminviewmarks", "/viewcandidatelist", "/viewevaluations",
-			"/viewjoblist" };
+			"/viewjoblist", "/viewschedulelist" };
 	/**
 	 * A candidate's profile and documents: staff, and interviewers for the candidates they are assigned to (checked in
 	 * CandidateController and DocumentController, Phase 3).
 	 */
 	static final String[] CANDIDATE_READ_PAGES = { "/viewcandidate", "/downloaddocument/*" };
-	/** An interviewer's own evaluations: Interviewer only (the assignment is checked in EvaluationController). */
-	static final String[] INTERVIEWER_PAGES = { "/myevaluations", "/evaluate", "/saveevaluation" };
-	/** Candidate, document, assignment and decision changes, jobs and master data: Super Admin and HR. */
+	/** An interviewer's own evaluations and schedule: Interviewer only (the assignment is checked in EvaluationController). */
+	static final String[] INTERVIEWER_PAGES = { "/myevaluations", "/evaluate", "/saveevaluation", "/myschedule" };
+	/** Candidate, document, assignment, decision and interview schedule changes, jobs and master data: Super Admin and HR. */
 	static final String[] HR_PAGES = { "/createcandidate", "/updatecandidate", "/savecandidate",
 			"/deletecandidate", "/assigninterviewer", "/unassigninterviewer", "/savedecision", "/uploaddocument",
 			"/deletedocument/*", "/createjob", "/updatejob/*", "/savejob",
-			"/deletejob/*", "/viewpositionlist", "/createposition", "/updateposition/*", "/saveposition",
+			"/deletejob/*", "/createschedule", "/updateschedule/*", "/saveschedule", "/cancelschedule/*",
+			"/viewpositionlist", "/createposition", "/updateposition/*", "/saveposition",
 			"/deleteposition/*", "/viewlanguagelist", "/createlanguage", "/updatelanguage/*", "/savelanguage",
 			"/deletelanguage/*" };
 

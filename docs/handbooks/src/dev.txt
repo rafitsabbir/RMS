@@ -1,6 +1,6 @@
 # RMS Developer Handbook
 @ Recruitment Management System — code structure, request flow, security model, conventions, tests and recipes for common changes
-@ Branch dev as of 2 October 2026 (roles plan, Phase 3). Java 21, Spring 7, Tomcat 11, MySQL.
+@ Branch dev as of 3 October 2026 (roles plan, Phase 4). Java 21, Spring 7, Tomcat 11, MySQL.
 
 ## 1. First day
 1. Install **JDK 21** (for example Eclipse Temurin 21) and set JAVA_HOME. A JRE isn't enough. Maven comes with the repository (Maven Wrapper).
@@ -17,13 +17,13 @@
 |---|---|
 |pom.xml|Maven build, packaging war|
 |src/main/java/rms/config/|WebInitializer (bootstraps Spring), WebConfig (MVC, view resolver, JNDI DataSource, static resources), SecurityConfig (access rules, login, logout, CSRF, password check), AccountCheckFilter, LoginThrottle, SecurityInitializer (registers the security filter), PlainTextPasswordEncoder (legacy passwords)|
-|src/main/java/rms/controller/|Login, Account (Change password), User (Users and Roles), Position, Language, Candidate (with the profile), Job, Document (upload, download, delete, permanent delete), Assignment, Evaluation (My Evaluations, the evaluation form, the evaluation detail and the decision) and Marks (Candidate Status) controllers, and CurrentUser (the session user's ID and role)|
+|src/main/java/rms/controller/|Login, Account (Change password), User (Users and Roles), Position, Language, Candidate (with the profile), Job, Document (upload, download, delete, permanent delete), Assignment, Evaluation (My Evaluations, the evaluation form, the evaluation detail and the decision) and Marks (Candidate Status) controllers, Schedule (the interview schedule), LoginController.home (the dashboard), and CurrentUser (the session user's ID and role)|
 |src/main/java/rms/service/|*Service interfaces and *ServiceImpl classes (mostly pass-through; UserServiceImpl encodes passwords; DocumentServiceImpl checks and stores uploads), RmsUserDetails, PasswordRules, DocumentRules (file checks), Outcome (a checked action's result)|
 |src/main/java/rms/dao/|*Dao interfaces and *DaoImpl classes — all SQL lives here; DocumentFileStore, the files in RMS_DOC_DIR|
-|src/main/java/rms/model/|*Info beans: PositionInfo, LanguageInfo, CandidateInfo, JobInfo, DocumentInfo, MarksInfo, UserInfo, LoginInfo, ResultInfo, AssignmentInfo, DecisionInfo; the enums Role, DocumentType, CandidateSource, DecisionStatus, Criterion; the record DocumentUpload|
+|src/main/java/rms/model/|*Info beans: PositionInfo, LanguageInfo, CandidateInfo, JobInfo, DocumentInfo, MarksInfo, UserInfo, LoginInfo, ResultInfo, AssignmentInfo, DecisionInfo, ScheduleInfo, DashboardInfo; the enums Role, DocumentType, CandidateSource, DecisionStatus, Criterion; the record DocumentUpload|
 |src/main/resources/logback.xml|Logging configuration|
-|src/main/webapp/WEB-INF/jsp/|15 views: login, main (home), create*/view* per module, candidateprofile, changepassword, viewmarks|
-|src/main/webapp/WEB-INF/tags/layout.tag|Page shell: head, sidebar menu, top bar, Log out|
+|src/main/webapp/WEB-INF/jsp/|21 views: login, main (home, with the dashboard), create*/view* per module, candidateprofile, changepassword, viewmarks, myschedule, myevaluations|
+|src/main/webapp/WEB-INF/tags/layout.tag|Page shell: head, sidebar menu, top bar, Log out (schedulestatus.tag and status.tag are the status badges)|
 |src/main/webapp/WEB-INF/web.xml|Request encoding ISO-8859-1, cookie-only sessions|
 |src/main/webapp/resources/|css/rms.css, js/rms.js, img/ (logo, icons.svg sprite)|
 |src/test/java/rms/|Controller, security, service, DAO and smoke tests|
@@ -125,7 +125,7 @@ Messages are set in the controller (the form(info, "message") helper) and shown 
 - Every schema change needs: the column in schema.sql (for tests and new local databases), a numbered script in db/migrations/ (for existing databases, run by the owner before deploying), and a note in docs/data-model.md.
 - Soft delete everywhere: lists and finds filter isactive = 1; reports may still join deleted rows on purpose.
 - The SQL is MySQL-specific (concat(), UPDATE … ORDER BY … LIMIT, REGEXP).
-- marks: since Phase 3 MarksDaoImpl names every column and reads by name; older WARs still read m.* by position, so add marks columns only at the end. Migration 005 (a draft) needs the owner's SHOW CREATE TABLE marks first.
+- marks: since Phase 3 MarksDaoImpl names every column and reads by name; older WARs still read m.* by position, so add marks columns only at the end. Migration 005 (a draft) needs the owner's SHOW CREATE TABLE marks first. Migration 006 adds interview_schedule: startat is a DATETIME with no time zone, compared with now(), so it is the database server's zone.
 - The decision badge is `<rms:status value="…" icons="…"/>` (WEB-INF/tags/status.tag): S, R, H or Pending.
 - New tables are created ENGINE=InnoDB (transactions and the SELECT … FOR UPDATE lock in DocumentDaoImpl). Migrations so far: 001 candidate.isactive, 002 roles, 003 password hashing (a Java program, not run), 004 candidate documents and jobs.
 - Dates: LocalDate and LocalDateTime map to DATE and DATETIME through Connector/J (`rs.getObject(column, LocalDate.class)`); upload times use the database's now().
@@ -142,7 +142,7 @@ Messages are set in the controller (the form(info, "message") helper) and shown 
 - These are **characterization tests**: they pin what the code does today. A test that pins a known defect carries a comment such as `// characterizes G10`.
 - Use only synthetic data: no real names, credentials or hostnames.
 - Mockito runs as a Java agent configured in pom.xml. When running tests from an IDE, add -javaagent:<path to the mockito-core jar> to the run configuration, or let Maven run them.
-- Current numbers on a machine without Docker: 383 tests, 263 pass, 120 skipped (106 DAO, 14 smoke).
+- Current numbers on a machine without Docker: 452 tests, 312 pass, 140 skipped (125 DAO, 15 smoke).
 
 ## 10. Pitfalls
 |Pitfall|What happens|What to do|

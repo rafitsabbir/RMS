@@ -81,3 +81,11 @@ INSERT INTO candidate_decision (decisionkey, candidateid, status, reason, decisi
 	(1, 'C1', 'H', 'Waiting for a second interview', '2026-09-10', 'U3', '2026-09-10 12:00:00'),
 	(2, 'C1', 'S', 'Strong technical interview', '2026-09-20', 'U3', '2026-09-20 12:00:00'),
 	(3, 'C2', 'R', 'Not enough experience for the role', '2026-09-22', 'U3', '2026-09-22 12:00:00');
+
+-- Interviews (Phase 4). Row 1 is far in the future, so it stays "upcoming" for any test date. Row 2 was held (DONE).
+-- Row 3 was cancelled; its interviewer, U5, is inactive. Times are the server's wall-clock time.
+INSERT INTO interview_schedule (schedulekey, candidateid, interviewerid, startat, location, status, createdby,
+		createdat, updatedby, updatedat, isactive) VALUES
+	(1, 'C1', 'U2', '2099-01-15 10:00:00', 'Room 1', 'SCHEDULED', 'U3', '2026-09-05 09:00:00', NULL, NULL, 1),
+	(2, 'C2', 'U2', '2026-09-18 14:00:00', 'Online', 'DONE', 'U3', '2026-09-16 10:00:00', 'U3', '2026-09-18 15:00:00', 1),
+	(3, 'C1', 'U5', '2099-01-16 09:00:00', NULL, 'CANCELLED', 'U3', '2026-09-05 09:10:00', 'U3', '2026-09-06 08:00:00', 1);

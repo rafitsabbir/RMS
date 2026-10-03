@@ -1,7 +1,7 @@
 <%@ tag language="java" pageEncoding="ISO-8859-1" body-content="scriptless" trimDirectiveWhitespaces="true"
 	description="Page shell for every page behind the login: head, sidebar menu, top bar and content" %>
 <%@ attribute name="title" required="true" description="Page title, shown as 'title - RMS'" %>
-<%@ attribute name="active" required="false" description="Menu key of the current page: home, marks, candidates, jobs, positions, languages, users, evaluations or password" %>
+<%@ attribute name="active" required="false" description="Menu key of the current page: home, marks, candidates, jobs, schedule, positions, languages, users, evaluations, myschedule or password" %>
 <%@ attribute name="tables" required="false" type="java.lang.Boolean" description="true loads jQuery and DataTables" %>
 <%@ attribute name="stylesheet" required="false" description="An extra stylesheet in resources/css, for example viewmarks.css" %>
 <%@ taglib uri="jakarta.tags.core" prefix="c" %>
@@ -76,6 +76,10 @@
 					<a class="nav-link${active eq 'jobs' ? ' active' : ''}" href="${base}viewjoblist"${active eq 'jobs' ? ' aria-current="page"' : ''}>
 						<svg class="rms-icon" aria-hidden="true"><use href="${icons}#megaphone"/></svg>Jobs</a>
 				</li>
+				<li class="nav-item">
+					<a class="nav-link${active eq 'schedule' ? ' active' : ''}" href="${base}viewschedulelist"${active eq 'schedule' ? ' aria-current="page"' : ''}>
+						<svg class="rms-icon" aria-hidden="true"><use href="${icons}#calendar-event"/></svg>Interview Schedule</a>
+				</li>
 				</c:if>
 				<c:if test="${role eq 'SUPER_ADMIN' or role eq 'HR'}">
 				<li class="rms-nav-heading">Master data</li>
@@ -87,10 +91,6 @@
 					<a class="nav-link${active eq 'languages' ? ' active' : ''}" href="${base}viewlanguagelist"${active eq 'languages' ? ' aria-current="page"' : ''}>
 						<svg class="rms-icon" aria-hidden="true"><use href="${icons}#code-slash"/></svg>Languages</a>
 				</li>
-				<%-- A module with no backend yet (G3): shown, but not a link --%>
-				<li class="rms-nav-heading">Coming soon</li>
-				<li class="nav-item"><span class="nav-link disabled" aria-disabled="true">
-					<svg class="rms-icon" aria-hidden="true"><use href="${icons}#calendar-event"/></svg>Interview Schedules<span class="rms-soon">Soon</span></span></li>
 				</c:if>
 				<c:if test="${role eq 'SUPER_ADMIN'}">
 				<li class="rms-nav-heading">Administration</li>
@@ -104,6 +104,10 @@
 				<li class="nav-item">
 					<a class="nav-link${active eq 'evaluations' ? ' active' : ''}" href="${base}myevaluations"${active eq 'evaluations' ? ' aria-current="page"' : ''}>
 						<svg class="rms-icon" aria-hidden="true"><use href="${icons}#pencil-square"/></svg>My Evaluations</a>
+				</li>
+				<li class="nav-item">
+					<a class="nav-link${active eq 'myschedule' ? ' active' : ''}" href="${base}myschedule"${active eq 'myschedule' ? ' aria-current="page"' : ''}>
+						<svg class="rms-icon" aria-hidden="true"><use href="${icons}#calendar-event"/></svg>My Schedule</a>
 				</li>
 				</c:if>
 				<li class="rms-nav-heading">Account</li>

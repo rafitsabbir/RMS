@@ -2,19 +2,31 @@ package rms.controller;
 
 import jakarta.servlet.http.HttpSession;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.ModelAndView;
 
+import rms.model.DashboardInfo;
+import rms.service.DashboardService;
+
 /**
- * The login page and the home page. Spring Security handles the login post (POST /welcome) and the logout
+ * The login page and the home page, with its dashboard (Phase 4). Spring Security handles the login post (POST /welcome) and the logout
  * (POST /logout); see rms.config.SecurityConfig.
  */
 @Controller
 @RequestMapping(value = "/")
 public class LoginController {
+
+	private static final Logger log = LoggerFactory.getLogger(LoginController.class);
+
+	@Autowired
+	DashboardService dashboardservice;
 
 	@RequestMapping(value = "/", method = RequestMethod.GET)
 	public ModelAndView root() {
@@ -45,6 +57,23 @@ public class LoginController {
 	public ModelAndView home(HttpSession session) {
 		ModelAndView mv = new ModelAndView("main");
 		mv.addObject("userinfo", session.getAttribute("user"));
+		DashboardInfo dashboard = dashboard(session);
+		if (dashboard != null) {
+			mv.addObject("dashboard", dashboard);
+		}
 		return mv;
+	}
+
+	/**
+	 * The dashboard for the user's role, or null. A failure here (for example migration 006 not run yet) is logged
+	 * and the home page still opens, without the figures.
+	 */
+	private DashboardInfo dashboard(HttpSession session) {
+		try {
+			return dashboardservice.getDashboard(CurrentUser.role(session), CurrentUser.userid(session));
+		} catch (DataAccessException e) {
+			log.warn("The dashboard isn't available: {}", e.getMostSpecificCause().getClass().getSimpleName());
+			return null;
+		}
 	}
 }

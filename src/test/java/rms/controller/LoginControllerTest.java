@@ -1,6 +1,8 @@
 package rms.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
@@ -8,14 +10,20 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
+import java.sql.SQLException;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import rms.config.WebConfig;
+import rms.model.DashboardInfo;
+import rms.model.Role;
 import rms.model.UserInfo;
+import rms.service.DashboardService;
 
 /**
  * Characterization tests: pin current login-page behaviour. The login post, logout and access rules are
@@ -25,9 +33,13 @@ class LoginControllerTest {
 
 	MockMvc mockMvc;
 
+	DashboardService dashboardservice = mock(DashboardService.class);
+
 	@BeforeEach
 	void setUp() {
-		mockMvc = MockMvcBuilders.standaloneSetup(new LoginController())
+		LoginController controller = new LoginController();
+		controller.dashboardservice = dashboardservice;
+		mockMvc = MockMvcBuilders.standaloneSetup(controller)
 				.setViewResolvers(new WebConfig().viewResolver()).build();
 	}
 
@@ -86,6 +98,38 @@ class LoginControllerTest {
 				.andExpect(status().isOk())
 				.andExpect(view().name("main"))
 				.andExpect(model().attribute("userinfo", user));
+	}
+
+	@Test
+	void homeCarriesTheDashboardOfTheUsersRole() throws Exception {
+		UserInfo user = new UserInfo();
+		user.setUserid("U3");
+		user.setRole("HR");
+		DashboardInfo dashboard = new DashboardInfo();
+		when(dashboardservice.getDashboard(Role.HR, "U3")).thenReturn(dashboard);
+		MockHttpSession session = new MockHttpSession();
+		session.setAttribute("user", user);
+
+		mockMvc.perform(get("/home").session(session))
+				.andExpect(view().name("main"))
+				.andExpect(model().attribute("dashboard", dashboard));
+	}
+
+	@Test
+	void homeStillOpensWithoutTheDashboardWhenItCantBeRead() throws Exception {
+		// For example migration 006 not run yet: the home page works, minus the figures (logged as a WARN)
+		UserInfo user = new UserInfo();
+		user.setUserid("U3");
+		user.setRole("HR");
+		when(dashboardservice.getDashboard(Role.HR, "U3"))
+				.thenThrow(new BadSqlGrammarException("dashboard", "select 1", new SQLException("no table")));
+		MockHttpSession session = new MockHttpSession();
+		session.setAttribute("user", user);
+
+		mockMvc.perform(get("/home").session(session))
+				.andExpect(status().isOk())
+				.andExpect(view().name("main"))
+				.andExpect(model().attributeDoesNotExist("dashboard"));
 	}
 
 	@Test

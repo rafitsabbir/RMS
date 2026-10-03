@@ -515,3 +515,44 @@ body {
 		padding: 28px 20px;
 	}
 }
+
+/* Dashboard figures on the home page (main.jsp, Phase 4) */
+.rms-section-title {
+	margin: 0 0 12px;
+	font-size: 1rem;
+	font-weight: 600;
+	color: var(--rms-navy);
+}
+
+.rms-stat {
+	height: 100%;
+	color: inherit;
+	text-decoration: none;
+	transition: box-shadow 0.15s ease-in-out;
+}
+
+.rms-stat:hover {
+	color: inherit;
+	box-shadow: 0 6px 18px rgba(15, 42, 68, 0.12);
+}
+
+.rms-stat-value {
+	font-size: 1.9rem;
+	font-weight: 700;
+	line-height: 1.1;
+	color: var(--rms-navy);
+}
+
+.rms-stat-label {
+	margin-top: 4px;
+	font-size: 0.85rem;
+	color: var(--rms-muted);
+}
+
+.rms-stat-warn {
+	border-left: 4px solid #d98a00;
+}
+
+.rms-stat-warn .rms-stat-value {
+	color: #8a5a00;
+}

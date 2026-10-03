@@ -1,6 +1,6 @@
 # RMS Business Analyst Guide
 @ Recruitment Management System — roles, screens, permissions, business flows and how to use the system
-@ Describes the version on the dev branch as of 2 October 2026 (roles plan, Phase 3). Prepared from the code and the project documentation.
+@ Describes the version on the dev branch as of 3 October 2026 (roles plan, Phase 4). Prepared from the code and the project documentation.
 
 > **Purpose of this document:** explain what RMS does today, who can use which screen, how each business process works, and what is still missing, so that new features can be analysed and proposed.
 
@@ -11,10 +11,10 @@ RMS is a small web application for running interviews. The HR or recruitment sid
 |---|---|
 |Who uses it|Super Admins, HR staff, hiring managers and interviewers. Each person has one login and one role.|
 |Where it runs|In a web browser, on desktop or phone. Nothing is installed on the user's computer.|
-|What works today|Login, Users and Roles, Change password, Positions, Languages/skills, Jobs, Candidates with their profile and documents, assigning interviewers, interviewers' evaluations, Candidate Status (averages) and the Selected / Rejected / On hold decision.|
-|What is not built yet|Interview schedules and a dashboard (Phase 4).|
+|What works today|Login, Users and Roles, Change password, Positions, Languages/skills, Jobs, Candidates with their profile and documents, assigning interviewers, interviewers' evaluations, Candidate Status (averages), interview scheduling, the home page figures (dashboard) and the Selected / Rejected / On hold decision.|
+|What is not built yet|E-mail or calendar notifications for interviews, and reports or exports.|
 
-The menu already shows the full recruitment workflow, but the unbuilt parts are greyed out and marked "Soon". They can't be clicked.
+Every menu entry opens a working screen.
 
 ## 2. Roles
 RMS has four roles. A Super Admin sets each person's role on the **Users and Roles** screen.
@@ -50,7 +50,10 @@ The menu shows each role only its own entries. Typing a page's address directly 
 |Master data › Languages|Live|Yes|Yes|Refused|Refused|
 |Administration › Users and Roles|Live|Yes|Refused|Refused|Refused|
 |Account › Change password|Live|Yes|Yes|Yes|Yes|
-|Interview Schedules|Coming soon|Greyed out|Greyed out|—|—|
+|Recruitment › Interview Schedule|Live|Yes|Yes|Read-only|Refused|
+|Schedule, change or cancel an interview|Live|Yes|Yes|Refused|Refused|
+|Interviews › My Schedule|Live|Refused|Refused|Refused|Own interviews only|
+|Home page figures (dashboard)|Live|All figures|All figures|All figures|Own evaluations and interviews only|
 |Log out (top bar)|Live|Yes|Yes|Yes|Yes|
 
 "Refused" means the user sees an "access denied" error page (HTTP 403) and the attempt is written to the server log. Anyone not logged in is sent to the login page.
@@ -138,10 +141,21 @@ The menu shows each role only its own entries. Typing a page's address directly 
 - A decision is allowed before any evaluation (the page warns). It can be changed later; every decision is kept in the history with who made it and when.
 - Selected and Rejected lock the evaluations; On hold doesn't.
 
+### Interview schedule
+- Super Admin and HR schedule an interview from **Interview Schedule › Schedule interview**: first choose the candidate, then the interviewer (only people assigned to that candidate whose account is active are offered), the date and time, and an optional location.
+- Times are the server's local time, as typed. Two interviews for the same interviewer at the same start time are refused. Past times are accepted.
+- An interview can be changed, marked Done or cancelled. Cancelling keeps it in the list, marked Cancelled, and a cancelled interview can't be changed. RMS never marks an interview Done by itself and sends no notification.
+- Hiring Managers see the whole list read-only. Interviewers see only their own interviews, under **My Schedule**.
+
+### Home page figures (dashboard)
+- Super Admin, HR and Hiring Managers see: candidates by status (Selected, Rejected, On hold, Pending), evaluations still to do, upcoming interviews (with the next five), open jobs, candidates with no CV, and candidates with an inactive interviewer.
+- Interviewers see their own evaluations still to do and upcoming interviews.
+- "Evaluations still to do" counts an assigned, active interviewer who hasn't scored a candidate yet, not counting candidates already Selected or Rejected. "Candidates with an inactive interviewer" lists those who still need evaluations but have an assigned interviewer whose account is deactivated, so HR can reassign.
+
 ## 6. Business flows
 ### End-to-end recruitment process
-The intended process. Dashed, orange steps are not built yet.
-![Recruitment process: built steps in blue, missing steps in orange](ba-process.png)
+The process as built: every step is a working screen.
+![Recruitment process: every step is built](ba-process.png)
 
 ### Login and role-based menu
 ![Login flow](ba-login.png)
@@ -173,6 +187,12 @@ The intended process. Dashed, orange steps are not built yet.
 ### Super Admin or HR: assign interviewers
 1. Open the candidate (click their name on Candidates), go to **Interviewers**, choose an interviewer and click **Assign**.
 
+### Super Admin or HR: schedule an interview
+1. Open **Interview Schedule** and click **Schedule interview**.
+2. Choose the candidate and click **Next**.
+3. Choose the interviewer, enter the date, time and (optionally) the location, and click **Save**. If no interviewer is offered, assign one on the candidate's profile first.
+4. To change an interview use **Edit** (set Status to Done afterwards, if you like); to cancel it use **Cancel** and confirm.
+
 ### Super Admin, HR or Hiring Manager: review results and decide
 1. Open **Candidate Status**. Use the search box, or click a column heading to sort (for example by Total Score).
 2. Click a candidate's name to see each interviewer's scores and comments.
@@ -200,6 +220,7 @@ The intended process. Dashed, orange steps are not built yet.
 |Candidate document|Kind, file name (shown only), file type and size, title/issuer/year (professional certificates), who uploaded it and when, deleted or permanently deleted (who, when, why). The file itself is stored outside the database|Yes|
 |Evaluation (score sheet)|Interviewer, candidate, 10 scores (1–10), comments, when saved|Yes (interviewers)|
 |Assignment|Candidate, interviewer, who assigned and when; unassigned (who, when)|Yes (Super Admin, HR)|
+|Interview|Candidate, interviewer, start date and time (the server's time), location, status (Scheduled, Done, Cancelled), who created and changed it|Yes (Super Admin, HR)|
 |Decision|Status (Selected, Rejected, On hold), reason, date, who decided, when; every decision kept|Yes (Super Admin, HR)|
 
 ### The 10 scoring criteria
@@ -225,17 +246,17 @@ Work Experience, Technical Knowledge, Leadership Skill, Decision Making, Problem
 - 5 wrong passwords in 15 minutes lock that username on that computer for 15 minutes.
 - Interviewers see and score only the candidates assigned to them; scores must be 1 to 10; one evaluation per interviewer and candidate; no changes after Selected or Rejected.
 - A decision needs a reason and a date that isn't in the future; it is made by a person, never by the system.
+- An interview needs an interviewer who is assigned to the candidate and active, and a date and time; the same interviewer can't have two interviews at the same start time; only a Scheduled interview can be cancelled, and a cancelled one can't be changed.
 - Every change (save, delete, log out) must come from an RMS page; requests forged from other websites are refused.
 
 ## 10. What is missing or partial
 |Ref|Capability|State|Business impact|
 |---|---|---|---|
-|G3|Interview schedules and a dashboard|Planned: Phase 4|Medium.|
 |G34|Names in non-Latin scripts (for example Bengali, Cyrillic)|Partial|Such names are stored as codes and display incorrectly.|
 |—|Reports or export (Excel, PDF)|Not built|Results can only be viewed on screen.|
 |—|Audit trail (who changed what, when)|Not built|Changes can't be traced, except user changes in the server log.|
 
-## 11. Decisions made (2 October 2026)
+## 11. Decisions made (2 and 3 October 2026)
 1. **Scoring:** each of the 10 criteria is scored 1–10 (total up to 100). Several interviewers can score one candidate; the result is the average of all evaluations, per criterion and in total. Interviewers can add comments.
 2. **Selection:** Selected, Rejected or On hold is decided manually by a Super Admin or HR, never automatically.
 3. **Jobs:** a Job is an opening built on a Position, with vacancies, a closing date and an open/closed status.
@@ -244,10 +265,11 @@ Work Experience, Technical Knowledge, Leadership Skill, Decision Making, Problem
 6. **Documents** (built in Phase 2): only the CV is required; uploads are PDF, JPG or PNG up to 5 MB; HR's delete keeps the file; only a Super Admin removes files, with a reason; RMS never deletes documents automatically.
 7. **A job sets the candidate's position** (built in Phase 2).
 8. **Evaluations and decisions** (built in Phase 3): averages per criterion and in total; evaluations lock on Selected or Rejected, not On hold; decisions can change and are all kept; a deactivated interviewer's assignments stay, flagged.
+9. **Interview schedule and dashboard** (built in Phase 4): an interview is for an assigned, active interviewer; times are the server's local time; no notifications yet; the home page shows the figures listed above.
 
 ## 12. Open business questions
 1. **One role per user:** is a second login acceptable for someone who both manages and interviews, or should a user hold several roles later?
-2. **Schedules:** are e-mail notifications needed for interviews?
+2. **Schedules:** are e-mail or calendar notifications needed for interviews? Should past times be refused, and do all users work in the server's time zone?
 3. **Reports:** which exports or counts are needed first?
 4. **Documents of deleted candidates:** a permanent delete is started from the candidate's profile, which a deleted candidate no longer has. Should that be possible for deleted candidates too, and is there a retention period after which documents must be removed?
 
