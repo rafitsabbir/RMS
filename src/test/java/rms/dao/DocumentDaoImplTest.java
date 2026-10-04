@@ -176,12 +176,15 @@ class DocumentDaoImplTest extends MySqlContainerSupport {
 		assertThat(dao.getDocuments("C1")).extracting(DocumentInfo::getDocumentkey).containsExactly(2, 3);
 	}
 
-	private static DocumentInfo document(String candidateid, String doctype, String title) {
+	// Stored names are unique (candidate_document_storedname): b...01, b...02 and so on for each test
+	private int storedNames;
+
+	private DocumentInfo document(String candidateid, String doctype, String title) {
 		DocumentInfo document = new DocumentInfo();
 		document.setCandidateid(candidateid);
 		document.setDoctype(doctype);
 		document.setOriginalname("new.pdf");
-		document.setStoredname("b0000000000000000000000000000001");
+		document.setStoredname(String.format("b%031d", ++storedNames));
 		document.setContenttype("application/pdf");
 		document.setFilesize(100);
 		document.setTitle(title);
