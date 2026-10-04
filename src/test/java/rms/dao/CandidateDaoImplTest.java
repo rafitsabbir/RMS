@@ -118,14 +118,18 @@ class CandidateDaoImplTest extends MySqlContainerSupport {
 
 	@Test
 	void deleteHidesTheCandidateButKeepsTheRow() {
+		// The seed has two marks rows for C2 (U2's, and U5's inactive one)
+		Integer marksBefore = jdbcTemplate.queryForObject("select count(*) from marks where candidateid='C2'",
+				Integer.class);
 		dao.deleteCandidate("C2");
 
 		assertThat(dao.getAllCandidate()).extracting(CandidateInfo::getCandidateid).containsExactly("C1");
 		assertThat(dao.findCandidateById("C2")).isNull();
 		assertThat(jdbcTemplate.queryForObject("select isactive from candidate where candidateid='C2'", Integer.class))
 				.isEqualTo(0);
+		assertThat(marksBefore).isEqualTo(2);
 		assertThat(jdbcTemplate.queryForObject("select count(*) from marks where candidateid='C2'", Integer.class))
-				.isEqualTo(1);
+				.isEqualTo(marksBefore);
 	}
 
 	@Test
