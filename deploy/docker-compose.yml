@@ -4,13 +4,19 @@
 # folder:
 #   docker compose up -d --build      start; open http://127.0.0.1:8080/rms/login (seed users: db/test-seed.sql)
 #   docker compose down -v            stop and delete the data and documents
-# Both ports are bound to 127.0.0.1 only. See docs/build-run.md, "Container".
+# Only the RMS port is published, on 127.0.0.1; MySQL is reachable only inside this Compose network.
+# See docs/build-run.md, "Container".
+name: rms-trial
+
 services:
   mysql:
     image: mysql:8.0
     environment:
       MYSQL_ROOT_PASSWORD: ${RMS_DB_PASSWORD:?Set RMS_DB_PASSWORD in your shell first}
       MYSQL_DATABASE: rms_local
+      # The application's own account, with rights on rms_local only
+      MYSQL_USER: rms
+      MYSQL_PASSWORD: ${RMS_DB_PASSWORD:?Set RMS_DB_PASSWORD in your shell first}
     command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
     volumes:
       - ../db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
@@ -30,8 +36,9 @@ services:
       mysql:
         condition: service_healthy
     environment:
-      RMS_DB_URL: jdbc:mysql://mysql:3306/rms_local?sslMode=DISABLED
-      RMS_DB_USER: root
+      # Encrypted, as in production (deploy/tomcat/rms.xml): MySQL 8 sends a new account's password only over TLS
+      RMS_DB_URL: jdbc:mysql://mysql:3306/rms_local?sslMode=REQUIRED
+      RMS_DB_USER: rms
       RMS_DB_PASSWORD: ${RMS_DB_PASSWORD:?Set RMS_DB_PASSWORD in your shell first}
     ports:
       - "127.0.0.1:${RMS_HTTP_PORT:-8080}:8080"

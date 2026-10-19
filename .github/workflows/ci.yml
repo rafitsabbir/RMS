@@ -70,14 +70,15 @@ jobs:
           cache: maven
 
       - name: Build the WAR
-        run: ./mvnw -B package -DskipTests
+        run: ./mvnw -B clean package -DskipTests
 
       - name: Build the image and start it with a throwaway MySQL
         working-directory: deploy
         run: |
-          # A random password for this run only; it never leaves the runner
+          # A random password for this run only; masked in the log, and kept for the later steps of this job
           RMS_DB_PASSWORD="$(openssl rand -hex 16)"
           echo "::add-mask::$RMS_DB_PASSWORD"
+          echo "RMS_DB_PASSWORD=$RMS_DB_PASSWORD" >> "$GITHUB_ENV"
           export RMS_DB_PASSWORD
           docker compose up -d --build --wait --wait-timeout 300
 
@@ -87,12 +88,16 @@ jobs:
           # Synthetic seed users (db/test-seed.sql)
           RMS_SMOKE_USER: test.admin
           RMS_SMOKE_PASSWORD: test-only-1
-        run: ./mvnw -B test -Dtest=SmokeTest -Dsurefire.failIfNoSpecifiedTests=false
+        run: |
+          ./mvnw -B test -Dtest=SmokeTest
+          # Every case is skipped when its environment variable is missing: fail rather than pass with none run
+          grep -q 'skipped="0"' target/surefire-reports/TEST-rms.SmokeTest.xml
 
       - name: Container logs
         if: ${{ !cancelled() }}
         working-directory: deploy
-        run: docker compose logs --no-color rms | tail -200
+        shell: bash
+        run: docker compose logs --no-color | tail -300
 
       - name: Stop
         if: ${{ always() }}

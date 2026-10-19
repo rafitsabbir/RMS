@@ -1,5 +1,4 @@
-# Only the built WAR, its driver jar and the JNDI context template go into the image (Dockerfile)
+# Only the unpacked WAR (which holds the driver jar) and the JNDI context template go into the image (Dockerfile)
 *
-!target/rmsv2-1.0.1-SNAPSHOT.war
-!target/rmsv2-1.0.1-SNAPSHOT/WEB-INF/lib/mysql-connector-j-*.jar
+!target/rmsv2-1.0.1-SNAPSHOT/
 !deploy/tomcat/rms.xml
