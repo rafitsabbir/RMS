@@ -15,7 +15,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.testcontainers.DockerClientFactory;
-import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.mysql.MySQLContainer;
 
 /**
  * Base class for DAO characterization tests. Runs against a throwaway MySQL
@@ -25,8 +25,8 @@ import org.testcontainers.containers.MySQLContainer;
  * which makes them fail instead. One container is shared by all DAO test classes
  * and removed by Testcontainers when the JVM exits.
  *
- * MySQL 8.0 is an assumed production line (open question #16). Connector/J 8.2.0 supports
- * servers from 5.7 on (release notes). Change the image when the production version is known.
+ * MySQL 9.7 is the LTS line production moves to (owner decision 2026-10-19, open question #16), with
+ * Connector/J 9.7. Keep this image, db/local and deploy/docker-compose.yml on the same line.
  */
 abstract class MySqlContainerSupport {
 
@@ -34,7 +34,7 @@ abstract class MySqlContainerSupport {
 			"marks", "candidate", "language",
 			"position", "admin", "users" };
 
-	private static MySQLContainer<?> mysql;
+	private static MySQLContainer mysql;
 	private static boolean docker;
 
 	NamedParameterJdbcTemplate namedParameterJdbcTemplate;
@@ -47,7 +47,7 @@ abstract class MySqlContainerSupport {
 			assertTrue(docker, "Docker is required (RMS_REQUIRE_DOCKER=true) but not available");
 		}
 		if (docker && mysql == null) {
-			mysql = new MySQLContainer<>("mysql:8.0");
+			mysql = new MySQLContainer("mysql:9.7");
 			mysql.start();
 		}
 	}

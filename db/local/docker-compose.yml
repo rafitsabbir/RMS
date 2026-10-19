@@ -5,7 +5,7 @@
 # Bound to 127.0.0.1 only. See README.md.
 services:
   mysql:
-    image: mysql:8.0
+    image: mysql:9.7
     container_name: rms-local-mysql
     environment:
       MYSQL_ROOT_PASSWORD: ${RMS_DB_PASSWORD:?Set RMS_DB_PASSWORD before running docker compose}
