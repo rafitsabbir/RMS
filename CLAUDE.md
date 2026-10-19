@@ -57,6 +57,8 @@ db/                           schema.sql (inferred), test-seed.sql (synthetic)
 mvnw, .mvn/wrapper/           Maven Wrapper
 .github/workflows/            CI: build + tests (JDK 21, Testcontainers), OSV-Scanner
 deploy/tomcat/rms.xml         JNDI context template (env-var placeholders only)
+deploy/docker-compose.yml     local trial: app container + throwaway MySQL (synthetic data)
+Dockerfile, .dockerignore     container image (Tomcat 11 on JDK 21); see docs/build-run.md "Container"
 docs/                         project knowledge; start at docs/ROUTER.md
 target/                       build output (git-ignored)
 ```
