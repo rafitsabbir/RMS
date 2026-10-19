@@ -13,7 +13,7 @@ Use subagents in .claude/agents/ — see ROUTER.md.
 - Java: 21 (`maven.compiler.release` in `pom.xml`), built with JDK 21.
 - Build: Maven 3.9 via the Maven Wrapper (`mvnw`), packaged as a WAR.
 - Framework: Spring MVC 7.0.9 (Spring BOM) on Jakarta EE 11, with JSP/Jakarta Tags (JSTL 3.0) and Spring JDBC (`NamedParameterJdbcTemplate`, no ORM).
-- Database: MySQL (Connector/J 8.2.0, `com.mysql.cj.jdbc.Driver`) through JNDI `jdbc/springrms`, in an external Servlet 6.1 container (Tomcat 11).
+- Database: MySQL 9.7 LTS (Connector/J 9.7.0, `com.mysql.cj.jdbc.Driver`) through JNDI `jdbc/springrms`, in an external Servlet 6.1 container (Tomcat 11).
 - Logging: SLF4J 2.0 with Logback 1.5 (`src/main/resources/logback.xml`).
 - Security: Spring Security 7.0.7: form login, four roles, deny by default, CSRF tokens, POST logout, login lock, {bcrypt} for new passwords, security headers incl. CSP (`rms/config/SecurityConfig.java`).
 
