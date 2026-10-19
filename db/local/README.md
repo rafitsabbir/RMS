@@ -16,7 +16,7 @@ Everything needed to build a local MySQL database for RMS on any PC: the databas
 | `00-create-database.sql` | Drops and recreates `rms_local` (**destructive**) |
 | `setup-local-db.ps1` | Windows: runs `00-create-database.sql` → `../schema.sql` → `../test-seed.sql`, then prints row counts |
 | `setup-local-db.sh` | The same for bash (Linux, macOS, Git Bash) |
-| `docker-compose.yml` | Optional throwaway `mysql:8.0` that builds itself from `../schema.sql` and `../test-seed.sql` |
+| `docker-compose.yml` | Optional throwaway `mysql:9.7` that builds itself from `../schema.sql` and `../test-seed.sql` |
 
 ## Option A: an existing local MySQL (5.7 or 8.x)
 The `mysql` client must be on `PATH`. The script prompts for the password, unless `RMS_DB_PASSWORD` is set.
