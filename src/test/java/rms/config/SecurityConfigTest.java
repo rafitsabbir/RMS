@@ -26,6 +26,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -47,12 +49,16 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.WebAttributes;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.header.HeaderWriterFilter;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit.jupiter.web.SpringJUnitWebConfig;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.AbstractMockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -503,18 +509,56 @@ class SecurityConfigTest {
 	@Test
 	void pagesCarryTheSecurityHeaders() throws Exception {
 		// The login page (no session), a page behind the login and a refused page
-		for (org.springframework.test.web.servlet.ResultActions page : java.util.List.of(
-				mockMvc.perform(get("/login")),
-				mockMvc.perform(get("/viewpositionlist").with(as(Role.SUPER_ADMIN))),
-				mockMvc.perform(get("/viewuserlist").with(as(Role.HR))))) {
+		for (ResultActions page : List.of(
+				mockMvc.perform(get("/login")).andExpect(status().isOk()),
+				mockMvc.perform(get("/viewpositionlist").with(as(Role.SUPER_ADMIN))).andExpect(status().isOk()),
+				mockMvc.perform(get("/viewuserlist").with(as(Role.HR))).andExpect(status().isForbidden()))) {
 			page.andExpect(header().string("Content-Security-Policy", SecurityConfig.CONTENT_SECURITY_POLICY))
-					.andExpect(header().string("Content-Security-Policy", containsString("frame-ancestors 'none'")))
-					.andExpect(header().string("Content-Security-Policy",
-							containsString("script-src 'self' https://cdn.jsdelivr.net;")))
 					.andExpect(header().string("X-Frame-Options", "DENY"))
 					.andExpect(header().string("X-Content-Type-Options", "nosniff"))
 					.andExpect(header().string("Referrer-Policy", "same-origin"))
-					.andExpect(header().string("Permissions-Policy", containsString("camera=()")));
+					.andExpect(header().string("Permissions-Policy", SecurityConfig.PERMISSIONS_POLICY));
+		}
+	}
+
+	@Test
+	void securityHeadersAreWrittenBeforeThePage() {
+		// MockMvc can't show the difference: on Tomcat a small forwarded page (/login) was committed before the
+		// on-commit hook and went out with no security headers (SmokeTest.loginPageCarriesTheSecurityHeaders)
+		HeaderWriterFilter filter = context.getBean(FilterChainProxy.class).getFilterChains().stream()
+				.filter(chain -> chain.matches(new MockHttpServletRequest("GET", "/login")))
+				.flatMap(chain -> chain.getFilters().stream())
+				.filter(HeaderWriterFilter.class::isInstance).map(HeaderWriterFilter.class::cast)
+				.findFirst().orElseThrow();
+		assertThat(ReflectionTestUtils.getField(filter, "shouldWriteHeadersEagerly")).isEqualTo(true);
+	}
+
+	@Test
+	void downloadsKeepTheirOwnHeadersWithoutDuplicates() throws Exception {
+		// The controller's value replaces the one written before the page; it isn't added next to it
+		mockMvc.perform(get("/exportcandidates").with(as(Role.HR)))
+				.andExpect(status().isOk())
+				.andExpect(header().stringValues("Cache-Control", "no-store"))
+				.andExpect(header().string("Content-Disposition", containsString("attachment")))
+				.andExpect(header().string("Content-Security-Policy", SecurityConfig.CONTENT_SECURITY_POLICY));
+
+		DocumentInfo cv = new DocumentInfo();
+		cv.setDocumentkey(1);
+		cv.setCandidateid("C1");
+		cv.setOriginalname("cv.pdf");
+		cv.setContenttype("application/pdf");
+		when(documentservice.findDocument(1)).thenReturn(cv);
+		when(documentservice.isStorageConfigured()).thenReturn(true);
+		Path file = Files.createTempFile("rms-cv", ".pdf");
+		try {
+			Files.writeString(file, "%PDF-1.4");
+			when(documentservice.findFile(cv)).thenReturn(file);
+			mockMvc.perform(get("/downloaddocument/1").with(as(Role.HR)))
+					.andExpect(status().isOk())
+					.andExpect(header().stringValues("X-Content-Type-Options", "nosniff"))
+					.andExpect(header().string("Content-Disposition", containsString("attachment")));
+		} finally {
+			Files.deleteIfExists(file);
 		}
 	}
 
