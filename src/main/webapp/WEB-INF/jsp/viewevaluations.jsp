@@ -50,7 +50,7 @@
 			<p class="mb-0">No evaluations yet.</p>
 			</c:when>
 			<c:otherwise>
-			<div class="table-responsive">
+			<div class="table-responsive" tabindex="0" role="region" aria-label="Evaluations">
 			<table id="evaluationtable" class="table table-sm align-middle">
 				<thead>
 					<tr>

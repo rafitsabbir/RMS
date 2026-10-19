@@ -63,6 +63,16 @@
 	--bs-btn-focus-shadow-rgb: var(--rms-primary-rgb);
 }
 
+/* Bootstrap's grey is only 4.3:1 on the page background (--rms-bg); this keeps 4.5:1 on white and on the page */
+.btn-outline-secondary {
+	--bs-btn-color: #4a5560;
+	--bs-btn-border-color: #6c757d;
+	--bs-btn-hover-bg: #4a5560;
+	--bs-btn-hover-border-color: #4a5560;
+	--bs-btn-active-bg: #3d4750;
+	--bs-btn-active-border-color: #3d4750;
+}
+
 .pagination {
 	--bs-pagination-color: var(--rms-primary);
 	--bs-pagination-hover-color: var(--rms-primary-darker);
@@ -333,6 +343,10 @@ body {
 	color: var(--rms-navy);
 }
 
+.rms-page-header > .d-flex {
+	flex-wrap: wrap;
+}
+
 .rms-page-header p {
 	margin-bottom: 0;
 	color: var(--rms-muted);
@@ -354,7 +368,16 @@ body {
 	white-space: nowrap;
 }
 
-/* Wide tables scroll inside their card, never the page */
+/*
+ * Wide tables scroll inside their card, never the page. The scroll box is also the containing block (position:
+ * relative) of the visually hidden button labels, which are absolutely positioned: outside it they would sit
+ * beyond the box's edge and widen the page instead.
+ */
+.rms-card .dt-layout-table,
+.table-responsive {
+	position: relative;
+}
+
 .rms-card .dt-layout-table {
 	overflow-x: auto;
 }

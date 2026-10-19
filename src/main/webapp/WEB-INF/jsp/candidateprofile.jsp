@@ -133,7 +133,7 @@
 						<span>Document storage isn't configured, so documents can't be uploaded or opened. Please tell IT.</span>
 					</div>
 					</c:if>
-					<div class="table-responsive">
+					<div class="table-responsive" tabindex="0" role="region" aria-label="Documents">
 					<table id="documenttable" class="table align-middle mb-0">
 						<thead>
 							<tr>
@@ -283,7 +283,7 @@
 					<p class="mb-3">No interviewer is assigned yet.</p>
 					</c:when>
 					<c:otherwise>
-					<div class="table-responsive">
+					<div class="table-responsive" tabindex="0" role="region" aria-label="Assigned interviewers">
 					<table id="assignmenttable" class="table align-middle">
 						<thead>
 							<tr>
