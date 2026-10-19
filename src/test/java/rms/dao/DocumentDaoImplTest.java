@@ -18,6 +18,8 @@ import rms.model.DocumentInfo;
 class DocumentDaoImplTest extends MySqlContainerSupport {
 
 	DocumentDaoImpl dao;
+	// Stored names are unique (candidate_document_storedname): b...01, b...02 and so on for each test
+	private int storedNames;
 
 	@BeforeEach
 	void setUp() {
@@ -175,9 +177,6 @@ class DocumentDaoImplTest extends MySqlContainerSupport {
 		assertThat(dao.getUnpurgedDocuments("C1")).extracting(DocumentInfo::getDocumentkey).containsExactly(2, 3);
 		assertThat(dao.getDocuments("C1")).extracting(DocumentInfo::getDocumentkey).containsExactly(2, 3);
 	}
-
-	// Stored names are unique (candidate_document_storedname): b...01, b...02 and so on for each test
-	private int storedNames;
 
 	private DocumentInfo document(String candidateid, String doctype, String title) {
 		DocumentInfo document = new DocumentInfo();

@@ -24,7 +24,8 @@ class DashboardDaoImplTest extends MySqlContainerSupport {
 	void candidatesAreCountedByTrimmedUpperCaseStatus() {
 		assertThat(dao.countCandidatesByStatus()).containsExactlyInAnyOrderEntriesOf(java.util.Map.of("S", 1, "R", 1));
 
-		// The column is CHAR(1): lower case counts as upper case, and a lone space or NULL as no status
+		// CHAR(1) in db/schema.sql (inferred, open question #19): lower case counts as upper case, and a lone space
+		// or NULL as no status
 		jdbcTemplate.update("update candidate set candidatestatus=' ' where candidateid='C1'");
 		jdbcTemplate.update("update candidate set candidatestatus='h' where candidateid='C2'");
 		assertThat(dao.countCandidatesByStatus()).containsExactlyInAnyOrderEntriesOf(java.util.Map.of("", 1, "H", 1));
