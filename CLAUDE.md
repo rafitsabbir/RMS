@@ -15,7 +15,7 @@ Use subagents in .claude/agents/ — see ROUTER.md.
 - Framework: Spring MVC 7.0.9 (Spring BOM) on Jakarta EE 11, with JSP/Jakarta Tags (JSTL 3.0) and Spring JDBC (`NamedParameterJdbcTemplate`, no ORM).
 - Database: MySQL (Connector/J 8.2.0, `com.mysql.cj.jdbc.Driver`) through JNDI `jdbc/springrms`, in an external Servlet 6.1 container (Tomcat 11).
 - Logging: SLF4J 2.0 with Logback 1.5 (`src/main/resources/logback.xml`).
-- Security: Spring Security 7.0.7: form login, four roles, deny by default, CSRF tokens, POST logout, login lock, {bcrypt} for new passwords (`rms/config/SecurityConfig.java`).
+- Security: Spring Security 7.0.7: form login, four roles, deny by default, CSRF tokens, POST logout, login lock, {bcrypt} for new passwords, security headers incl. CSP (`rms/config/SecurityConfig.java`).
 
 Evidence: `pom.xml`, `.mvn/wrapper/maven-wrapper.properties`, `rms/config/WebConfig.java`.
 
