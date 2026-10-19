@@ -501,6 +501,24 @@ class SecurityConfigTest {
 	}
 
 	@Test
+	void pagesCarryTheSecurityHeaders() throws Exception {
+		// The login page (no session), a page behind the login and a refused page
+		for (org.springframework.test.web.servlet.ResultActions page : java.util.List.of(
+				mockMvc.perform(get("/login")),
+				mockMvc.perform(get("/viewpositionlist").with(as(Role.SUPER_ADMIN))),
+				mockMvc.perform(get("/viewuserlist").with(as(Role.HR))))) {
+			page.andExpect(header().string("Content-Security-Policy", SecurityConfig.CONTENT_SECURITY_POLICY))
+					.andExpect(header().string("Content-Security-Policy", containsString("frame-ancestors 'none'")))
+					.andExpect(header().string("Content-Security-Policy",
+							containsString("script-src 'self' https://cdn.jsdelivr.net;")))
+					.andExpect(header().string("X-Frame-Options", "DENY"))
+					.andExpect(header().string("X-Content-Type-Options", "nosniff"))
+					.andExpect(header().string("Referrer-Policy", "same-origin"))
+					.andExpect(header().string("Permissions-Policy", containsString("camera=()")));
+		}
+	}
+
+	@Test
 	void staticResourcesArePublicAndCacheable() throws Exception {
 		mockMvc.perform(get("/resources/css/rms.css"))
 				.andExpect(status().isOk())

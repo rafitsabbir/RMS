@@ -22,6 +22,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.ObjectPostProcessor;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.Authentication;
@@ -35,6 +36,8 @@ import org.springframework.security.web.authentication.AuthenticationFailureHand
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.CsrfException;
+import org.springframework.security.web.header.HeaderWriterFilter;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy;
 import org.springframework.security.web.savedrequest.NullRequestCache;
 
 import rms.model.Role;
@@ -91,6 +94,17 @@ public class SecurityConfig {
 			"/deleteposition/*", "/viewlanguagelist", "/createlanguage", "/updatelanguage/*", "/savelanguage",
 			"/deletelanguage/*" };
 
+	/**
+	 * Pages may load only their own files and the jsDelivr CDN (Bootstrap, DataTables, jQuery; with SRI), and no JSP
+	 * has inline scripts, event handlers or style attributes. data: images are Bootstrap's form icons. No page may
+	 * be framed (with X-Frame-Options DENY, Spring's default) or post a form elsewhere.
+	 */
+	static final String CONTENT_SECURITY_POLICY = "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; "
+			+ "style-src 'self' https://cdn.jsdelivr.net; img-src 'self' data:; font-src 'self'; connect-src 'self'; "
+			+ "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
+	/** Browser features RMS never uses. */
+	static final String PERMISSIONS_POLICY = "camera=(), microphone=(), geolocation=(), payment=(), usb=()";
+
 	/** Static resources: public, and without the no-store headers, so browsers keep caching them. */
 	@Bean
 	@Order(1)
@@ -133,6 +147,19 @@ public class SecurityConfig {
 				// After a login always /home, as before, so the page that led to the login isn't kept
 				.requestCache(cache -> cache.requestCache(new NullRequestCache()))
 				.exceptionHandling(exceptions -> exceptions.accessDeniedHandler(SecurityConfig::refuse))
+				.headers(headers -> headers
+						// Before the page, not on commit: Tomcat commits a small forwarded page (the login page)
+						// itself, after the JSP and before this filter's wrapper sees it, and it went out with none
+						.withObjectPostProcessor(new ObjectPostProcessor<HeaderWriterFilter>() {
+							@Override
+							public <O extends HeaderWriterFilter> O postProcess(O filter) {
+								filter.setShouldWriteHeadersEagerly(true);
+								return filter;
+							}
+						})
+						.contentSecurityPolicy(csp -> csp.policyDirectives(CONTENT_SECURITY_POLICY))
+						.referrerPolicy(referrer -> referrer.policy(ReferrerPolicy.SAME_ORIGIN))
+						.permissionsPolicyHeader(permissions -> permissions.policy(PERMISSIONS_POLICY)))
 				// After the CSRF check, before the password check: a locked login isn't even tried
 				.addFilterBefore(lockedLoginFilter(throttle), UsernamePasswordAuthenticationFilter.class)
 				.addFilterBefore(new AccountCheckFilter(loginservice), AuthorizationFilter.class);

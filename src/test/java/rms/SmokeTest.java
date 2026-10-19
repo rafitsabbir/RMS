@@ -46,6 +46,19 @@ class SmokeTest {
 	}
 
 	@Test
+	void loginPageCarriesTheSecurityHeaders() throws IOException {
+		HttpURLConnection connection = open("/login", null);
+
+		// On Tomcat a small forwarded page is committed before Spring Security's on-commit hook: the headers are
+		// written eagerly (SecurityConfig), which MockMvc can't show
+		assertThat(connection.getResponseCode()).isEqualTo(200);
+		assertThat(connection.getHeaderField("X-Frame-Options")).isEqualTo("DENY");
+		assertThat(connection.getHeaderField("Content-Security-Policy")).contains("frame-ancestors 'none'");
+		assertThat(connection.getHeaderField("Cache-Control")).contains("no-store");
+		assertThat(connection.getHeaderField("Referrer-Policy")).isEqualTo("same-origin");
+	}
+
+	@Test
 	void loginPageCarriesNoSessionIdInUrls() throws IOException {
 		HttpURLConnection connection = open("/login", null);
 
