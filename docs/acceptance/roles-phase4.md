@@ -1,10 +1,10 @@
 # Roles Plan, Phase 4: Manual Checks
 
 Purpose: The manual SQL checklist and browser test steps for Phase 4 of the roles plan (interview schedule and the home page dashboard).
-Last updated: 2026-10-03 (written with the Phase 4 commit; nothing below has been run yet)
+Last updated: 2026-10-19 (DB-verified YES for the DAO tests; migration chain rehearsed; pages crawled on Tomcat 11). 2026-10-03 (written with the Phase 4 commit)
 Read this when: you're verifying Phase 4 on a machine with Docker, MySQL and Tomcat 11, or signing it off.
 
-**DB-verified: NO.** `ScheduleDaoImplTest` (12 tests) and `DashboardDaoImplTest` (7) were written but skipped on 2026-10-03, because the machine had no Docker, MySQL or Tomcat. None of the SQL in `ScheduleDaoImpl` and `DashboardDaoImpl` has run, and neither have the new JSPs (`viewschedule.jsp`, `myschedule.jsp`, `createschedule.jsp`, `schedulestatus.tag`, the dashboard in `main.jsp`). Run the DAO tests first on a Docker machine: `RMS_REQUIRE_DOCKER=true ./mvnw -B verify`. Then do this checklist.
+**DB-verified: YES (DAO tests, 2026-10-19).** `ScheduleDaoImplTest` (12 tests) and `DashboardDaoImplTest` (7) pass with Docker (`RMS_REQUIRE_DOCKER=true ./mvnw -B verify`); see [README.md](README.md), "Run of 2026-10-19". The first Docker run had failed in `DashboardDaoImplTest`: it set a 3-character status on `candidatestatus` (CHAR(1) in the inferred schema). That was a test fixture error, fixed in `266ff38`; no production code changed. Migration 006 ran in the chain rehearsal (schema identical to `db/schema.sql`, rollback clean), and the schedule pages and the dashboard rendered on Tomcat 11 for all four roles (no console errors, no axe-core serious or critical violations). Not followed one by one: the numbered checks below, and `@@global.time_zone` is still the owner's question (#30).
 
 **Where:** only a throwaway local MySQL (for example `rms_local` from [db/local](../../db/local/README.md)). Never a shared or production server. Only the synthetic seed values below.
 

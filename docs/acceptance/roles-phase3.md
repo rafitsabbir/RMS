@@ -1,10 +1,10 @@
 # Roles Plan, Phase 3: Manual Checks
 
 Purpose: The manual SQL checklist and browser test steps for Phase 3 of the roles plan (interviewer assignment, evaluations, Candidate Status averages, decisions).
-Last updated: 2026-10-02 (written with the Phase 3 commit; nothing below has been run yet)
+Last updated: 2026-10-19 (DB-verified YES for the DAO tests; migration chain rehearsed; pages crawled on Tomcat 11). 2026-10-02 (written with the Phase 3 commit)
 Read this when: you're verifying Phase 3 on a machine with Docker, MySQL and Tomcat 11, or signing it off.
 
-**DB-verified: NO.** The DAO tests (`MarksDaoImplTest`, `AssignmentDaoImplTest`, `DecisionDaoImplTest`) were written but skipped on 2026-10-02, because the machine had no Docker. Run them first on a Docker machine: `RMS_REQUIRE_DOCKER=true ./mvnw -B verify`. Mark this line YES only after that passes.
+**DB-verified: YES (DAO tests, 2026-10-19).** `MarksDaoImplTest`, `AssignmentDaoImplTest` and `DecisionDaoImplTest` pass with Docker (`RMS_REQUIRE_DOCKER=true ./mvnw -B verify`); see [README.md](README.md), "Run of 2026-10-19". Migration 005 ran in the chain rehearsal and gave a schema identical to `db/schema.sql` (`marks.markkey` 1..n distinct; `candidate_interviewer` and `candidate_decision` empty), and its rollback lines restored the old schema. **That only proves 005 matches the inferred schema:** it stays a draft until the owner's `SHOW CREATE TABLE marks` (open question #29). The Tomcat 11 crawl covered the pages for all four roles. Not followed one by one: the numbered checks below.
 
 **Migration 005 is a DRAFT** until the owner has compared it with `SHOW CREATE TABLE marks` from production (open question #29).
 

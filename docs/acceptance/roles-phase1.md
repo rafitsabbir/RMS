@@ -1,10 +1,10 @@
 # Roles Plan, Phase 1: Manual Checks
 
 Purpose: The manual SQL checklist and browser test steps for Phase 1 of the roles plan (roles, Users and Roles, Change password, password storage, inactive users, login lock).
-Last updated: 2026-10-02 (written with the Phase 1 commit; nothing below has been run yet)
+Last updated: 2026-10-19 (DB-verified YES for the DAO tests; migration chain rehearsed; pages crawled on Tomcat 11). 2026-10-02 (written with the Phase 1 commit)
 Read this when: you're verifying Phase 1 on a machine with Docker, MySQL and Tomcat 11, or signing it off.
 
-**DB-verified: NO.** The DAO tests (`UserDaoImplTest`, `LoginDaoImplTest`) were written but skipped on 2026-10-02, because the machine had no Docker. Run them first on a Docker machine: `RMS_REQUIRE_DOCKER=true ./mvnw -B verify`. Mark this line YES only after that passes.
+**DB-verified: YES (DAO tests, 2026-10-19).** `UserDaoImplTest` and `LoginDaoImplTest` pass with Docker (`RMS_REQUIRE_DOCKER=true ./mvnw -B verify`, MySQL 8.0.46); see [README.md](README.md), "Run of 2026-10-19". Also run that day: migration 002 as part of a chain rehearsal (section B below: no errors, schema identical to `db/schema.sql`, U1 `SUPER_ADMIN`/`N`, U2 `INTERVIEWER`/`Y`, `mustchangepassword` 0, rollback restored the old schema), and the Super Admin, HR, Hiring Manager and Interviewer pages on Tomcat 11 (access matrix, forced password change, role change and deactivation signing out, login lock). Not run: migration 003, and the numbered SQL queries and browser steps below were not followed one by one.
 
 **Where:** only a throwaway local MySQL (for example `rms_local` from [db/local](../../db/local/README.md), or a scratch database next to it). Never a shared or production server. Only the synthetic seed values below.
 

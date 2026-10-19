@@ -1,10 +1,10 @@
 # Roles Plan, Phase 2: Manual Checks
 
 Purpose: The manual SQL checklist and browser test steps for Phase 2 of the roles plan (candidate profile fields, jobs, candidate documents and the permanent delete).
-Last updated: 2026-10-02 (written with the Phase 2 commit; nothing below has been run yet)
+Last updated: 2026-10-19 (DB-verified YES for the DAO tests; migration chain rehearsed; pages crawled on Tomcat 11). 2026-10-02 (written with the Phase 2 commit)
 Read this when: you're verifying Phase 2 on a machine with Docker, MySQL and Tomcat 11, or signing it off.
 
-**DB-verified: NO.** The DAO tests (`JobDaoImplTest`, `DocumentDaoImplTest`, the new `CandidateDaoImplTest` cases) were written but skipped on 2026-10-02, because the machine had no Docker. Run them first on a Docker machine: `RMS_REQUIRE_DOCKER=true ./mvnw -B verify`. Mark this line YES only after that passes.
+**DB-verified: YES (DAO tests, 2026-10-19).** `JobDaoImplTest`, `DocumentDaoImplTest` and `CandidateDaoImplTest` pass with Docker (`RMS_REQUIRE_DOCKER=true ./mvnw -B verify`); see [README.md](README.md), "Run of 2026-10-19". The first Docker run had failed here: every test document in `DocumentDaoImplTest` had the same stored name, which the unique index `candidate_document_storedname` rejects, and `CandidateDaoImplTest` expected 1 marks row for C2 where the seed has 2. Both were test fixture errors, fixed in `266ff38`; no production code changed. Also run: migration 004 in the chain rehearsal (section B: schema identical to `db/schema.sql`, rollback clean), the Tomcat 11 page crawl for all four roles, and a PDF uploaded as HR to C2 that downloaded byte-identical as an attachment with `nosniff`. Not followed one by one: the numbered checks below.
 
 **Where:** only a throwaway local MySQL (for example `rms_local` from [db/local](../../db/local/README.md), or a scratch database next to it), and a scratch folder for `RMS_DOC_DIR`. Never a shared or production server. Only the synthetic seed values and the synthetic files below.
 
