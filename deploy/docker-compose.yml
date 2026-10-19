@@ -1,0 +1,43 @@
+# Local trial of the RMS container (Dockerfile) with a throwaway MySQL built from ../db/schema.sql and the
+# synthetic ../db/test-seed.sql. Not for production: the database is a throwaway, and it holds only test data.
+# Build the WAR first (./mvnw -B package), set RMS_DB_PASSWORD in your shell (never commit it), then from this
+# folder:
+#   docker compose up -d --build      start; open http://127.0.0.1:8080/rms/login (seed users: db/test-seed.sql)
+#   docker compose down -v            stop and delete the data and documents
+# Both ports are bound to 127.0.0.1 only. See docs/build-run.md, "Container".
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${RMS_DB_PASSWORD:?Set RMS_DB_PASSWORD in your shell first}
+      MYSQL_DATABASE: rms_local
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+    volumes:
+      - ../db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ../db/test-seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+      - rms-trial-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  rms:
+    build: ..
+    image: rms:local
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      RMS_DB_URL: jdbc:mysql://mysql:3306/rms_local?sslMode=DISABLED
+      RMS_DB_USER: root
+      RMS_DB_PASSWORD: ${RMS_DB_PASSWORD:?Set RMS_DB_PASSWORD in your shell first}
+    ports:
+      - "127.0.0.1:${RMS_HTTP_PORT:-8080}:8080"
+    volumes:
+      - rms-trial-docs:/var/rms/docs
+
+volumes:
+  rms-trial-data:
+  rms-trial-docs:
