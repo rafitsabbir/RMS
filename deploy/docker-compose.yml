@@ -10,7 +10,7 @@ name: rms-trial
 
 services:
   mysql:
-    image: mysql:8.0
+    image: mysql:9.7
     environment:
       MYSQL_ROOT_PASSWORD: ${RMS_DB_PASSWORD:?Set RMS_DB_PASSWORD in your shell first}
       MYSQL_DATABASE: rms_local
