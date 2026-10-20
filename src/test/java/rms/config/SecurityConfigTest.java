@@ -538,12 +538,14 @@ class SecurityConfigTest {
 	void securityHeadersAreWrittenBeforeThePage() {
 		// MockMvc can't show the difference: on Tomcat a small forwarded page (/login) was committed before the
 		// on-commit hook and went out with no security headers (SmokeTest.loginPageCarriesTheSecurityHeaders)
-		HeaderWriterFilter filter = context.getBean(FilterChainProxy.class).getFilterChains().stream()
-				.filter(chain -> chain.matches(new MockHttpServletRequest("GET", "/login")))
+		// Both chains: the pages and the static files
+		List<HeaderWriterFilter> filters = context.getBean(FilterChainProxy.class).getFilterChains().stream()
 				.flatMap(chain -> chain.getFilters().stream())
-				.filter(HeaderWriterFilter.class::isInstance).map(HeaderWriterFilter.class::cast)
-				.findFirst().orElseThrow();
-		assertThat(ReflectionTestUtils.getField(filter, "shouldWriteHeadersEagerly")).isEqualTo(true);
+				.filter(HeaderWriterFilter.class::isInstance).map(HeaderWriterFilter.class::cast).toList();
+		assertThat(filters).hasSize(2);
+		for (HeaderWriterFilter filter : filters) {
+			assertThat(ReflectionTestUtils.getField(filter, "shouldWriteHeadersEagerly")).isEqualTo(true);
+		}
 	}
 
 	@Test
@@ -587,12 +589,13 @@ class SecurityConfigTest {
 		mockMvc.perform(get("/health")).andExpect(status().isServiceUnavailable())
 				.andExpect(content().string("unavailable"));
 
-		// Only GET: a post is still refused (no CSRF token), as everywhere
+		// GET and HEAD (some monitors use it); a post is still refused (no CSRF token), as everywhere
+		mockMvc.perform(head("/health")).andExpect(status().isServiceUnavailable());
 		mockMvc.perform(post("/health")).andExpect(status().isForbidden());
 	}
 
 	@Test
-	void errorDispatchesPassWithoutALogin() throws Exception {
+	void errorDispatchIsNotSentToTheLoginPage() throws Exception {
 		// The container shows its error page (web.xml, error.jsp) in an ERROR dispatch, which the access rules let
 		// through: without a login it answers (here 404, as MockMvc renders no JSP) instead of sending the visitor
 		// to the login page. SmokeTest.errorsShowRmsOwnPage checks the page itself on Tomcat
@@ -607,7 +610,10 @@ class SecurityConfigTest {
 	void staticResourcesArePublicAndCacheable() throws Exception {
 		mockMvc.perform(get("/resources/css/rms.css"))
 				.andExpect(status().isOk())
-				.andExpect(header().doesNotExist("Cache-Control"));
+				.andExpect(header().doesNotExist("Cache-Control"))
+				// The same security headers as the pages, so a missing file's error page carries them too
+				.andExpect(header().string("Content-Security-Policy", SecurityConfig.CONTENT_SECURITY_POLICY))
+				.andExpect(header().string("X-Frame-Options", "DENY"));
 		mockMvc.perform(get("/resources/img/logo.svg")).andExpect(status().isOk());
 	}
 

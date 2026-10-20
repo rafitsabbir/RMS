@@ -26,6 +26,7 @@ import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.config.ObjectPostProcessor;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -112,8 +113,26 @@ public class SecurityConfig {
 	public SecurityFilterChain resourceFilterChain(HttpSecurity http) throws Exception {
 		http.securityMatcher("/resources/**")
 				.authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
-				.headers(headers -> headers.cacheControl(cache -> cache.disable()));
+				.headers(headers -> securityHeaders(headers.cacheControl(cache -> cache.disable())));
 		return http.build();
+	}
+
+	/**
+	 * The headers of both chains, so a static file and its error page (a missing file) carry them too. Written before
+	 * the page, not on commit: Tomcat commits a small forwarded page (the login page) itself, after the JSP and before
+	 * the header filter's wrapper sees it, and it went out with none.
+	 */
+	private static void securityHeaders(HeadersConfigurer<HttpSecurity> headers) {
+		headers.withObjectPostProcessor(new ObjectPostProcessor<HeaderWriterFilter>() {
+			@Override
+			public <O extends HeaderWriterFilter> O postProcess(O filter) {
+				filter.setShouldWriteHeadersEagerly(true);
+				return filter;
+			}
+		})
+				.contentSecurityPolicy(csp -> csp.policyDirectives(CONTENT_SECURITY_POLICY))
+				.referrerPolicy(referrer -> referrer.policy(ReferrerPolicy.SAME_ORIGIN))
+				.permissionsPolicyHeader(permissions -> permissions.policy(PERMISSIONS_POLICY));
 	}
 
 	@Bean
@@ -128,6 +147,7 @@ public class SecurityConfig {
 						.requestMatchers("/login", "/welcome").permitAll()
 						// The health check for monitoring: only "ok" or "unavailable" (HealthController)
 						.requestMatchers(HttpMethod.GET, "/health").permitAll()
+						.requestMatchers(HttpMethod.HEAD, "/health").permitAll()
 						.requestMatchers("/", "/home", "/changepassword", "/savepassword").authenticated()
 						.requestMatchers(USER_ADMIN_PAGES).hasRole(SUPER_ADMIN)
 						.requestMatchers(SUPER_ADMIN_PAGES).hasRole(SUPER_ADMIN)
@@ -150,19 +170,7 @@ public class SecurityConfig {
 				// After a login always /home, as before, so the page that led to the login isn't kept
 				.requestCache(cache -> cache.requestCache(new NullRequestCache()))
 				.exceptionHandling(exceptions -> exceptions.accessDeniedHandler(SecurityConfig::refuse))
-				.headers(headers -> headers
-						// Before the page, not on commit: Tomcat commits a small forwarded page (the login page)
-						// itself, after the JSP and before this filter's wrapper sees it, and it went out with none
-						.withObjectPostProcessor(new ObjectPostProcessor<HeaderWriterFilter>() {
-							@Override
-							public <O extends HeaderWriterFilter> O postProcess(O filter) {
-								filter.setShouldWriteHeadersEagerly(true);
-								return filter;
-							}
-						})
-						.contentSecurityPolicy(csp -> csp.policyDirectives(CONTENT_SECURITY_POLICY))
-						.referrerPolicy(referrer -> referrer.policy(ReferrerPolicy.SAME_ORIGIN))
-						.permissionsPolicyHeader(permissions -> permissions.policy(PERMISSIONS_POLICY)))
+				.headers(SecurityConfig::securityHeaders)
 				// After the CSRF check, before the password check: a locked login isn't even tried
 				.addFilterBefore(lockedLoginFilter(throttle), UsernamePasswordAuthenticationFilter.class)
 				.addFilterBefore(new AccountCheckFilter(loginservice), AuthorizationFilter.class);

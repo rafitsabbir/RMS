@@ -84,6 +84,9 @@ class SmokeTest {
 		assertThat(body).contains("Page not found").contains("resources/css/rms.css");
 		// Not Tomcat's report: no server version, no inline style the CSP would block
 		assertThat(body).doesNotContain("Apache Tomcat").doesNotContain("<style");
+		// An error answer keeps the security headers (SecurityConfig writes them before the page)
+		assertThat(missing.getHeaderField("Content-Security-Policy")).contains("frame-ancestors 'none'");
+		assertThat(missing.getHeaderField("X-Frame-Options")).isEqualTo("DENY");
 	}
 
 	@Test

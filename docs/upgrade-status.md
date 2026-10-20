@@ -56,9 +56,9 @@ Read this when: you're resuming upgrade work, or asking "where are we / what's n
 - **Hardening (2026-10-20):** coded on `dev` (commit `9d8b412`); not released. Fixes of the 2026-10-19 review finding and operations gaps; facts and measurements are in [build-run.md](build-run.md) (*Container*, *Keeping dependencies current*).
   - **Error pages:** `error.jsp` for every container error, no Tomcat version or stack trace (before: Tomcat's unstyled report page).
   - **`GET /health`:** public, 200 `ok` or 503 `unavailable` with a 4 s limit; the `Dockerfile` HEALTHCHECK uses it (it used `/login`, which ignored the database).
-  - **Timeouts:** `connectTimeout`, `socketTimeout` and `maxWaitMillis` recommended in `deploy/tomcat/rms.xml`; a frozen database now ends in 503/an error page instead of hanging.
+  - **Timeouts:** `connectTimeout`, `socketTimeout`, `maxWaitMillis` and `validationQueryTimeout` recommended in `deploy/tomcat/rms.xml`; a frozen database now ends in 503/an error page instead of hanging.
   - **Dependabot:** `.github/dependabot.yml` added (weekly PRs to `dev`); the "nothing refreshes the base digest" follow-up is resolved.
-  - **Tested:** `RMS_REQUIRE_DOCKER=true ./mvnw -B verify`: 515 tests, 0 failures, 19 smoke skipped; container trial `SmokeTest` 19/19.
+  - **Tested:** `RMS_REQUIRE_DOCKER=true ./mvnw -B verify`: 516 tests, 0 failures, 19 smoke skipped; container trial `SmokeTest` 19/19.
 - **JUnit 6 (2026-10-02):** JUnit 5.13.4 → 6.1.3 (test scope only; nothing changes in the WAR). The same 145 tests give the same results on JDK 21 (86 pass, 59 skipped without Docker). `SecurityConfigTest` now uses Spring's `@SpringJUnitWebConfig` and `@MockitoBean` instead of a hand-built context. Not yet run at the time: the DAO tests with Docker (since run on 2026-10-19, see above), and CI.
 
 ## Status by work item
