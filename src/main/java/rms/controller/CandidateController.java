@@ -31,6 +31,7 @@ import rms.model.CandidateSource;
 import rms.model.DecisionStatus;
 import rms.model.DocumentInfo;
 import rms.model.DocumentType;
+import rms.model.HiringStage;
 import rms.model.JobInfo;
 import rms.model.LanguageInfo;
 import rms.model.PositionInfo;
@@ -42,6 +43,7 @@ import rms.service.DocumentService;
 import rms.service.JobService;
 import rms.service.LanguageService;
 import rms.service.PositionService;
+import rms.service.StageService;
 
 /**
  * Candidate management (G1): add, list, edit and soft delete. RMS generates the candidate ID (C1, C2, ...).
@@ -74,6 +76,9 @@ public class CandidateController {
 
 	@Autowired
 	AssignmentService assignmentservice;
+
+	@Autowired
+	StageService stageservice;
 
 	static final int MAX_EMAIL = 150;
 	static final int MAX_PHONE = 30;
@@ -150,7 +155,7 @@ public class CandidateController {
 	/** The list's filters are GET parameters (bookmarkable); a date that isn't one is ignored with a message. */
 	@InitBinder("filter")
 	void bindFilterFieldsOnly(WebDataBinder binder) {
-		binder.setAllowedFields("jobkey", "status", "source", "appliedfrom", "appliedto", "nocv", "notevaluated");
+		binder.setAllowedFields("jobkey", "stage", "status", "source", "appliedfrom", "appliedto", "nocv", "notevaluated");
 	}
 
 	@RequestMapping(value = "/viewcandidatelist", method = RequestMethod.GET)
@@ -178,6 +183,7 @@ public class CandidateController {
 		mv.addObject("joblist", joblist);
 		mv.addObject("sourcelist", CandidateSource.values());
 		mv.addObject("statuslist", DecisionStatus.values());
+		mv.addObject("stagelist", HiringStage.values());
 		return mv;
 	}
 
@@ -231,6 +237,14 @@ public class CandidateController {
 		}
 		ModelAndView mv = new ModelAndView("candidateprofile");
 		mv.addObject("candidate", candidateinfo);
+		// The pipeline's step bar for everyone; the history (its notes) for staff, the move form for Super Admin and HR
+		mv.addObject("pipeline", HiringStage.PIPELINE);
+		if (staff) {
+			mv.addObject("stages", stageservice.getStages(candidateinfo.getCandidateid()));
+			if (CurrentUser.canEdit(session)) {
+				mv.addObject("stagelist", HiringStage.values());
+			}
+		}
 		if (staff) {
 			// Interviewers and the decision are for staff; an interviewer sees details and documents
 			mv.addObject("assignments", assignmentservice.getAssignments(candidateinfo.getCandidateid()));

@@ -92,10 +92,13 @@ public class SecurityConfig {
 	static final String[] SCHEDULE_INVITE_PAGES = { "/scheduleinvite/*" };
 	/** An interviewer's own evaluations and schedule: Interviewer only (the assignment is checked in EvaluationController). */
 	static final String[] INTERVIEWER_PAGES = { "/myevaluations", "/evaluate", "/saveevaluation", "/myschedule" };
-	/** Candidate, document, assignment, decision and interview schedule changes, jobs and master data: Super Admin and HR. */
+	/**
+	 * Candidate, document, assignment, decision, hiring stage and interview schedule changes, jobs and master data:
+	 * Super Admin and HR.
+	 */
 	static final String[] HR_PAGES = { "/createcandidate", "/updatecandidate", "/savecandidate",
-			"/deletecandidate", "/assigninterviewer", "/unassigninterviewer", "/savedecision", "/uploaddocument",
-			"/deletedocument/*", "/createjob", "/updatejob/*", "/savejob",
+			"/deletecandidate", "/assigninterviewer", "/unassigninterviewer", "/savedecision", "/savestage",
+			"/uploaddocument", "/deletedocument/*", "/createjob", "/updatejob/*", "/savejob",
 			"/deletejob/*", "/createschedule", "/updateschedule/*", "/saveschedule", "/cancelschedule/*",
 			"/viewpositionlist", "/createposition", "/updateposition/*", "/saveposition",
 			"/deleteposition/*", "/viewlanguagelist", "/createlanguage", "/updatelanguage/*", "/savelanguage",

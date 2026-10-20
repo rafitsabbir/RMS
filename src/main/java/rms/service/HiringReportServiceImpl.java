@@ -16,10 +16,11 @@ import rms.model.CandidateSource;
 import rms.model.DecisionStatus;
 import rms.model.HiringGroup;
 import rms.model.HiringReport;
+import rms.model.HiringStage;
 import rms.model.JobInfo;
 
 /**
- * The hiring report: the active candidates counted per job and per source, how long Selected and Rejected took
+ * The hiring report: the active candidates counted per stage, per job and per source, how long Selected and Rejected took
  * from the applied date, and the evaluations still to do per interviewer. Computed on every visit from the same
  * candidate list as the Candidates page; nothing is stored.
  */
@@ -61,11 +62,16 @@ public class HiringReportServiceImpl implements HiringReportService {
 		for (CandidateSource source : CandidateSource.values()) {
 			bysource.put(source.name(), new HiringGroup(source.getLabel()));
 		}
+		Map<HiringStage, HiringGroup> bystage = new LinkedHashMap<HiringStage, HiringGroup>();
+		for (HiringStage stage : HiringStage.values()) {
+			bystage.put(stage, new HiringGroup(stage.getLabel()));
+		}
 		HiringGroup nojob = new HiringGroup(NO_JOB);
 		HiringGroup nosource = new HiringGroup(NO_SOURCE);
 
 		for (CandidateInfo candidate : candidatedao.getAllCandidate()) {
 			report.getOverall().add(candidate);
+			bystage.get(candidate.getHiringstage()).add(candidate);
 			if (candidate.getJobkey() > 0) {
 				byjob.computeIfAbsent(candidate.getJobkey(), key -> {
 					JobInfo deleted = new JobInfo();
@@ -91,6 +97,7 @@ public class HiringReportServiceImpl implements HiringReportService {
 		}
 		report.setByjob(withCandidates(byjob.values(), nojob));
 		report.setBysource(withCandidates(bysource.values(), nosource));
+		report.setBystage(new ArrayList<HiringGroup>(bystage.values()));
 		report.setPendingbyinterviewer(dashboarddao.countPendingEvaluationsByInterviewer());
 		return report;
 	}

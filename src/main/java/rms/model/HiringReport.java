@@ -8,6 +8,8 @@ public class HiringReport {
 	private HiringGroup overall = new HiringGroup("All candidates");
 	private List<HiringGroup> byjob = List.of();
 	private List<HiringGroup> bysource = List.of();
+	/** Every stage in pipeline order, empty ones too (2026-10-20). */
+	private List<HiringGroup> bystage = List.of();
 	/** Interviewers with evaluations still to do (label = name, total = the count), most first. */
 	private List<HiringGroup> pendingbyinterviewer = List.of();
 	private DecisionTime toselected = new DecisionTime();
@@ -35,6 +37,14 @@ public class HiringReport {
 
 	public void setBysource(List<HiringGroup> bysource) {
 		this.bysource = bysource;
+	}
+
+	public List<HiringGroup> getBystage() {
+		return bystage;
+	}
+
+	public void setBystage(List<HiringGroup> bystage) {
+		this.bystage = bystage;
 	}
 
 	public List<HiringGroup> getPendingbyinterviewer() {

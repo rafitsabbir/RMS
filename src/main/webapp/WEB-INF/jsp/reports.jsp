@@ -57,7 +57,7 @@
 				<div class="card-body">
 					<span class="rms-tile-icon"><svg class="rms-icon" aria-hidden="true"><use href="${icons}#briefcase"/></svg></span>
 					<h2><a class="stretched-link text-reset text-decoration-none" href="${base}exporthiring">Hiring Report</a></h2>
-					<p>The figures below: decision times, candidates per job and per source, and evaluations still to do.</p>
+					<p>The figures below: decision times, candidates per stage, job and source, and evaluations still to do.</p>
 				</div>
 			</div>
 		</div>
@@ -90,19 +90,21 @@
 		</div>
 		</c:forEach>
 	</div>
-	<c:forEach items="${[hiring.byjob, hiring.bysource]}" var="rows" varStatus="g">
+	<c:set var="kinds" value="${['Stage', 'Job', 'Source']}" />
+	<c:forEach items="${[hiring.bystage, hiring.byjob, hiring.bysource]}" var="rows" varStatus="g">
+	<c:set var="kind" value="${kinds[g.index]}" />
 	<div class="card rms-card mb-3">
 		<div class="card-body">
-			<h3 class="h6">${g.first ? 'Candidates per job' : 'Candidates per source'}</h3>
+			<h3 class="h6">Candidates per <c:out value="${kind.toLowerCase()}"/></h3>
 			<c:choose>
 			<c:when test="${empty rows}"><p class="mb-0 text-body-secondary">No candidates yet.</p></c:when>
 			<c:otherwise>
 			<%-- Focusable, so the table can be scrolled with the keyboard at phone width --%>
-			<div class="table-responsive" tabindex="0" role="region" aria-label="${g.first ? 'Candidates per job' : 'Candidates per source'}">
-				<table id="${g.first ? 'hiringbyjob' : 'hiringbysource'}" class="table table-sm table-striped align-middle mb-0">
+			<div class="table-responsive" tabindex="0" role="region" aria-label="Candidates per ${kind.toLowerCase()}">
+				<table id="hiringby${kind.toLowerCase()}" class="table table-sm table-striped align-middle mb-0">
 					<thead>
 						<tr>
-							<th scope="col">${g.first ? 'Job' : 'Source'}</th>
+							<th scope="col"><c:out value="${kind}"/></th>
 							<th scope="col" class="text-end">Candidates</th>
 							<th scope="col" class="text-end">Pending</th>
 							<th scope="col" class="text-end">On hold</th>

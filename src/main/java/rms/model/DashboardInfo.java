@@ -1,7 +1,9 @@
 package rms.model;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * The figures on the home page (Phase 4), for one role. Staff (Super Admin, HR, Hiring Manager) get all of them,
@@ -23,6 +25,8 @@ public class DashboardInfo {
 	/** The next few upcoming interviews, soonest first. */
 	private List<ScheduleInfo> nextinterviews = new ArrayList<ScheduleInfo>();
 	private int openjobs = 0;
+	/** Active candidates per hiring stage, every stage in pipeline order (2026-10-20). */
+	private Map<HiringStage, Integer> stagecounts = new LinkedHashMap<HiringStage, Integer>();
 	private int candidateswithoutcv = 0;
 	/** Candidates with no final decision that have an assigned interviewer who is no longer active. */
 	private int candidateswithinactiveinterviewer = 0;
@@ -117,5 +121,13 @@ public class DashboardInfo {
 
 	public void setCandidateswithinactiveinterviewer(int candidateswithinactiveinterviewer) {
 		this.candidateswithinactiveinterviewer = candidateswithinactiveinterviewer;
+	}
+
+	public Map<HiringStage, Integer> getStagecounts() {
+		return stagecounts;
+	}
+
+	public void setStagecounts(Map<HiringStage, Integer> stagecounts) {
+		this.stagecounts = stagecounts;
 	}
 }

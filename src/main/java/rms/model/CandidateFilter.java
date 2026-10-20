@@ -19,6 +19,8 @@ public class CandidateFilter {
 
 	/** 0: any job; NO_JOB: none; else that job. */
 	private int jobkey = 0;
+	/** A HiringStage name, or empty for any (2026-10-20). */
+	private String stage = null;
 	/** S, R, H, PENDING, or empty for any. */
 	private String status = null;
 	/** A CandidateSource name, NO_SOURCE, or empty for any. */
@@ -32,13 +34,16 @@ public class CandidateFilter {
 
 	/** Whether any filter is set. */
 	public boolean isActive() {
-		return jobkey != 0 || !blank(status) || !blank(source) || appliedfrom != null || appliedto != null || nocv
-				|| notevaluated;
+		return jobkey != 0 || !blank(stage) || !blank(status) || !blank(source) || appliedfrom != null
+				|| appliedto != null || nocv || notevaluated;
 	}
 
 	/** Whether the candidate passes every filter that is set. With an applied-date range, no date doesn't pass. */
 	public boolean matches(CandidateInfo candidate) {
 		if (jobkey == NO_JOB ? candidate.getJobkey() > 0 : jobkey > 0 && candidate.getJobkey() != jobkey) {
+			return false;
+		}
+		if (!blank(stage) && HiringStage.of(candidate.getStage()) != HiringStage.parse(stage)) {
 			return false;
 		}
 		if (!blank(status)) {
@@ -76,6 +81,14 @@ public class CandidateFilter {
 
 	public void setJobkey(int jobkey) {
 		this.jobkey = jobkey;
+	}
+
+	public String getStage() {
+		return stage;
+	}
+
+	public void setStage(String stage) {
+		this.stage = stage;
 	}
 
 	public String getStatus() {

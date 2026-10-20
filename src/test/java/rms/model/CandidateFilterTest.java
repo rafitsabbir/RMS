@@ -88,6 +88,21 @@ class CandidateFilterTest {
 		assertThat(filter.matches(candidate(0, "R", null, null, 0, 0))).isFalse();
 	}
 
+	@Test
+	void stageMatchesTheStageReadAsAStage() {
+		CandidateFilter filter = new CandidateFilter();
+		filter.setStage("APPLIED");
+		assertThat(filter.isActive()).isTrue();
+
+		CandidateInfo candidate = candidate(0, null, null, null, 0, 0);
+		// NULL reads as Applied
+		assertThat(filter.matches(candidate)).isTrue();
+		candidate.setStage("interview");
+		assertThat(filter.matches(candidate)).isFalse();
+		filter.setStage("INTERVIEW");
+		assertThat(filter.matches(candidate)).isTrue();
+	}
+
 	private static CandidateInfo candidate(int jobkey, String status, String source, LocalDate applied, int cvs,
 			int evaluations) {
 		CandidateInfo candidate = new CandidateInfo();

@@ -8,6 +8,9 @@ import rms.model.HiringGroup;
 /** Counts for the home page dashboard (Phase 4). Read-only; every count is over active rows only. */
 public interface DashboardDao {
 
+	/** Active candidates by stage code (upper case, trimmed); the key is "" for NULL or blank (read as Applied). */
+	public Map<String, Integer> countCandidatesByStage();
+
 	/** Active candidates by status code (S, R, H in upper case, trimmed); the key is "" for NULL or blank. */
 	public Map<String, Integer> countCandidatesByStatus();
 

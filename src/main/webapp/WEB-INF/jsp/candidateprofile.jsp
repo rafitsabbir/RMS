@@ -12,6 +12,7 @@
 <spring:url value="/purgedocuments" var="purgeURL" />
 <spring:url value="/assigninterviewer" var="assignURL" />
 <spring:url value="/unassigninterviewer" var="unassignURL" />
+<spring:url value="/savestage" var="stageURL" />
 <%-- Super Admin and HR change documents; Hiring Managers only download (SecurityConfig refuses them the rest) --%>
 <c:set var="role" value="${sessionScope.user.role}" />
 <c:set var="canedit" value="${role eq 'SUPER_ADMIN' or role eq 'HR'}" />
@@ -80,6 +81,70 @@
 		<span><c:out value="${errorMessage}"/></span>
 	</div>
 	</c:if>
+
+	<%-- Hiring stages (2026-10-20): the step bar for everyone; history for staff; the move form for Super Admin and HR --%>
+	<c:set var="current" value="${candidate.hiringstage}" />
+	<c:set var="rejected" value="${candidate.statuslabel eq 'Rejected'}" />
+	<c:set var="withdrawn" value="${current.name eq 'WITHDRAWN'}" />
+	<div class="card rms-card mb-3" id="pipeline">
+		<div class="card-body">
+			<div class="d-flex flex-wrap align-items-baseline justify-content-between gap-2 mb-2">
+				<h2 class="h5 mb-0">Pipeline</h2>
+				<p class="mb-0" id="pipeline-state">
+					<c:choose>
+						<c:when test="${rejected}"><span class="badge rounded-pill text-bg-secondary">Rejected at <c:out value="${current.label}"/></span></c:when>
+						<c:when test="${withdrawn}"><span class="badge rounded-pill text-bg-secondary">Withdrawn</span></c:when>
+						<c:otherwise>Now at <strong><c:out value="${current.label}"/></strong></c:otherwise>
+					</c:choose>
+				</p>
+			</div>
+			<%-- Steps up to the current one are reached; Withdrawn has no step and leaves the bar unfilled --%>
+			<c:set var="reached" value="${not withdrawn}" />
+			<ol class="rms-pipeline${rejected or withdrawn ? ' rms-pipeline-closed' : ''}" aria-label="Hiring stages">
+				<c:forEach items="${pipeline}" var="step">
+					<c:set var="isnow" value="${step eq current}" />
+					<li class="${isnow ? 'rms-step-current' : (reached ? 'rms-step-done' : '')}" ${isnow ? 'aria-current="step"' : ''}><c:out value="${step.label}"/></li>
+					<c:if test="${isnow}"><c:set var="reached" value="${false}" /></c:if>
+				</c:forEach>
+			</ol>
+			<c:if test="${not empty stagelist}">
+			<form:form id="movestage" method="post" action="${stageURL}" cssClass="row g-2 align-items-end mb-3">
+				<input type="hidden" name="candidateid" value="<c:out value='${candidate.candidateid}'/>"/>
+				<input type="hidden" name="expected" value="${current.name}"/>
+				<div class="col-sm-4 col-lg-3">
+					<label for="stage" class="form-label">Move to</label>
+					<select name="stage" id="stage" class="form-select" ${rejected ? 'disabled' : ''}>
+						<c:forEach items="${stagelist}" var="s">
+						<c:if test="${s ne current}"><option value="${s.name}"><c:out value="${s.label}"/></option></c:if>
+						</c:forEach>
+					</select>
+				</div>
+				<div class="col-sm-8 col-lg-6">
+					<label for="stagenote" class="form-label">Note <span class="text-body-secondary">(optional)</span></label>
+					<input type="text" name="note" id="stagenote" class="form-control" maxlength="500" autocomplete="off" ${rejected ? 'disabled' : ''}/>
+				</div>
+				<div class="col-lg-3">
+					<button type="submit" class="btn btn-primary w-100" ${rejected ? 'disabled' : ''}>Move</button>
+				</div>
+				<p class="form-text mb-0 col-12">
+					<c:choose>
+					<c:when test="${rejected}">The candidate is Rejected, so the pipeline is closed. Change the decision first.</c:when>
+					<c:otherwise>Offer and Hired need the decision Selected; recording Selected moves the candidate to Offer, and scheduling an interview moves Applied or Screening to Interview.</c:otherwise>
+					</c:choose>
+				</p>
+			</form:form>
+			</c:if>
+			<c:if test="${not empty stages}">
+			<h3 class="h6">History</h3>
+			<ul class="list-unstyled small mb-0" id="stagehistory">
+				<c:forEach items="${stages}" var="change">
+				<li class="mb-1"><c:out value="${change.changedlabel}"/> &middot; <c:out value="${change.fromlabel}"/> &rarr;
+					<strong><c:out value="${change.tolabel}"/></strong> &middot; <c:out value="${empty change.changedbyname ? change.changedby : change.changedbyname}"/><c:if test="${not empty change.note}"> &middot; <span class="text-body-secondary"><c:out value="${change.note}"/></span></c:if></li>
+				</c:forEach>
+			</ul>
+			</c:if>
+		</div>
+	</div>
 
 	<div class="row g-3">
 		<div class="col-xl-4">

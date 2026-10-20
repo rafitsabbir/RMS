@@ -114,6 +114,7 @@ class ReportControllerTest {
 				+ "Selected,1,10.0,10.0,10,10\r\nRejected,0,,,,\r\n");
 		assertThat(csv).contains("Job,Candidates,Pending,On hold,Selected,Rejected,No CV,Not evaluated,"
 				+ "Average days to Selected\r\nJob 1: SOFTWARE ENGINEER,2,1,0,1,0,2,2,10.0\r\n");
+		assertThat(csv).contains("Stage,Candidates,Pending,");
 		assertThat(csv).contains("Interviewer,Evaluations still to do\r\nIvan Interviewer (U2),3\r\n");
 		verify(activityservice).record("U3", "REPORT_DOWNLOADED", "REPORT", "HIRING", null);
 	}
@@ -141,8 +142,8 @@ class ReportControllerTest {
 		String csv = body("/exportcandidates");
 
 		assertThat(csv).startsWith("﻿Candidate ID,First name,Last name,Position,Language,E-mail,Phone,Source,"
-				+ "Applied date,Status,Decision date,Decided by,Reason for decision\r\n");
-		assertThat(csv).contains("C1,Carla,\"Candidate, Jr\",", "'+000 111", "2026-09-01,Selected", "'=HYPERLINK");
+				+ "Applied date,Stage,Status,Decision date,Decided by,Reason for decision\r\n");
+		assertThat(csv).contains("C1,Carla,\"Candidate, Jr\",", "'+000 111", "2026-09-01,Applied,Selected", "'=HYPERLINK");
 		verify(activityservice).record("U3", "REPORT_DOWNLOADED", "REPORT", "CANDIDATES", null);
 	}
 

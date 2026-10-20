@@ -444,6 +444,44 @@ body {
 	color: var(--rms-muted);
 }
 
+/* Hiring pipeline step bar (candidateprofile.jsp): reached steps filled, the current one outlined */
+.rms-pipeline {
+	display: flex;
+	flex-wrap: wrap;
+	gap: .5rem;
+	list-style: none;
+	margin: 0 0 1rem;
+	padding: 0;
+	counter-reset: rms-step;
+}
+.rms-pipeline li {
+	flex: 1 1 8rem;
+	padding: .5rem .75rem;
+	border: 1px solid var(--rms-border);
+	border-radius: .5rem;
+	background: var(--rms-surface);
+	color: var(--rms-muted);
+	font-weight: 600;
+	counter-increment: rms-step;
+}
+.rms-pipeline li::before {
+	content: counter(rms-step) ". ";
+}
+.rms-pipeline li.rms-step-done {
+	background: var(--rms-primary-soft);
+	color: var(--rms-primary-darker);
+	border-color: var(--rms-primary-soft);
+}
+.rms-pipeline li.rms-step-current {
+	background: var(--rms-primary);
+	color: #fff;
+	border-color: var(--rms-primary);
+}
+.rms-pipeline.rms-pipeline-closed li.rms-step-current {
+	background: #6c757d;
+	border-color: #6c757d;
+}
+
 /* Candidate status badges (viewmarks.jsp) */
 .rms-status {
 	display: inline-flex;

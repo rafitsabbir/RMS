@@ -72,6 +72,10 @@ class HiringReportServiceImplTest {
 				.containsExactly(tuple("Referral", 2), tuple("Job board", 1), tuple("Newspaper", 1),
 						tuple("Not recorded", 2));
 
+		// Every stage in pipeline order, empty ones too; the candidates have no stage, so they are all Applied
+		assertThat(report.getBystage()).extracting(HiringGroup::getLabel, HiringGroup::getTotal)
+				.containsExactly(tuple("Applied", 6), tuple("Screening", 0), tuple("Interview", 0), tuple("Offer", 0),
+						tuple("Hired", 0), tuple("Withdrawn", 0));
 		assertThat(report.getOverall().getTotal()).isEqualTo(6);
 		assertThat(report.getToselected().getCount()).isEqualTo(2);
 		assertThat(report.getToselected().getMedian()).isEqualTo(15.0);
