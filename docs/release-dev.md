@@ -20,6 +20,7 @@ Compared with the 2020 code, `dev` adds (details: [upgrade-status.md](upgrade-st
 - **Optional:** a container image (`Dockerfile`; [build-run.md](build-run.md), "Container") instead of a hand-built Tomcat.
 
 ## What users will notice
+The user-facing version, for announcing the release: [release-notes.md](release-notes.md).
 - A new look and menu. Interviewers see My Evaluations and My Schedule.
 - The admin of today becomes a **Super Admin**, interviewers become **Interviewers** (migration 002). Super Admins must give HR and Hiring Manager roles under Users and Roles; nobody has them at first.
 - Existing passwords keep working (plain-text rows are still checked exactly, open question #25). A password set or reset from now on is stored hashed.
