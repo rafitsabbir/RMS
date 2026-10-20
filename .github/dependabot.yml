@@ -15,7 +15,6 @@ updates:
       spring:
         patterns:
           - "org.springframework*"
-          - "org.springframework.security*"
       test:
         patterns:
           - "org.junit*"
@@ -31,13 +30,13 @@ updates:
           - minor
           - patch
     ignore:
-      # The application targets the MySQL 9.7 LTS line (docs/mysql-upgrade.md); a new driver line is a decision,
-      # not a routine update
+      # The application targets the MySQL 9.7 LTS line (docs/mysql-upgrade.md), like the compose images below; a
+      # new driver line is a decision, not a routine update
       - dependency-name: "com.mysql:mysql-connector-j"
-        update-types: ["version-update:semver-major"]
-      # Jakarta EE 11 / Servlet 6.1 is what Tomcat 11 provides
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # Jakarta EE 11 (Servlet 6.1, Pages 4.0, Tags 3.0) is what Tomcat 11 provides; Servlet 6.2 is already EE 12
       - dependency-name: "jakarta.*"
-        update-types: ["version-update:semver-major"]
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
 
   - package-ecosystem: github-actions
     directory: "/"

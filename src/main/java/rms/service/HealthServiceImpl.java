@@ -17,9 +17,10 @@ import rms.dao.HealthDao;
 
 /**
  * The database check runs on its own thread with a time limit: a database that doesn't answer at all (frozen, or
- * a host that can't be resolved) would otherwise hold the request for minutes, as the JDBC query timeout can't cancel
- * a query on a connection that doesn't answer. While one check still runs, the next request waits on the same one, so
- * a hung database ties up one thread, not one per request.
+ * a host that can't be resolved) would otherwise hold the request for minutes. Every caller waits on the same check,
+ * outside the lock, so a hung database ties up one check thread and each caller for at most the time limit. /health
+ * is public: a result is reused for a few seconds, so callers can't make RMS query the database on every request, and
+ * only a change (up to down, down to up) is logged.
  */
 @Service
 public class HealthServiceImpl implements HealthService, DisposableBean {
@@ -29,6 +30,9 @@ public class HealthServiceImpl implements HealthService, DisposableBean {
 	/** Milliseconds a check may take; the container's HEALTHCHECK gives up after 5 seconds. */
 	long timeoutMillis = 4000;
 
+	/** Milliseconds a result is reused. */
+	long reuseMillis = 5000;
+
 	private final ExecutorService executor = Executors.newSingleThreadExecutor(runnable -> {
 		Thread thread = new Thread(runnable, "rms-health-check");
 		thread.setDaemon(true);
@@ -36,6 +40,9 @@ public class HealthServiceImpl implements HealthService, DisposableBean {
 	});
 
 	private Future<?> running;
+	private boolean checked;
+	private long checkedAt;
+	private boolean lastUp = true;
 
 	HealthDao healthdao;
 
@@ -45,24 +52,45 @@ public class HealthServiceImpl implements HealthService, DisposableBean {
 	}
 
 	@Override
-	public synchronized boolean isDatabaseUp() {
-		if (running == null || running.isDone()) {
-			running = executor.submit(() -> healthdao.ping());
+	public boolean isDatabaseUp() {
+		Future<?> check;
+		synchronized (this) {
+			if (checked && System.nanoTime() - checkedAt < TimeUnit.MILLISECONDS.toNanos(reuseMillis)) {
+				return lastUp;
+			}
+			if (running == null || running.isDone()) {
+				running = executor.submit(() -> healthdao.ping());
+			}
+			check = running;
 		}
 		try {
-			running.get(timeoutMillis, TimeUnit.MILLISECONDS);
+			check.get(timeoutMillis, TimeUnit.MILLISECONDS);
+			record(true, null);
 			return true;
 		} catch (TimeoutException e) {
-			log.warn("Health check: the database didn't answer within {} ms", timeoutMillis);
+			record(false, "no answer within " + timeoutMillis + " ms");
 			return false;
 		} catch (ExecutionException e) {
-			// The cause names the problem (refused, unknown host, access denied) but never the password
-			log.warn("Health check: the database doesn't answer: {}", e.getCause().toString());
+			// The exception's type only: its messages can name the database user and host
+			record(false, e.getCause().getClass().getSimpleName());
 			return false;
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 			return false;
 		}
+	}
+
+	private synchronized void record(boolean up, String why) {
+		if (up && !lastUp) {
+			log.info("Health check: the database answers again");
+		} else if (!up && lastUp) {
+			log.warn("Health check: the database doesn't answer ({})", why);
+		} else if (!up) {
+			log.debug("Health check: the database still doesn't answer ({})", why);
+		}
+		lastUp = up;
+		checked = true;
+		checkedAt = System.nanoTime();
 	}
 
 	/** Stops the check's thread when the application stops. */
