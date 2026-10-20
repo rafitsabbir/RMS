@@ -66,7 +66,13 @@ public class ReportController {
 	@RequestMapping(value = "/reports", method = RequestMethod.GET)
 	public ModelAndView reports() {
 		ModelAndView mv = new ModelAndView("reports");
-		mv.addObject("hiring", hiringreportservice.getReport());
+		// The downloads stay usable if the report can't be read (as on the home page's dashboard)
+		try {
+			mv.addObject("hiring", hiringreportservice.getReport());
+		} catch (RuntimeException e) {
+			log.error("Hiring report not available", e);
+			mv.addObject("hiringerror", "The hiring report isn't available right now. The downloads still work.");
+		}
 		return mv;
 	}
 

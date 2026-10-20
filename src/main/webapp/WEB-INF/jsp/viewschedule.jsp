@@ -43,7 +43,7 @@
 						<th>Interviewer</th>
 						<th>Location</th>
 						<th>Status</th>
-						<th class="rms-col-actions text-end" data-orderable="false" data-searchable="false">Actions</th>
+						<th class="rms-col-actions text-end" data-orderable="false" data-searchable="false">${canedit ? 'Actions' : 'Calendar'}</th>
 					</tr>
 				</thead>
 				<tbody>

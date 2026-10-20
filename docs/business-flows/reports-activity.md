@@ -1,7 +1,7 @@
 # Flow: Reports, Activity Log and English-only Text
 
 Purpose: Traces the CSV reports, the activity log (who marked, selected, rejected and so on) and the English-only rule for entered text.
-Last updated: 2026-10-03 (second round: sign-ins, documents, jobs and master data logged; Deleted Candidates page; new:  owner request after roles plan Phase 4; migration 007, DB-verified NO; G34 closed by decision)
+Last updated: 2026-10-20 (hiring report and `/exporthiring`; filtered candidate CSV; duplicate note on candidate changes). 2026-10-03 (second round: sign-ins, documents, jobs and master data logged; Deleted Candidates page; new:  owner request after roles plan Phase 4; migration 007, DB-verified NO; G34 closed by decision)
 Read this when: you're working on a report or CSV download, the Activity Log page, `activity_log`, or any check that refuses non-English text.
 
 Evidence: `rms/controller/ReportController.java`, `ActivityController.java`; `rms/service/ActivityServiceImpl.java`, `CsvWriter.java`, `EnglishText.java`; `rms/dao/ActivityDaoImpl.java`; `rms/model/ActivityInfo.java`; `WEB-INF/jsp/reports.jsp`, `viewactivity.jsp`; `db/migrations/007-activity-log.sql`; `rms/config/SecurityConfig.java`.
@@ -21,7 +21,8 @@ flowchart LR
 | Report | URL | Who | Columns |
 |---|---|---|---|
 | The page with the links | `GET /reports` | Super Admin, HR, Hiring Manager | |
-| Candidates | `GET /exportcandidates` | same | ID, names, position, language, e-mail, phone, source, applied date, status, decision date, decided by, reason |
+| Candidates | `GET /exportcandidates` | same | ID, names, position, language, e-mail, phone, source, applied date, status, decision date, decided by, reason. Takes the Candidates list's filters ([candidates.md](candidates.md)), so "Download these as CSV" exports what the list shows |
+| Hiring Report | `GET /exporthiring` | same | the hiring report below, as one file: decision times, then the rows per job, per source and per interviewer |
 | Candidate Status | `GET /exportresults` | same | ID, names, position, language, evaluations, the average of each of the 10 criteria, the total, status |
 | Interview Schedule | `GET /exportschedule` | same | time (server time), candidate, interviewer, location, status |
 | Activity Log | `GET /exportactivity` | Super Admin only | time, user, action, record, detail (the newest 500) |
@@ -31,7 +32,14 @@ Interviewers get HTTP 403 for all of them (deny by default; `SecurityConfigTest.
 - **Format (`CsvWriter`):** UTF-8 with a byte order mark (Excel reads it as UTF-8), CRLF line ends, cells with a comma, quote or line break quoted. A cell that starts with `=`, `+`, `-`, `@`, a tab or a line break gets a leading apostrophe, so Excel shows it as text and never runs it as a formula (CSV injection). Phone numbers that start with `+` therefore show with an apostrophe in the file.
 - **Download:** an attachment named `<report>-<date>.csv`, `Cache-Control: no-store`.
 - **Content:** the same data the matching pages show (the Candidate Status averages are rounded to one decimal, like the page). No documents, passwords or hashes.
-- **Logged:** every download writes `REPORT_DOWNLOADED` (the report name, never the content) and an INFO line with the key.
+- **Logged:** every download writes `REPORT_DOWNLOADED` (the report name, never the content; detail `filtered` for a filtered candidate download) and an INFO line with the key.
+
+## Hiring report (2026-10-20, `HiringReportServiceImpl`)
+On the Reports page under the downloads, computed on every visit from the active candidates (nothing stored):
+- **Days to Selected / to Rejected:** from the applied date to the current decision's date (`candidate.decisiondate`): median, average, shortest, longest and how many. Candidates without both dates, or decided before they applied (a data error), are left out. An earlier On hold doesn't count separately.
+- **Candidates per job and per source:** totals by decision (Pending covers no decision and unknown values), no CV, not evaluated (no active evaluation), and the average days to Selected. Jobs follow the job list, a deleted job keeps a "Job n (deleted)" row, "No job" comes last; known sources first, then unknown texts, then "Not recorded"; empty rows are left out; a total row closes each table.
+- **Evaluations still to do per interviewer:** the home page's count (`DashboardDaoImpl`), grouped by interviewer.
+- If the report can't be read (a database error), the page says so and the downloads still work.
 
 ## Activity log (`ActivityServiceImpl`, table `activity_log`, migration 007)
 Written after the action worked, so a refused action leaves no entry. `record` never throws: if the table is missing (migration 007 not run), it logs one WARN with the exception class and the user's action carries on.
@@ -83,6 +91,6 @@ The message says what to change: "… can use English letters only. Please use E
 `ScheduleServiceImpl.save` refuses a SCHEDULED interview whose time has already passed when it is new or its time changes: "Please choose a time that hasn't passed yet." A change that keeps the stored time, and an interview marked Done, are not checked, so a past interview can still get a location or be marked Done. Times stay the database server's wall-clock time.
 
 ## Not built (open)
-- E-mail or calendar notifications for interviews: the owner will decide later ([open-questions.md](../open-questions.md) #10).
+- E-mail notifications for interviews (a calendar file can be downloaded since 2026-10-20, [schedule.md](schedule.md)): the owner will decide later ([open-questions.md](../open-questions.md) #10).
 - A retention period for the activity log and for documents: the owner decides ([open-questions.md](../open-questions.md) #31).
 - Excel (`.xlsx`) and PDF output: only CSV.

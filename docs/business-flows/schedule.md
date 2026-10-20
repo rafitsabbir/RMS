@@ -1,7 +1,7 @@
 # Flow: Interview Schedule and Dashboard
 
 Purpose: Traces scheduling an interview, the schedule lists, and the figures on the home page (the dashboard).
-Last updated: 2026-10-03 (Phase 4 of the roles plan: new; G3 fixed; migration 006, DB-verified NO)
+Last updated: 2026-10-20 (calendar invites, `/scheduleinvite`). 2026-10-03 (Phase 4 of the roles plan: new; G3 fixed; migration 006, DB-verified NO)
 Read this when: you're working on interview scheduling, the Interview Schedule or My Schedule pages, or the home page dashboard.
 
 Evidence: `rms/controller/ScheduleController.java`, `LoginController.java` (`home`); `rms/service/ScheduleServiceImpl.java`, `DashboardServiceImpl.java`; `rms/dao/ScheduleDaoImpl.java`, `DashboardDaoImpl.java`; `rms/model/ScheduleInfo.java`, `DashboardInfo.java`; `WEB-INF/jsp/viewschedule.jsp`, `myschedule.jsp`, `createschedule.jsp`, `main.jsp`; `WEB-INF/tags/schedulestatus.tag`, `layout.tag`; `rms/config/SecurityConfig.java`; `db/migrations/006-interview-schedule.sql`; tests `ScheduleControllerTest`, `ScheduleServiceImplTest`, `DashboardServiceImplTest`, `ScheduleModelTest`, `ScheduleDaoImplTest`, `DashboardDaoImplTest`, `SecurityConfigTest`, `LoginControllerTest`.
@@ -25,6 +25,14 @@ flowchart LR
 | Change an interview | `GET /updateschedule/{schedulekey}`, `POST /saveschedule` | Super Admin, HR |
 | Cancel an interview | `POST /cancelschedule/{schedulekey}` | Super Admin, HR |
 | My Schedule | `GET /myschedule` | Interviewer only; the user is the session's, so no request parameter can show another's schedule |
+| Calendar invite (.ics) | `GET /scheduleinvite/{schedulekey}` | Staff for any interview; an interviewer only for one on their own schedule (the rows of `/myschedule`), else 404 (`ScheduleController.invite`) |
+
+## Calendar invites (2026-10-20, `CalendarInvite`)
+- A **Calendar** button on My Schedule and the Interview Schedule (not on interviews marked Done) downloads an RFC 5545 file that Outlook, Google Calendar and Apple Calendar import: one event, `interview-<candidate>-<date>.ics`, `Cache-Control: no-store`.
+- **Nothing is sent:** no attendees or organizer, no e-mail. Each person adds it to their own calendar.
+- **Time:** floating (no time zone), the same wall-clock time as RMS shows: right while the users work in the MySQL server's zone ([open-questions.md](../open-questions.md) #30). RMS stores no end time, so the event lasts **one hour**.
+- **Updates:** the UID (`rms-interview-<key>`) stays the same and `SEQUENCE` is the minutes from 2026-01-01 to the last change (`updatedat`, else `createdat`), so downloading the file again after a change updates the event, and a cancelled interview's file marks it cancelled. Whether a calendar honours an update or cancellation it imports (rather than receives) varies, Google Calendar in particular; not checked by hand yet.
+- **Limit:** after an interview moves to another interviewer, or its interviewer is unassigned, the previous interviewer no longer sees it and can't download the cancelled file; they remove the event themselves.
 
 Anyone else gets HTTP 403 (deny by default); `SecurityConfigTest.pages()` pins every role against every URL.
 
@@ -61,7 +69,7 @@ The cards link to Candidate Status, the candidate, schedule and job lists, and M
 `layout.tag` shows **Interview Schedule** (`active` key `schedule`) under Recruitment to Super Admin, HR and Hiring Manager, and **My Schedule** (`myschedule`) to Interviewers. The disabled "Coming soon" entry and tile are gone.
 
 ## Not built (open)
-- No notification (e-mail, calendar invite) to the interviewer or the candidate ([open-questions.md](../open-questions.md) #10).
+- No e-mail notification to the interviewer or the candidate (the calendar file is downloaded, not sent) ([open-questions.md](../open-questions.md) #10).
 - No link from the candidate profile to the schedule, and no history of changes beyond `updatedby` and `updatedat` on the row.
 - No overlap check for different start times, no check that the time is in the future, and no automatic DONE.
 - The DAO tests, the JSPs and migration 006 have not run against a real MySQL or on Tomcat ([../acceptance/roles-phase4.md](../acceptance/roles-phase4.md)).

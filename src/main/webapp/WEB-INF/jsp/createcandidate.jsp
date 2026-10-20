@@ -113,8 +113,9 @@
 				<div class="d-flex gap-2">
 					<c:choose>
 					<c:when test="${not empty duplicates}">
-					<button type="submit" class="btn btn-warning" name="confirmduplicate" value="true">Save anyway</button>
+					<%-- Check again first: pressing Enter submits with the first button, and must not skip the warning --%>
 					<button type="submit" class="btn btn-outline-primary">Check again</button>
+					<button type="submit" class="btn btn-warning" name="confirmduplicate" value="true">Save anyway</button>
 					</c:when>
 					<c:otherwise>
 					<button type="submit" class="btn btn-primary">Save</button>

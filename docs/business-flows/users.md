@@ -23,7 +23,8 @@ Evidence: `rms/model/Role.java`, `rms/config/SecurityConfig.java`, `rms/config/A
 - `/login`, `/welcome`: public. `/`, `/home`, `/changepassword`, `/savepassword`: any logged-in user.
 - `USER_ADMIN_PAGES` (Users and Roles): Super Admin.
 - `SUPER_ADMIN_PAGES` (`/purgedocuments`, the permanent delete of a candidate's document files): Super Admin.
-- `STAFF_READ_PAGES` (`/adminviewmarks`, `/viewcandidatelist`, `/viewevaluations`, `/viewjoblist`): Super Admin, HR, Hiring Manager.
+- `STAFF_READ_PAGES` (`/adminviewmarks`, `/viewcandidatelist`, `/viewevaluations`, `/viewjoblist`, `/viewschedulelist`, `/reports` and the CSV downloads, `/exporthiring` included): Super Admin, HR, Hiring Manager.
+- `SCHEDULE_INVITE_PAGES` (`/scheduleinvite/*`, the interview calendar file): all four roles; an interviewer only for interviews on their own schedule, checked in `ScheduleController` (404 otherwise).
 - `CANDIDATE_READ_PAGES` (`/viewcandidate`, `/downloaddocument/*`): all four roles; an interviewer only for candidates assigned to them, checked in `CandidateController` and `DocumentController` (403 otherwise).
 - `INTERVIEWER_PAGES` (`/myevaluations`, `/evaluate`, `/saveevaluation`): Interviewer; the assignment is checked in `EvaluationController`.
 - `HR_PAGES` (candidate, document, assignment and decision changes, jobs, positions, languages): Super Admin, HR.

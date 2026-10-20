@@ -95,7 +95,7 @@
 		</div>
 	</form>
 	<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
-		<p class="mb-0" role="status">
+		<p class="mb-0">
 			<c:choose>
 				<c:when test="${filter.active}">Showing <strong>${fn:length(candidatelist)}</strong> of ${totalcount} candidates.</c:when>
 				<c:otherwise>${totalcount} candidates.</c:otherwise>

@@ -18,6 +18,8 @@ import rms.model.ScheduleInfo;
 public final class CalendarInvite {
 
 	static final String DURATION = "PT1H";
+	/** 2026-01-01T00:00 as seconds since 1970, the start of SEQUENCE. */
+	static final long SEQUENCE_START = 1767225600L;
 
 	private static final DateTimeFormatter LOCAL = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss");
 	private static final DateTimeFormatter UTC = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'");
@@ -61,9 +63,15 @@ public final class CalendarInvite {
 				+ schedule.getStartat().toLocalDate() + ".ics";
 	}
 
-	/** Seconds since 1970 of the last change (UTC wall clock is fine: it only has to grow). */
+	/**
+	 * Minutes from 2026-01-01 to the last change: it only has to grow with each change, and stays a small 32-bit
+	 * INTEGER (RFC 5545) for thousands of years. Two changes within one minute share a number.
+	 */
 	static long sequence(ScheduleInfo schedule) {
-		return schedule.getChangedat() == null ? 0 : schedule.getChangedat().toEpochSecond(ZoneOffset.UTC);
+		if (schedule.getChangedat() == null) {
+			return 0;
+		}
+		return Math.max(0, (schedule.getChangedat().toEpochSecond(ZoneOffset.UTC) - SEQUENCE_START) / 60);
 	}
 
 	/** RFC 5545 TEXT: backslash, semicolon, comma and line breaks escaped. */
