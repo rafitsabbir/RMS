@@ -21,7 +21,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import rms.dao.AssignmentDao;
 import rms.dao.DecisionDao;
 import rms.dao.MarksDao;
-import rms.dao.StageDao;
 import rms.model.Criterion;
 import rms.model.DecisionInfo;
 import rms.model.HiringStage;
@@ -162,18 +161,21 @@ class EvaluationServicesTest {
 		ActivityService activityservice;
 
 		@Mock
-		StageDao stagedao;
-
-		@Mock
 		StageService stageservice;
 
 		@InjectMocks
 		DecisionServiceImpl service;
 
 		@Test
-		void selectedMovesACandidateBeforeOfferToOfferAndSaysSo() {
-			when(decisiondao.saveDecision(any(DecisionInfo.class))).thenReturn(true);
-			when(stagedao.getStage("C1")).thenReturn("INTERVIEW", "OFFER");
+		void aStageMoveTheDaoReportsIsLoggedAndSaid() {
+			// The DAO moves the stage in the decision's transaction and reports it on the decision
+			when(decisiondao.saveDecision(any(DecisionInfo.class))).thenAnswer(call -> {
+				DecisionInfo saved = call.getArgument(0);
+				saved.setStagemoved(true);
+				saved.setStagefrom("INTERVIEW");
+				saved.setStagenow("OFFER");
+				return true;
+			});
 
 			assertThat(service.saveDecision(decision("S", "Strong", LocalDate.now()), "U3", 2).message())
 					.endsWith("The candidate moves to Offer.");
@@ -181,9 +183,11 @@ class EvaluationServicesTest {
 		}
 
 		@Test
-		void rejectedClosesThePipelineWhereItIs() {
-			when(decisiondao.saveDecision(any(DecisionInfo.class))).thenReturn(true);
-			when(stagedao.getStage("C1")).thenReturn("SCREENING");
+		void rejectedWithoutAMoveClosesThePipelineWhereItIs() {
+			when(decisiondao.saveDecision(any(DecisionInfo.class))).thenAnswer(call -> {
+				((DecisionInfo) call.getArgument(0)).setStagenow("SCREENING");
+				return true;
+			});
 
 			assertThat(service.saveDecision(decision("R", "Weak", LocalDate.now()), "U3", 2).message())
 					.endsWith("The pipeline is closed at Screening.");

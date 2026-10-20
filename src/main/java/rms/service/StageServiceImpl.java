@@ -75,12 +75,16 @@ public class StageServiceImpl implements StageService {
 			return Outcome.refused("The candidate is already at " + target.getLabel() + ".");
 		}
 		// The form's stage must still be the stored one (both read as stages, so NULL and APPLIED match)
-		if (expected != null && HiringStage.of(expected) != HiringStage.of(stored)) {
+		if (expected == null || expected.isBlank()) {
+			return Outcome.refused("Please reload the page and try again.");
+		}
+		if (HiringStage.of(expected) != HiringStage.of(stored)) {
 			return Outcome.refused("The stage was changed meanwhile; it is now " + HiringStage.of(stored).getLabel()
 					+ ". Please check and try again.");
 		}
 		if (!stagedao.moveStage(candidateid, stored, target.name(), text, userid)) {
-			return Outcome.refused("The stage was changed meanwhile. Please check and try again.");
+			// The stage or the decision changed between the read and the update
+			return Outcome.refused("The stage or the decision was changed meanwhile. Please check and try again.");
 		}
 		record(userid, candidateid, stored, target);
 		return Outcome.ok("Moved to " + target.getLabel() + ".");
@@ -103,7 +107,7 @@ public class StageServiceImpl implements StageService {
 				record(userid, candidateid, candidate.getStage(), HiringStage.INTERVIEW);
 			}
 		} catch (RuntimeException e) {
-			log.warn("Stage of candidate {} not moved to Interview: {}", candidateid, e.getClass().getSimpleName());
+			log.warn("Stage of candidate {} not moved to Interview", candidateid, e);
 		}
 	}
 

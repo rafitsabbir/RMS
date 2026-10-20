@@ -13,6 +13,7 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import rms.model.HiringStage;
 import rms.model.StageInfo;
 
 @Repository
@@ -20,9 +21,11 @@ public class StageDaoImpl implements StageDao {
 
 	private String getstage = "select c.stage from candidate c where c.candidateid=:candidateid and c.isactive=1";
 	// <=> is NULL-safe: a candidate from before migration 008's backfill may still be NULL. The update also locks the
-	// row, so two moves of one candidate can't both pass the check
+	// row, so two moves of one candidate can't both pass the check. The decision rules are checked again here, on the
+	// locked row: no move while Rejected, and Offer or Hired only while Selected
 	private String updatestage = "update candidate set stage=:tostage where candidateid=:candidateid and isactive=1 "
-			+ "and stage <=> :expected";
+			+ "and stage <=> :expected and (candidatestatus is null or upper(trim(candidatestatus))<>'R') "
+			+ "and (:needsselected=0 or upper(trim(candidatestatus))='S')";
 	static final String SAVESTAGE = "insert into candidate_stage (candidateid, fromstage, tostage, note, changedby, "
 			+ "changedat) values (:candidateid, :expected, :tostage, :note, :userid, now())";
 	private String stagesbycandidate = "select s.stagekey, s.candidateid, s.fromstage, s.tostage, s.note, s.changedby, "
@@ -65,8 +68,9 @@ public class StageDaoImpl implements StageDao {
 	public boolean moveStage(String candidateid, String expected, String tostage, String note, String userid) {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("candidateid", candidateid);
-		params.addValue("expected", expected == null || expected.isEmpty() ? null : expected);
+		params.addValue("expected", expected);
 		params.addValue("tostage", tostage);
+		params.addValue("needsselected", HiringStage.of(tostage).needsSelected() ? 1 : 0);
 		params.addValue("note", note == null || note.isBlank() ? null : note.trim());
 		params.addValue("userid", userid);
 		Boolean moved = transactions().execute(status -> {

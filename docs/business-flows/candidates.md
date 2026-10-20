@@ -120,8 +120,13 @@ Owner decision: the standard stages, linked to the decision.
   - Nothing moves while the decision is Rejected (the form is disabled: "change the decision first").
   - Hired and Withdrawn may be left again, for mistakes.
   - The note is optional, English only, at most 500 characters.
-  - The form sends the stage it showed; if the stage changed meanwhile the move is refused ("changed meanwhile"), and the update itself is guarded (`stage <=> :expected`), so two moves can't both pass.
-- **Automatic moves:** Selected moves Applied, Screening or Interview to Offer ([evaluation.md](evaluation.md)); scheduling a new interview moves Applied or Screening to Interview ([schedule.md](schedule.md)).
+  - The form sends the stage it showed (a post without it is refused). If the stage changed meanwhile the move is refused ("changed meanwhile").
+  - The update itself is guarded on the locked row: the stage (`stage <=> :expected`) and the decision (not Rejected; Selected for Offer and Hired). So neither two moves nor a move and a decision change can both pass.
+- **Automatic moves:**
+  - Selected moves Applied, Screening or Interview to Offer.
+  - A later On hold or Rejected moves Offer or Hired back to Interview, so Offer and Hired always mean Selected.
+  - Both happen in the decision's transaction, on its locked row ([evaluation.md](evaluation.md)).
+  - Scheduling a new interview moves Applied or Screening to Interview ([schedule.md](schedule.md)).
 - **History:** every change, by hand or automatic, is a `candidate_stage` row (from, to, note, who, when) and a `STAGE_CHANGED` activity entry with the codes only (e.g. `OFFER>HIRED`).
 - **Elsewhere:**
   - Candidates list: a Stage column (sorted in pipeline order) and a Stage filter.

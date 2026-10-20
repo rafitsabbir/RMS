@@ -51,10 +51,23 @@ class StageDaoImplTest extends MySqlContainerSupport {
 		assertThat(dao.moveStage("C9", null, "SCREENING", null, "U3")).isFalse();
 		assertThat(dao.getStages("C1")).hasSize(2);
 
-		// A NULL stage matches an expected null or empty one
-		jdbcTemplate.update("update candidate set stage=null where candidateid='C2'");
-		assertThat(dao.moveStage("C2", "", "SCREENING", "", "U3")).isTrue();
+		// A NULL stage matches an expected null (the service passes the stored value on unchanged)
+		jdbcTemplate.update("update candidate set stage=null, candidatestatus=null where candidateid='C2'");
+		assertThat(dao.moveStage("C2", null, "SCREENING", "", "U3")).isTrue();
 		assertThat(dao.getStages("C2").get(0).getNote()).isNull();
+	}
+
+	@Test
+	void theDecisionIsCheckedAgainOnTheLockedRow() {
+		// C2 is Rejected: no move at all, even with the right stage
+		assertThat(dao.moveStage("C2", "INTERVIEW", "WITHDRAWN", null, "U3")).isFalse();
+		// On hold: a stage before Offer may change, Offer and Hired may not
+		jdbcTemplate.update("update candidate set candidatestatus='h' where candidateid='C2'");
+		assertThat(dao.moveStage("C2", "INTERVIEW", "OFFER", null, "U3")).isFalse();
+		assertThat(dao.moveStage("C2", "INTERVIEW", "SCREENING", null, "U3")).isTrue();
+		// Selected (any case): Offer and Hired may
+		jdbcTemplate.update("update candidate set candidatestatus='s' where candidateid='C2'");
+		assertThat(dao.moveStage("C2", "SCREENING", "OFFER", null, "U3")).isTrue();
 	}
 
 	@Test

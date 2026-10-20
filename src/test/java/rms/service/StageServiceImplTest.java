@@ -75,13 +75,15 @@ class StageServiceImplTest {
 
 	@Test
 	void badInputIsRefused() {
-		assertThat(service.moveStage("C1", null, "REJECTED", null, "U3").message()).isEqualTo("Please choose a stage.");
-		assertThat(service.moveStage("C9", null, "SCREENING", null, "U3").message()).contains("no longer exists");
+		assertThat(service.moveStage("C1", "APPLIED", "REJECTED", null, "U3").message()).isEqualTo("Please choose a stage.");
+		assertThat(service.moveStage("C9", "APPLIED", "SCREENING", null, "U3").message()).contains("no longer exists");
 
 		given("C1", null, "APPLIED");
 		assertThat(service.moveStage("C1", "APPLIED", "APPLIED", null, "U3").message()).contains("already at Applied");
 		assertThat(service.moveStage("C1", "APPLIED", "SCREENING", "Café chat", "U3").message()).contains("English");
 		assertThat(service.moveStage("C1", "APPLIED", "SCREENING", "x".repeat(501), "U3").message()).contains("500");
+		// A post without the form's stage can't be checked for staleness
+		assertThat(service.moveStage("C1", " ", "SCREENING", null, "U3").message()).contains("reload");
 		verify(stagedao, never()).moveStage(anyString(), any(), anyString(), any(), anyString());
 	}
 
@@ -95,7 +97,8 @@ class StageServiceImplTest {
 		// Or between the read and the update (the DAO's guard)
 		given("C1", null, "APPLIED");
 		when(stagedao.moveStage("C1", "APPLIED", "SCREENING", "", "U3")).thenReturn(false);
-		assertThat(service.moveStage("C1", "APPLIED", "SCREENING", null, "U3").message()).contains("changed meanwhile");
+		assertThat(service.moveStage("C1", "APPLIED", "SCREENING", null, "U3").message())
+				.contains("stage or the decision was changed meanwhile");
 		verify(activityservice, never()).record(anyString(), anyString(), anyString(), anyString(), anyString());
 	}
 
