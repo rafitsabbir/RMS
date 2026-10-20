@@ -39,10 +39,12 @@ import rms.model.CandidateFilter;
 import rms.model.CandidateInfo;
 import rms.model.DocumentInfo;
 import rms.model.DocumentType;
+import rms.model.HiringStage;
 import rms.model.JobInfo;
 import rms.model.Role;
 import rms.model.LanguageInfo;
 import rms.model.PositionInfo;
+import rms.model.StageInfo;
 import rms.service.ActivityService;
 import rms.service.AssignmentService;
 import rms.service.CandidateService;
@@ -50,6 +52,7 @@ import rms.service.DocumentService;
 import rms.service.JobService;
 import rms.service.LanguageService;
 import rms.service.PositionService;
+import rms.service.StageService;
 
 /** Characterization tests: pin the candidate management behaviour (G1). */
 @ExtendWith(MockitoExtension.class)
@@ -72,6 +75,9 @@ class CandidateControllerTest {
 
 	@Mock
 	AssignmentService assignmentservice;
+
+	@Mock
+	StageService stageservice;
 
 	MockHttpSession staff = EvaluationControllerTest.session("U1", Role.SUPER_ADMIN);
 
@@ -716,5 +722,35 @@ class CandidateControllerTest {
 				.andExpect(model().attribute("duplicates", List.of(lookalike)));
 
 		verify(candidateservice, never()).updateCandidate(any(CandidateInfo.class));
+	}
+
+	@Test
+	void theProfileShowsThePipelineAndHrGetsTheMoveForm() throws Exception {
+		when(candidateservice.findCandidateById("C1")).thenReturn(candidate("C1", 1, 1));
+		List<StageInfo> history = List.of(new StageInfo());
+		when(stageservice.getStages("C1")).thenReturn(history);
+
+		mockMvc.perform(get("/viewcandidate").session(staff).param("candidateid", "C1"))
+				.andExpect(model().attribute("pipeline", HiringStage.PIPELINE))
+				.andExpect(model().attribute("stages", history))
+				.andExpect(model().attributeExists("stagelist"));
+
+		// A Hiring Manager reads the history, without the form
+		mockMvc.perform(get("/viewcandidate").session(EvaluationControllerTest.session("U4", Role.HIRING_MANAGER))
+				.param("candidateid", "C1"))
+				.andExpect(model().attribute("stages", history))
+				.andExpect(model().attributeDoesNotExist("stagelist"));
+	}
+
+	@Test
+	void anInterviewerSeesTheStageButNotTheHistoryOrForm() throws Exception {
+		when(candidateservice.findCandidateById("C1")).thenReturn(candidate("C1", 1, 1));
+		when(assignmentservice.isAssigned("C1", "U2")).thenReturn(true);
+
+		mockMvc.perform(get("/viewcandidate").session(EvaluationControllerTest.session("U2", Role.INTERVIEWER))
+				.param("candidateid", "C1"))
+				.andExpect(model().attribute("pipeline", HiringStage.PIPELINE))
+				.andExpect(model().attributeDoesNotExist("stages", "stagelist"));
+		verify(stageservice, never()).getStages(any());
 	}
 }

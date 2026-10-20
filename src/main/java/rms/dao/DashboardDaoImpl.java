@@ -20,6 +20,8 @@ public class DashboardDaoImpl implements DashboardDao {
 			+ "and (upper(trim(a.role))='INTERVIEWER' or (a.role is null and upper(a.isinterviewer)='Y')))";
 	// Not Selected or Rejected (rms.model.DecisionStatus.locks): On hold, no decision and unknown texts stay open
 	private String undecided = "(c.candidatestatus is null or upper(trim(c.candidatestatus)) not in ('S','R'))";
+	private String bystage = "select upper(trim(stage)) as code, count(*) as total from candidate "
+			+ "where isactive=1 group by upper(trim(stage))";
 	private String bystatus = "select upper(trim(candidatestatus)) as code, count(*) as total from candidate "
 			+ "where isactive=1 group by upper(trim(candidatestatus))";
 	// count(distinct ...): a double-clicked assignment is two rows, but one pending evaluation
@@ -51,9 +53,18 @@ public class DashboardDaoImpl implements DashboardDao {
 	}
 
 	@Override
+	public Map<String, Integer> countCandidatesByStage() {
+		return countByCode(bystage);
+	}
+
+	@Override
 	public Map<String, Integer> countCandidatesByStatus() {
+		return countByCode(bystatus);
+	}
+
+	private Map<String, Integer> countByCode(String sql) {
 		Map<String, Integer> counts = new HashMap<String, Integer>();
-		List<Map<String, Object>> rows = namedParameterJdbcTemplate.queryForList(bystatus,
+		List<Map<String, Object>> rows = namedParameterJdbcTemplate.queryForList(sql,
 				new HashMap<String, Object>());
 		for (Map<String, Object> row : rows) {
 			Object code = row.get("code");

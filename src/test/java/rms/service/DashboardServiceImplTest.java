@@ -1,6 +1,7 @@
 package rms.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -18,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import rms.dao.DashboardDao;
 import rms.dao.ScheduleDao;
 import rms.model.DashboardInfo;
+import rms.model.HiringStage;
 import rms.model.Role;
 import rms.model.ScheduleInfo;
 
@@ -44,6 +46,7 @@ class DashboardServiceImplTest {
 	void staffGetEveryFigure() {
 		List<ScheduleInfo> next = List.of(new ScheduleInfo());
 		when(dashboarddao.countCandidatesByStatus()).thenReturn(Map.of("S", 3, "R", 2, "H", 1, "", 4));
+		when(dashboarddao.countCandidatesByStage()).thenReturn(Map.of("", 2, "APPLIED", 3, "OFFER", 4, "ODD", 1));
 		when(dashboarddao.countPendingEvaluations(null)).thenReturn(7);
 		when(scheduledao.countUpcoming(null)).thenReturn(5);
 		when(scheduledao.getUpcoming(null, DashboardServiceImpl.NEXT_INTERVIEWS)).thenReturn(next);
@@ -66,6 +69,10 @@ class DashboardServiceImplTest {
 			assertThat(dashboard.getOpenjobs()).isEqualTo(2);
 			assertThat(dashboard.getCandidateswithoutcv()).isEqualTo(6);
 			assertThat(dashboard.getCandidateswithinactiveinterviewer()).isEqualTo(1);
+			// Every stage in pipeline order; NULL ("") and unknown texts count as Applied
+			assertThat(dashboard.getStagecounts()).containsExactly(entry(HiringStage.APPLIED, 6),
+					entry(HiringStage.SCREENING, 0), entry(HiringStage.INTERVIEW, 0), entry(HiringStage.OFFER, 4),
+					entry(HiringStage.HIRED, 0), entry(HiringStage.WITHDRAWN, 0));
 		}
 	}
 

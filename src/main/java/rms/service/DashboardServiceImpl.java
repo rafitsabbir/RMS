@@ -9,6 +9,7 @@ import rms.dao.DashboardDao;
 import rms.dao.ScheduleDao;
 import rms.model.DashboardInfo;
 import rms.model.DecisionStatus;
+import rms.model.HiringStage;
 import rms.model.Role;
 
 /** The home page dashboard (Phase 4): counts only, read from the DAOs on every visit. */
@@ -59,6 +60,13 @@ public class DashboardServiceImpl implements DashboardService {
 				// No status, or one RMS doesn't know, shows as Pending everywhere (DecisionStatus.labelOf)
 				all.setPending(all.getPending() + count);
 			}
+		}
+		// Every stage, in pipeline order; NULL and unknown texts count as Applied (HiringStage.of)
+		for (HiringStage stage : HiringStage.values()) {
+			all.getStagecounts().put(stage, 0);
+		}
+		for (Map.Entry<String, Integer> entry : dashboarddao.countCandidatesByStage().entrySet()) {
+			all.getStagecounts().merge(HiringStage.of(entry.getKey()), entry.getValue(), Integer::sum);
 		}
 		all.setPendingevaluations(dashboarddao.countPendingEvaluations(null));
 		all.setUpcominginterviews(scheduledao.countUpcoming(null));

@@ -142,4 +142,14 @@ class DashboardDaoImplTest extends MySqlContainerSupport {
 				.extracting(HiringGroup::getLabel, HiringGroup::getTotal)
 				.containsExactly(tuple("Ivan Interviewer (U2)", dao.countPendingEvaluations(null)));
 	}
+
+	@Test
+	void candidatesAreCountedByStage() {
+		// Seed: C1 OFFER, C2 INTERVIEW
+		assertThat(dao.countCandidatesByStage()).containsOnly(java.util.Map.entry("OFFER", 1), java.util.Map.entry("INTERVIEW", 1));
+
+		jdbcTemplate.update("update candidate set stage=' interview' where candidateid='C1'");
+		jdbcTemplate.update("update candidate set stage=null where candidateid='C2'");
+		assertThat(dao.countCandidatesByStage()).containsOnly(java.util.Map.entry("INTERVIEW", 1), java.util.Map.entry("", 1));
+	}
 }

@@ -28,6 +28,13 @@
 		<div class="col-6 col-md-3"><a class="card rms-card rms-stat" href="${base}adminviewmarks"><div class="card-body"><div class="rms-stat-value">${dashboard.onhold}</div><div class="rms-stat-label">On hold</div></div></a></div>
 		<div class="col-6 col-md-3"><a class="card rms-card rms-stat" href="${base}adminviewmarks"><div class="card-body"><div class="rms-stat-value">${dashboard.pending}</div><div class="rms-stat-label">Pending</div></div></a></div>
 	</div>
+	<h2 class="rms-section-title">Candidates by stage</h2>
+	<div class="row g-3 mb-4">
+		<c:forEach items="${dashboard.stagecounts}" var="entry">
+		<c:url value="/viewcandidatelist" var="stageURL"><c:param name="stage" value="${entry.key.name}" /></c:url>
+		<div class="col-6 col-md-4 col-xl-2"><a class="card rms-card rms-stat" href="<c:out value='${stageURL}'/>"><div class="card-body"><div class="rms-stat-value">${entry.value}</div><div class="rms-stat-label"><c:out value="${entry.key.label}"/></div></div></a></div>
+		</c:forEach>
+	</div>
 	<h2 class="rms-section-title">Needs attention</h2>
 	<div class="row g-3 mb-4">
 		<div class="col-6 col-lg"><a class="card rms-card rms-stat" href="${base}viewcandidatelist"><div class="card-body"><div class="rms-stat-value">${dashboard.pendingevaluations}</div><div class="rms-stat-label">Evaluations still to do</div></div></a></div>

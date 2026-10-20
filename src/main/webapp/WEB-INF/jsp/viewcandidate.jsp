@@ -39,13 +39,22 @@
 		<div class="card-body">
 			<h2 id="filter-heading" class="h6 mb-3">Filter</h2>
 			<div class="row g-3 align-items-end">
-				<div class="col-sm-6 col-lg-3">
+				<div class="col-sm-6 col-lg-4">
 					<label for="f-jobkey" class="form-label">Job</label>
 					<select name="jobkey" id="f-jobkey" class="form-select">
 						<option value="0">Any</option>
 						<option value="-1" ${filter.jobkey == -1 ? 'selected' : ''}>No job</option>
 						<c:forEach items="${joblist}" var="job">
 						<option value="${job.jobkey}" ${filter.jobkey == job.jobkey ? 'selected' : ''}><c:out value="${job.label}"/></option>
+						</c:forEach>
+					</select>
+				</div>
+				<div class="col-sm-6 col-lg-2">
+					<label for="f-stage" class="form-label">Stage</label>
+					<select name="stage" id="f-stage" class="form-select">
+						<option value="">Any</option>
+						<c:forEach items="${stagelist}" var="s">
+						<option value="${s.name}" ${filter.stage eq s.name ? 'selected' : ''}><c:out value="${s.label}"/></option>
 						</c:forEach>
 					</select>
 				</div>
@@ -114,6 +123,7 @@
 						<th>Position</th>
 						<th>Language</th>
 						<th>Documents</th>
+						<th>Stage</th>
 						<th>Status</th>
 						<c:if test="${canedit}">
 						<th class="rms-col-actions text-end" data-orderable="false" data-searchable="false">Actions</th>
@@ -140,6 +150,8 @@
 							</c:choose>
 							&middot; ${candidate.slotcount}/${candidate.slottypes}
 						</td>
+						<%-- Sorted in pipeline order, not by name --%>
+						<td data-order="${candidate.hiringstage.ordinal()}"><c:out value="${candidate.stagelabel}"/></td>
 						<td><rms:status value="${candidate.candidatestatus}" icons="${icons}"/></td>
 						<c:if test="${canedit}">
 						<td class="text-end text-nowrap">

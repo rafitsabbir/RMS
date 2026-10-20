@@ -110,6 +110,7 @@ import rms.service.MarksService;
 import rms.service.PositionService;
 import rms.service.ActivityService;
 import rms.service.ScheduleService;
+import rms.service.StageService;
 import rms.service.RmsUserDetails;
 import rms.service.UserService;
 
@@ -276,6 +277,9 @@ class SecurityConfigTest {
 	@MockitoBean
 	HiringReportService hiringreportservice;
 
+	@MockitoBean
+	StageService stageservice;
+
 	MockMvc mockMvc;
 
 	@BeforeEach
@@ -344,6 +348,7 @@ class SecurityConfigTest {
 				new Page(post("/assigninterviewer").with(csrf()).param("candidateid", "C1"), HR_AND_UP),
 				new Page(post("/unassigninterviewer").with(csrf()).param("candidateid", "C1"), HR_AND_UP),
 				new Page(post("/savedecision").with(csrf()), HR_AND_UP),
+				new Page(post("/savestage").with(csrf()).param("candidateid", "C1"), HR_AND_UP),
 				new Page(get("/myevaluations"), INTERVIEWER_ONLY),
 				new Page(get("/evaluate").param("candidateid", "C1"), INTERVIEWER_ONLY),
 				new Page(post("/saveevaluation").with(csrf()), INTERVIEWER_ONLY),

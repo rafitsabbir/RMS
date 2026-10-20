@@ -85,6 +85,8 @@ public class ReportController {
 		time(csv, "Selected", report.getToselected());
 		time(csv, "Rejected", report.getTorejected());
 		csv.row();
+		groups(csv, "Stage", report.getBystage());
+		csv.row();
 		groups(csv, "Job", report.getByjob());
 		csv.row();
 		groups(csv, "Source", report.getBysource());
@@ -112,7 +114,7 @@ public class ReportController {
 	/** The Candidates list's filters, so its "Download CSV" exports what the list shows. */
 	@InitBinder("filter")
 	void bindFilterFieldsOnly(WebDataBinder binder) {
-		binder.setAllowedFields("jobkey", "status", "source", "appliedfrom", "appliedto", "nocv", "notevaluated");
+		binder.setAllowedFields("jobkey", "stage", "status", "source", "appliedfrom", "appliedto", "nocv", "notevaluated");
 	}
 
 	/** Every active candidate, or with the list's filters only those that pass (a date that isn't one is ignored). */
@@ -120,10 +122,10 @@ public class ReportController {
 	public ResponseEntity<byte[]> candidates(@ModelAttribute("filter") CandidateFilter filter, BindingResult binding,
 			HttpSession session) {
 		CsvWriter csv = new CsvWriter().row("Candidate ID", "First name", "Last name", "Position", "Language", "E-mail",
-				"Phone", "Source", "Applied date", "Status", "Decision date", "Decided by", "Reason for decision");
+				"Phone", "Source", "Applied date", "Stage", "Status", "Decision date", "Decided by", "Reason for decision");
 		for (CandidateInfo c : candidateservice.getCandidates(filter)) {
 			csv.row(c.getCandidateid(), c.getFirstname(), c.getLastname(), c.getPositionname(), c.getLanguagename(),
-					c.getEmail(), c.getPhone(), c.getSourcelabel(), c.getApplieddate(), c.getStatuslabel(),
+					c.getEmail(), c.getPhone(), c.getSourcelabel(), c.getApplieddate(), c.getStagelabel(), c.getStatuslabel(),
 					c.getDecisiondate(), c.getDecidedbyname(), c.getDecisionreason());
 		}
 		return download(csv, "candidates", "CANDIDATES", filter.isActive() ? "filtered" : null, session);
