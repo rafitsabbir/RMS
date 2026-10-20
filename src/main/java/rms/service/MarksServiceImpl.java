@@ -26,7 +26,7 @@ public class MarksServiceImpl implements MarksService {
 
 	ActivityService activityservice;
 
-	
+	@Autowired
 	public void setActivityService(ActivityService activityservice) {
 		this.activityservice = activityservice;
 	}

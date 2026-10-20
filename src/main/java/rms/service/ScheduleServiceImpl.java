@@ -24,7 +24,7 @@ public class ScheduleServiceImpl implements ScheduleService {
 
 	ActivityService activityservice;
 
-	
+	@Autowired
 	public void setActivityService(ActivityService activityservice) {
 		this.activityservice = activityservice;
 	}

@@ -216,7 +216,7 @@ public class DocumentServiceImpl implements DocumentService {
 		}
 
 		if (purged > 0) {
-			activityservice.record(userid, "DOCUMENTS_PURGED", "CANDIDATE", candidateid, purged + " files");
+			activityservice.record(userid, "DOCUMENTS_PURGED", "CANDIDATE", candidateid, purged + " " + files(purged));
 		}
 		log.info("Documents of candidate {} deleted permanently by {}: {}", candidateid, userid, purged);
 		if (failed > 0) {
