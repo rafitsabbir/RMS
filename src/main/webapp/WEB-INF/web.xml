@@ -22,4 +22,25 @@
 		</cookie-config>
 		<tracking-mode>COOKIE</tracking-mode>
 	</session-config>
+	<!-- RMS's own error page for every error the container answers: Tomcat's report shows its version and is
+		unstyled under the Content-Security-Policy (rms.config.SecurityConfig) -->
+	<error-page>
+		<error-code>403</error-code>
+		<location>/WEB-INF/jsp/error.jsp</location>
+	</error-page>
+	<error-page>
+		<error-code>404</error-code>
+		<location>/WEB-INF/jsp/error.jsp</location>
+	</error-page>
+	<error-page>
+		<error-code>405</error-code>
+		<location>/WEB-INF/jsp/error.jsp</location>
+	</error-page>
+	<error-page>
+		<error-code>503</error-code>
+		<location>/WEB-INF/jsp/error.jsp</location>
+	</error-page>
+	<error-page>
+		<location>/WEB-INF/jsp/error.jsp</location>
+	</error-page>
 </web-app>

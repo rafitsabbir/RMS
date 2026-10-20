@@ -67,6 +67,26 @@ class SmokeTest {
 	}
 
 	@Test
+	void healthCheckAnswersOk() throws IOException {
+		HttpURLConnection connection = open("/health", null);
+
+		// The database answers too (HealthController); nothing else is said
+		assertThat(connection.getResponseCode()).isEqualTo(200);
+		assertThat(read(connection)).isEqualTo("ok");
+	}
+
+	@Test
+	void errorsShowRmsOwnPage() throws IOException {
+		// A missing static file: 404 from the container, without a login
+		HttpURLConnection missing = open("/resources/css/no-such-file.css", null);
+		assertThat(missing.getResponseCode()).isEqualTo(404);
+		String body = readError(missing);
+		assertThat(body).contains("Page not found").contains("resources/css/rms.css");
+		// Not Tomcat's report: no server version, no inline style the CSP would block
+		assertThat(body).doesNotContain("Apache Tomcat").doesNotContain("<style");
+	}
+
+	@Test
 	void loginPageCarriesNoSessionIdInUrls() throws IOException {
 		HttpURLConnection connection = open("/login", null);
 
@@ -415,7 +435,15 @@ class SmokeTest {
 	}
 
 	private static String read(HttpURLConnection connection) throws IOException {
-		InputStream in = connection.getInputStream();
+		return read(connection.getInputStream());
+	}
+
+	/** The body of an error answer (4xx or 5xx), which HttpURLConnection keeps apart. */
+	private static String readError(HttpURLConnection connection) throws IOException {
+		return read(connection.getErrorStream());
+	}
+
+	private static String read(InputStream in) throws IOException {
 		try {
 			ByteArrayOutputStream buffer = new ByteArrayOutputStream();
 			byte[] chunk = new byte[4096];

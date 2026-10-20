@@ -37,7 +37,7 @@ services:
         condition: service_healthy
     environment:
       # Encrypted, as in production (deploy/tomcat/rms.xml): MySQL 8 sends a new account's password only over TLS
-      RMS_DB_URL: jdbc:mysql://mysql:3306/rms_local?sslMode=REQUIRED
+      RMS_DB_URL: jdbc:mysql://mysql:3306/rms_local?sslMode=REQUIRED&connectTimeout=5000&socketTimeout=60000
       RMS_DB_USER: rms
       RMS_DB_PASSWORD: ${RMS_DB_PASSWORD:?Set RMS_DB_PASSWORD in your shell first}
     ports:

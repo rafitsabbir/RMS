@@ -19,6 +19,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.head;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
@@ -31,6 +32,8 @@ import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+
+import jakarta.servlet.DispatcherType;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -76,6 +79,7 @@ import rms.controller.AssignmentController;
 import rms.controller.CandidateController;
 import rms.controller.DocumentController;
 import rms.controller.EvaluationController;
+import rms.controller.HealthController;
 import rms.controller.JobController;
 import rms.controller.LanguageController;
 import rms.controller.LoginController;
@@ -96,6 +100,7 @@ import rms.service.CandidateService;
 import rms.service.DashboardService;
 import rms.service.DecisionService;
 import rms.service.DocumentService;
+import rms.service.HealthService;
 import rms.service.JobService;
 import rms.service.LanguageService;
 import rms.service.LoginServiceImpl;
@@ -180,6 +185,11 @@ class SecurityConfigTest {
 		}
 
 		@Bean
+		HealthController healthcontroller() {
+			return new HealthController();
+		}
+
+		@Bean
 		ActivityController activitycontroller() {
 			return new ActivityController();
 		}
@@ -257,6 +267,9 @@ class SecurityConfigTest {
 
 	@MockitoBean
 	UserService userservice;
+
+	@MockitoBean
+	HealthService healthservice;
 
 	MockMvc mockMvc;
 
@@ -560,6 +573,34 @@ class SecurityConfigTest {
 		} finally {
 			Files.deleteIfExists(file);
 		}
+	}
+
+	@Test
+	void theHealthCheckIsPublicAndSaysOnlyOkOrUnavailable() throws Exception {
+		when(healthservice.isDatabaseUp()).thenReturn(true);
+		mockMvc.perform(get("/health"))
+				.andExpect(status().isOk())
+				.andExpect(content().string("ok"))
+				.andExpect(header().string("Cache-Control", containsString("no-store")));
+
+		when(healthservice.isDatabaseUp()).thenReturn(false);
+		mockMvc.perform(get("/health")).andExpect(status().isServiceUnavailable())
+				.andExpect(content().string("unavailable"));
+
+		// Only GET: a post is still refused (no CSRF token), as everywhere
+		mockMvc.perform(post("/health")).andExpect(status().isForbidden());
+	}
+
+	@Test
+	void errorDispatchesPassWithoutALogin() throws Exception {
+		// The container shows its error page (web.xml, error.jsp) in an ERROR dispatch, which the access rules let
+		// through: without a login it answers (here 404, as MockMvc renders no JSP) instead of sending the visitor
+		// to the login page. SmokeTest.errorsShowRmsOwnPage checks the page itself on Tomcat
+		mockMvc.perform(get("/nosuchpage").with(request -> {
+			request.setDispatcherType(DispatcherType.ERROR);
+			return request;
+		})).andExpect(status().isNotFound());
+		mockMvc.perform(get("/nosuchpage")).andExpect(redirectsToLogin());
 	}
 
 	@Test

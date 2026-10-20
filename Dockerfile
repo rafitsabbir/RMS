@@ -10,14 +10,18 @@ WORKDIR /usr/local/tomcat
 
 # Everything Tomcat runs (conf, lib, the unpacked application) stays root-owned and read-only to the app user;
 # it writes only logs, temp, work and the documents. Auto-deploy is off and the shutdown port is closed, so a
-# file written at run time can't become code or change the DataSource.
+# file written at run time can't become code or change the DataSource. Tomcat's own error reports (outside the
+# application, which has error.jsp) show no details and no server version.
 RUN groupadd --system --gid 10001 rms \
 	&& useradd --system --uid 10001 --gid rms --home-dir /nonexistent --shell /usr/sbin/nologin rms \
 	&& rm -rf webapps/* \
 	&& mkdir -p conf/Catalina/localhost /var/rms/docs \
 	&& chown -R rms:rms logs temp work /var/rms/docs \
-	&& sed -i -e 's/autoDeploy="true"/autoDeploy="false"/' -e 's/<Server port="8005"/<Server port="-1"/' conf/server.xml \
+	&& sed -i -e 's/autoDeploy="true"/autoDeploy="false"/' -e 's/<Server port="8005"/<Server port="-1"/' \
+		-e 's#autoDeploy="false">#autoDeploy="false">\n        <Valve className="org.apache.catalina.valves.ErrorReportValve" showReport="false" showServerInfo="false"/>#' \
+		conf/server.xml \
 	&& grep -q 'autoDeploy="false"' conf/server.xml && grep -q '<Server port="-1"' conf/server.xml \
+	&& grep -q 'showServerInfo="false"' conf/server.xml \
 	&& printf '%s\n' '# ${...} in the context file come from the environment (deploy/tomcat/rms.xml)' \
 		'CATALINA_OPTS="$CATALINA_OPTS -Dorg.apache.tomcat.util.digester.PROPERTY_SOURCE=org.apache.tomcat.util.digester.EnvironmentPropertySource -XX:MaxRAMPercentage=75"' \
 		> bin/setenv.sh
@@ -31,6 +35,6 @@ COPY target/rmsv2-1.0.1-SNAPSHOT/ webapps/rms/
 USER 10001:10001
 VOLUME /var/rms/docs
 EXPOSE 8080
-# /login answers without the database, so this shows Tomcat and the application are up, not the DataSource
+# /health answers 200 only when the application and its database answer (HealthController)
 HEALTHCHECK --interval=30s --start-interval=5s --timeout=5s --start-period=60s --retries=3 \
-	CMD curl -fsS -o /dev/null http://localhost:8080/rms/login || exit 1
+	CMD curl -fsS -o /dev/null http://localhost:8080/rms/health || exit 1

@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
@@ -125,6 +126,8 @@ public class SecurityConfig {
 						.dispatcherTypeMatchers(DispatcherType.FORWARD, DispatcherType.INCLUDE, DispatcherType.ERROR)
 						.permitAll()
 						.requestMatchers("/login", "/welcome").permitAll()
+						// The health check for monitoring: only "ok" or "unavailable" (HealthController)
+						.requestMatchers(HttpMethod.GET, "/health").permitAll()
 						.requestMatchers("/", "/home", "/changepassword", "/savepassword").authenticated()
 						.requestMatchers(USER_ADMIN_PAGES).hasRole(SUPER_ADMIN)
 						.requestMatchers(SUPER_ADMIN_PAGES).hasRole(SUPER_ADMIN)
