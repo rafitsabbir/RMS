@@ -62,6 +62,17 @@ public class CandidateDaoImpl implements CandidateDao {
 	private String updatecandidate = "update candidate set firstname=:firstname, lastname=:lastname, "
 			+ "positionkey=:positionkey, languagekey=:languagekey, email=:email, phone=:phone, source=:source, "
 			+ "applieddate=:applieddate, jobkey=:jobkey where candidateid=:candidateid and isactive=1";
+	// Possible duplicates among the active candidates (another one, when editing): the same e-mail (any case), the
+	// same phone digits, or the same first and last name (any case). A NULL parameter matches nothing. Phone digits
+	// use REGEXP_REPLACE (MySQL 8.0+, which Connector/J 9.7 needs anyway)
+	private String sameemail = ":email is not null and lower(c.email)=lower(:email)";
+	private String samephone = ":phone is not null and regexp_replace(c.phone, '[^0-9]', '')=:phone";
+	private String samename = "lower(c.firstname)=lower(:firstname) and lower(c.lastname)=lower(:lastname)";
+	private String possibleduplicates = "select c.candidateid, c.firstname, c.lastname, concat_ws(', ', "
+			+ "case when " + sameemail + " then 'same e-mail' end, case when " + samephone + " then 'same phone' end, "
+			+ "case when " + samename + " then 'same name' end) as duplicatereason from candidate c "
+			+ "where c.isactive=1 and (:candidateid is null or c.candidateid<>:candidateid) and ((" + sameemail
+			+ ") or (" + samephone + ") or (" + samename + ")) order by length(c.candidateid), c.candidateid limit 10";
 	// Soft delete (owner decision 2026-10-02): the row and its marks stay
 	private String deletecandidate = "update candidate set isactive=0 where candidateid=:candidateid";
 
@@ -161,6 +172,24 @@ public class CandidateDaoImpl implements CandidateDao {
 		List<CandidateInfo> list = namedParameterJdbcTemplate.query(findcandidatebyid, paramMap,
 				new CandidateMapper());
 		return list.isEmpty() ? null : list.get(0);
+	}
+
+	@Override
+	public List<CandidateInfo> findPossibleDuplicates(CandidateInfo candidateinfo, String phonedigits) {
+		Map<String, Object> paramMap = new HashMap<String, Object>();
+		paramMap.put("candidateid", blankToNull(candidateinfo.getCandidateid()));
+		paramMap.put("firstname", candidateinfo.getFirstname().trim());
+		paramMap.put("lastname", candidateinfo.getLastname().trim());
+		paramMap.put("email", blankToNull(candidateinfo.getEmail()));
+		paramMap.put("phone", phonedigits);
+		return namedParameterJdbcTemplate.query(possibleduplicates, paramMap, (rs, rowNum) -> {
+			CandidateInfo candidate = new CandidateInfo();
+			candidate.setCandidateid(rs.getString("candidateid"));
+			candidate.setFirstname(rs.getString("firstname"));
+			candidate.setLastname(rs.getString("lastname"));
+			candidate.setDuplicatereason(rs.getString("duplicatereason"));
+			return candidate;
+		});
 	}
 
 	@Override

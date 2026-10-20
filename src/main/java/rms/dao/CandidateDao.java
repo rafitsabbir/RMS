@@ -18,6 +18,12 @@ public interface CandidateDao {
 
 	public CandidateInfo findCandidateById(String candidateid);
 
+	/**
+	 * Up to 10 other active candidates that may be the same person: the same e-mail (any case), the same phone
+	 * digits (phonedigits; null to skip) or the same first and last name (any case), with the reason.
+	 */
+	public List<CandidateInfo> findPossibleDuplicates(CandidateInfo candidateinfo, String phonedigits);
+
 	/** Soft delete: sets isactive=0; the row and its marks stay. */
 	public void deleteCandidate(String candidateid);
 }

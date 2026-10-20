@@ -96,6 +96,7 @@ public class CandidateController {
 	public ModelAndView save(
 			@ModelAttribute("candidateinfo") CandidateInfo candidateinfo, BindingResult binding,
 			@RequestParam(value = "update", defaultValue = "false") boolean update,
+			@RequestParam(value = "confirmduplicate", defaultValue = "false") boolean confirmduplicate,
 			HttpSession session) {
 
 		// A new candidate's ID is generated on save; an ID posted with it is ignored
@@ -119,13 +120,26 @@ public class CandidateController {
 			return form(candidateinfo, stored, errorMessage);
 		}
 
+		// Possible duplicates: a warning with the matches, and Save anyway. When editing, only if the e-mail, phone or
+		// name changed, so a known look-alike doesn't warn on every edit
+		List<CandidateInfo> duplicates = stored == null || identityChanged(candidateinfo, stored)
+				? candidateservice.findPossibleDuplicates(candidateinfo) : List.of();
+		if (!duplicates.isEmpty() && !confirmduplicate) {
+			ModelAndView mv = form(candidateinfo, stored, null);
+			mv.addObject("duplicates", duplicates);
+			return mv;
+		}
+		// Saved anyway: the log names the look-alikes by ID only
+		String detail = duplicates.isEmpty() ? null : "possible duplicate of "
+				+ String.join(", ", duplicates.stream().map(CandidateInfo::getCandidateid).toList());
+
 		String userid = CurrentUser.userid(session);
 		if (update) {
 			candidateservice.updateCandidate(candidateinfo);
-			activityservice.record(userid, "CANDIDATE_CHANGED", "CANDIDATE", candidateinfo.getCandidateid(), null);
+			activityservice.record(userid, "CANDIDATE_CHANGED", "CANDIDATE", candidateinfo.getCandidateid(), detail);
 		} else {
 			String candidateid = candidateservice.addCandidate(candidateinfo);
-			activityservice.record(userid, "CANDIDATE_ADDED", "CANDIDATE", candidateid, null);
+			activityservice.record(userid, "CANDIDATE_ADDED", "CANDIDATE", candidateid, detail);
 		}
 
 		return new ModelAndView("redirect:/viewcandidatelist");
@@ -352,6 +366,16 @@ public class CandidateController {
 			mv.addObject("errorMessage", errorMessage);
 		}
 		return mv;
+	}
+
+	/** Whether the e-mail, phone or name differs from the stored candidate's (case and spaces aside). */
+	private static boolean identityChanged(CandidateInfo entered, CandidateInfo stored) {
+		return !same(entered.getEmail(), stored.getEmail()) || !same(entered.getPhone(), stored.getPhone())
+				|| !same(entered.getFirstname(), stored.getFirstname()) || !same(entered.getLastname(), stored.getLastname());
+	}
+
+	private static boolean same(String a, String b) {
+		return trim(a).equalsIgnoreCase(trim(b));
 	}
 
 	private static String deletedLabel(String name, String kind, int key) {
