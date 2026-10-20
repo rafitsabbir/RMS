@@ -10,11 +10,13 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -285,6 +287,43 @@ class ScheduleControllerTest {
 		mockMvc.perform(post("/cancelschedule/5").session(hr)).andExpect(status().isNotFound());
 		verify(scheduleservice, never()).cancel(anyInt(), anyString());
 		mockMvc.perform(get("/cancelschedule/5")).andExpect(status().isMethodNotAllowed());
+	}
+
+	@Test
+	void staffDownloadAnyInterviewAsACalendarFile() throws Exception {
+		ScheduleInfo interview = schedule(7, "C1", "U2");
+		interview.setCandidatename("Carla Candidate");
+		when(scheduleservice.findScheduleById(7)).thenReturn(interview);
+
+		String body = mockMvc.perform(get("/scheduleinvite/7").session(hr))
+				.andExpect(status().isOk())
+				.andExpect(header().string("Content-Type", "text/calendar;charset=UTF-8"))
+				.andExpect(header().string("Content-Disposition", "attachment; filename=\"interview-C1-2099-01-15.ics\""))
+				.andExpect(header().string("Cache-Control", "no-store"))
+				.andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+		assertThat(body).contains("UID:rms-interview-7\r\n", "DTSTART:20990115T100000\r\n",
+				"SUMMARY:Interview: Carla Candidate (C1)\r\n");
+		verify(scheduleservice, never()).getScheduleOf(anyString());
+	}
+
+	@Test
+	void anInterviewerGetsOnlyTheirOwnInterviewsFile() throws Exception {
+		UserInfo interviewer = new UserInfo();
+		interviewer.setUserid("U2");
+		interviewer.setRole("INTERVIEWER");
+		MockHttpSession session = new MockHttpSession();
+		session.setAttribute("user", interviewer);
+		when(scheduleservice.getScheduleOf("U2")).thenReturn(List.of(schedule(7, "C1", "U2")));
+
+		mockMvc.perform(get("/scheduleinvite/7").session(session)).andExpect(status().isOk());
+		// Another interviewer's interview, or one that doesn't exist: the same 404, read only from their own list
+		mockMvc.perform(get("/scheduleinvite/8").session(session)).andExpect(status().isNotFound());
+		verify(scheduleservice, never()).findScheduleById(anyInt());
+	}
+
+	@Test
+	void aMissingInterviewIsNotFound() throws Exception {
+		mockMvc.perform(get("/scheduleinvite/9").session(hr)).andExpect(status().isNotFound());
 	}
 
 	private static ScheduleInfo schedule(int key, String candidateid, String interviewerid) {

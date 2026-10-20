@@ -13,7 +13,8 @@
 	<div class="rms-page-header">
 		<div>
 			<h1>Interview Schedule</h1>
-			<p>Interviews of candidates by their assigned interviewers. Times are the server's local time.</p>
+			<p>Interviews of candidates by their assigned interviewers. Times are the server's local time. <strong>Calendar</strong>
+				downloads a file for Outlook, Google or Apple Calendar.</p>
 		</div>
 		<c:if test="${canedit}">
 		<a class="btn btn-primary d-inline-flex align-items-center gap-2" href="${createURL}">
@@ -42,9 +43,7 @@
 						<th>Interviewer</th>
 						<th>Location</th>
 						<th>Status</th>
-						<c:if test="${canedit}">
 						<th class="rms-col-actions text-end" data-orderable="false" data-searchable="false">Actions</th>
-						</c:if>
 					</tr>
 				</thead>
 				<tbody>
@@ -59,14 +58,13 @@
 						<td class="rms-name"><c:out value="${empty item.interviewername ? item.interviewerid : item.interviewername}"/></td>
 						<td><c:out value="${item.location}"/></td>
 						<td><rms:schedulestatus value="${item.status}" icons="${icons}"/></td>
-						<c:if test="${canedit}">
 						<td class="text-end text-nowrap">
-							<c:if test="${not item.cancelled}">
+							<c:if test="${canedit and not item.cancelled}">
 							<spring:url value="/updateschedule/${item.schedulekey}" var="updateURL" />
 							<a class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1" href="${updateURL}">
 								<svg class="rms-icon" aria-hidden="true"><use href="${icons}#pencil"/></svg><span class="rms-btn-label">Edit</span></a>
 							</c:if>
-							<c:if test="${item.scheduled}">
+							<c:if test="${canedit and item.scheduled}">
 							<spring:url value="/cancelschedule/${item.schedulekey}" var="cancelURL" />
 							<form:form id="cancel-${item.schedulekey}" method="post" action="${cancelURL}" cssClass="d-inline"
 								data-rms-confirm="Cancel this interview? It stays in the list as cancelled.">
@@ -74,8 +72,14 @@
 									<svg class="rms-icon" aria-hidden="true"><use href="${icons}#x-circle-fill"/></svg><span class="rms-btn-label">Cancel</span></button>
 							</form:form>
 							</c:if>
+							<c:if test="${not item.done}">
+							<spring:url value="/scheduleinvite/${item.schedulekey}" var="inviteURL" />
+							<a class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1 ms-1" href="${inviteURL}"
+								title="Download a calendar file (.ics) for Outlook, Google or Apple Calendar"
+								aria-label="Add the interview with <c:out value='${item.candidatename}'/> on <c:out value='${item.startlabel}'/> to your calendar">
+								<svg class="rms-icon" aria-hidden="true"><use href="${icons}#calendar-event"/></svg><span class="rms-btn-label">Calendar</span></a>
+							</c:if>
 						</td>
-						</c:if>
 					</tr>
 				</c:forEach>
 				</tbody>

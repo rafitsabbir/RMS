@@ -322,6 +322,7 @@ class SecurityConfigTest {
 				new Page(post("/saveschedule").with(csrf()), HR_AND_UP),
 				new Page(post("/cancelschedule/1").with(csrf()), HR_AND_UP),
 				new Page(get("/myschedule"), INTERVIEWER_ONLY),
+				new Page(get("/scheduleinvite/1"), EVERY_ROLE),
 				new Page(get("/reports"), STAFF),
 				new Page(get("/exportcandidates"), STAFF),
 				new Page(get("/exportresults"), STAFF),

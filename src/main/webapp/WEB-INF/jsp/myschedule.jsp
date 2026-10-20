@@ -10,7 +10,8 @@
 	<div class="rms-page-header">
 		<div>
 			<h1>My Schedule</h1>
-			<p>Your interviews, from the HR team. Times are the server's local time.</p>
+			<p>Your interviews, from the HR team. Times are the server's local time. <strong>Calendar</strong> downloads a file
+				for Outlook, Google or Apple Calendar; download it again after a change or a cancellation.</p>
 		</div>
 	</div>
 	<div class="card rms-card">
@@ -22,6 +23,7 @@
 						<th>Candidate</th>
 						<th>Location</th>
 						<th>Status</th>
+						<th class="rms-col-actions text-end" data-orderable="false" data-searchable="false">Calendar</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -34,6 +36,15 @@
 						</td>
 						<td><c:out value="${item.location}"/></td>
 						<td><rms:schedulestatus value="${item.status}" icons="${icons}"/></td>
+						<td class="text-end text-nowrap">
+							<c:if test="${not item.done}">
+							<spring:url value="/scheduleinvite/${item.schedulekey}" var="inviteURL" />
+							<a class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1 ms-1" href="${inviteURL}"
+								title="Download a calendar file (.ics) for Outlook, Google or Apple Calendar"
+								aria-label="Add the interview with <c:out value='${item.candidatename}'/> on <c:out value='${item.startlabel}'/> to your calendar">
+								<svg class="rms-icon" aria-hidden="true"><use href="${icons}#calendar-event"/></svg><span class="rms-btn-label">Calendar</span></a>
+							</c:if>
+						</td>
 					</tr>
 				</c:forEach>
 				</tbody>

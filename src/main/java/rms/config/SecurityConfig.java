@@ -85,6 +85,11 @@ public class SecurityConfig {
 	 * CandidateController and DocumentController, Phase 3).
 	 */
 	static final String[] CANDIDATE_READ_PAGES = { "/viewcandidate", "/downloaddocument/*" };
+	/**
+	 * An interview's calendar file: staff for any interview, an interviewer for their own (checked in
+	 * ScheduleController).
+	 */
+	static final String[] SCHEDULE_INVITE_PAGES = { "/scheduleinvite/*" };
 	/** An interviewer's own evaluations and schedule: Interviewer only (the assignment is checked in EvaluationController). */
 	static final String[] INTERVIEWER_PAGES = { "/myevaluations", "/evaluate", "/saveevaluation", "/myschedule" };
 	/** Candidate, document, assignment, decision and interview schedule changes, jobs and master data: Super Admin and HR. */
@@ -153,6 +158,7 @@ public class SecurityConfig {
 						.requestMatchers(SUPER_ADMIN_PAGES).hasRole(SUPER_ADMIN)
 						.requestMatchers(STAFF_READ_PAGES).hasAnyRole(SUPER_ADMIN, HR, HIRING_MANAGER)
 						.requestMatchers(CANDIDATE_READ_PAGES).hasAnyRole(SUPER_ADMIN, HR, HIRING_MANAGER, INTERVIEWER)
+						.requestMatchers(SCHEDULE_INVITE_PAGES).hasAnyRole(SUPER_ADMIN, HR, HIRING_MANAGER, INTERVIEWER)
 						.requestMatchers(INTERVIEWER_PAGES).hasRole(INTERVIEWER)
 						.requestMatchers(HR_PAGES).hasAnyRole(SUPER_ADMIN, HR)
 						// Deny by default: a new page needs its own rule above, and cases in SecurityConfigTest
