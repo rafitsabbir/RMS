@@ -298,4 +298,13 @@ class CandidateDaoImplTest extends MySqlContainerSupport {
 		jdbcTemplate.update("update candidate set isactive=0 where candidateid='C1'");
 		assertThat(dao.findPossibleDuplicates(candidate(null, "Carla", "Candidate", 1, 1), null)).isEmpty();
 	}
+
+	@Test
+	void theEvaluationCountIsOfActiveMarksRows() {
+		int c1 = jdbcTemplate.queryForObject("select count(*) from marks where candidateid='C1' and isactive=1", Integer.class);
+		assertThat(dao.findCandidateById("C1").getEvaluationcount()).isEqualTo(c1).isPositive();
+
+		jdbcTemplate.update("update marks set isactive=0 where candidateid='C1'");
+		assertThat(dao.findCandidateById("C1").getEvaluationcount()).isZero();
+	}
 }

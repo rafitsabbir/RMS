@@ -41,6 +41,8 @@ public class CandidateInfo {
 	private int unpurgedcount = 0;
 	/** Why another candidate may be the same person (possible-duplicate check): e.g. "same e-mail, same name". */
 	private String duplicatereason = null;
+	/** Active evaluations (marks rows with isactive=1), for the "not evaluated yet" filter. */
+	private int evaluationcount = 0;
 
 	/** No names, e-mail or phone: they are personal data. */
 	@Override
@@ -196,6 +198,14 @@ public class CandidateInfo {
 
 	public void setUnpurgedcount(int unpurgedcount) {
 		this.unpurgedcount = unpurgedcount;
+	}
+
+	public int getEvaluationcount() {
+		return evaluationcount;
+	}
+
+	public void setEvaluationcount(int evaluationcount) {
+		this.evaluationcount = evaluationcount;
 	}
 
 	public String getDuplicatereason() {
