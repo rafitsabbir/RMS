@@ -1,0 +1,75 @@
+# Keeps the pinned versions current (docs/build-run.md, "Keeping dependencies current"): Maven dependencies and
+# plugins, the GitHub Actions pinned by SHA, the Tomcat base image pinned by digest, and the MySQL images of the
+# compose files. Pull requests go to dev, weekly; CI (build, container, OSV-Scanner) checks each one.
+version: 2
+updates:
+  - package-ecosystem: maven
+    directory: "/"
+    target-branch: dev
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      # Spring Framework comes from its BOM and Spring Security follows it: update them together
+      spring:
+        patterns:
+          - "org.springframework*"
+          - "org.springframework.security*"
+      test:
+        patterns:
+          - "org.junit*"
+          - "org.mockito*"
+          - "org.assertj*"
+          - "org.hamcrest*"
+          - "org.testcontainers*"
+      maven-plugins:
+        patterns:
+          - "org.apache.maven.plugins*"
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    ignore:
+      # The application targets the MySQL 9.7 LTS line (docs/mysql-upgrade.md); a new driver line is a decision,
+      # not a routine update
+      - dependency-name: "com.mysql:mysql-connector-j"
+        update-types: ["version-update:semver-major"]
+      # Jakarta EE 11 / Servlet 6.1 is what Tomcat 11 provides
+      - dependency-name: "jakarta.*"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    target-branch: dev
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns:
+          - "*"
+
+  # The Tomcat 11 / JDK 21 base image (Dockerfile, pinned by digest): new digests and Tomcat 11.0.x patches
+  - package-ecosystem: docker
+    directory: "/"
+    target-branch: dev
+    schedule:
+      interval: weekly
+      day: monday
+    ignore:
+      - dependency-name: "tomcat"
+        update-types: ["version-update:semver-major"]
+
+  # mysql:9.7 in db/local and deploy (trial databases only); stays on the 9.7 LTS line
+  - package-ecosystem: docker-compose
+    directories:
+      - "/db/local"
+      - "/deploy"
+    target-branch: dev
+    schedule:
+      interval: weekly
+      day: monday
+    ignore:
+      - dependency-name: "mysql"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]

@@ -7,7 +7,10 @@
 	starts with this system property (for example in bin/setenv.sh):
 		-Dorg.apache.tomcat.util.digester.PROPERTY_SOURCE=org.apache.tomcat.util.digester.EnvironmentPropertySource
 	Set these in Tomcat's environment only:
-		RMS_DB_URL        jdbc:mysql://<db-host>:<port>/<db-name>?sslMode=REQUIRED
+		RMS_DB_URL        jdbc:mysql://<db-host>:<port>/<db-name>?sslMode=REQUIRED&connectTimeout=5000&socketTimeout=60000
+	connectTimeout and socketTimeout (milliseconds) end a call to a database that doesn't answer, so pages fail
+	with an error instead of holding Tomcat's threads; socketTimeout must exceed the slowest query. maxWaitMillis
+	does the same for a request that waits for a free pooled connection.
 		RMS_DB_USER
 		RMS_DB_PASSWORD
 	mysql-connector-j-9.7.0.jar goes in Tomcat's lib/. Pool sizes are the DBCP2 defaults (maxTotal 8);
@@ -17,5 +20,5 @@
 	<Resource name="jdbc/springrms" auth="Container" type="javax.sql.DataSource"
 		driverClassName="com.mysql.cj.jdbc.Driver"
 		url="${RMS_DB_URL}" username="${RMS_DB_USER}" password="${RMS_DB_PASSWORD}"
-		validationQuery="SELECT 1"/>
+		validationQuery="SELECT 1" maxWaitMillis="10000"/>
 </Context>
