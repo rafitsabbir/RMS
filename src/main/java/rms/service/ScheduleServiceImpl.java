@@ -29,6 +29,13 @@ public class ScheduleServiceImpl implements ScheduleService {
 		this.activityservice = activityservice;
 	}
 
+	StageService stageservice;
+
+	@Autowired
+	public void setStageService(StageService stageservice) {
+		this.stageservice = stageservice;
+	}
+
 	@Autowired
 	public void setScheduleDao(ScheduleDao scheduledao) {
 		this.scheduledao = scheduledao;
@@ -126,6 +133,8 @@ public class ScheduleServiceImpl implements ScheduleService {
 				"interviewer " + interviewerid);
 		log.info("Interview of candidate {} with interviewer {} scheduled by {}", scheduleinfo.getCandidateid(),
 				interviewerid, userid);
+		// Applied or Screening moves on to Interview (hiring stages, 2026-10-20)
+		stageservice.interviewScheduled(scheduleinfo.getCandidateid(), userid);
 		return Outcome.ok("Interview scheduled.");
 	}
 

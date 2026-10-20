@@ -19,6 +19,8 @@ public class CandidateInfo {
 	private String positionname = null;
 	private String languagename = null;
 	private String candidatestatus = null;
+	/** The hiring stage as stored (migration 008); NULL or unknown reads as Applied (HiringStage.of). */
+	private String stage = null;
 	private String email = null;
 	private String phone = null;
 	private String source = null;
@@ -134,6 +136,23 @@ public class CandidateInfo {
 
 	public void setLanguagename(String languagename) {
 		this.languagename = languagename;
+	}
+
+	public String getStage() {
+		return stage;
+	}
+
+	public void setStage(String stage) {
+		this.stage = stage;
+	}
+
+	/** The stage this candidate is at (Applied for NULL or a text this version doesn't know). */
+	public HiringStage getHiringstage() {
+		return HiringStage.of(stage);
+	}
+
+	public String getStagelabel() {
+		return getHiringstage().getLabel();
 	}
 
 	public String getCandidatestatus() {

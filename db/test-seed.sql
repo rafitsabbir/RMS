@@ -36,11 +36,11 @@ INSERT INTO job (jobkey, positionkey, vacancies, closingdate, status, isactive) 
 -- C1 is Selected and C2 Rejected (latest decisions; the history is in candidate_decision), so both have their
 -- evaluations locked
 INSERT INTO candidate (candidateid, firstname, lastname, positionkey, languagekey, candidatestatus,
-		email, phone, source, applieddate, jobkey, decisionreason, decisiondate, decidedby) VALUES
+		email, phone, source, applieddate, jobkey, decisionreason, decisiondate, decidedby, stage) VALUES
 	('C1', 'Carla', 'Candidate', 1, 1, 'S', 'carla@example.test', '000-1001', 'REFERRAL', '2026-09-01', 1,
-		'Strong technical interview', '2026-09-20', 'U3'),
+		'Strong technical interview', '2026-09-20', 'U3', 'OFFER'),
 	('C2', 'Cody', 'Candidate', 2, 2, 'R', NULL, NULL, 'JOB_BOARD', '2026-09-15', NULL,
-		'Not enough experience for the role', '2026-09-22', 'U3');
+		'Not enough experience for the role', '2026-09-22', 'U3', 'INTERVIEW');
 
 -- Document metadata only: no files exist for these stored names (a download answers 404, "file missing").
 -- The DAO and service tests write their own small synthetic files. C1 has a CV, an SSC certificate and one
@@ -81,6 +81,13 @@ INSERT INTO candidate_decision (decisionkey, candidateid, status, reason, decisi
 	(1, 'C1', 'H', 'Waiting for a second interview', '2026-09-10', 'U3', '2026-09-10 12:00:00'),
 	(2, 'C1', 'S', 'Strong technical interview', '2026-09-20', 'U3', '2026-09-20 12:00:00'),
 	(3, 'C2', 'R', 'Not enough experience for the role', '2026-09-22', 'U3', '2026-09-22 12:00:00');
+
+-- Hiring stages (2026-10-20): C1 went Applied > Interview > Offer (the last by the Selected decision); C2 was
+-- rejected at Interview.
+INSERT INTO candidate_stage (stagekey, candidateid, fromstage, tostage, note, changedby, changedat) VALUES
+	(1, 'C1', 'APPLIED', 'INTERVIEW', NULL, 'U3', '2026-09-05 10:00:00'),
+	(2, 'C1', 'INTERVIEW', 'OFFER', 'Decision: Selected', 'U3', '2026-09-20 12:00:00'),
+	(3, 'C2', 'APPLIED', 'INTERVIEW', 'Phone screen passed', 'U3', '2026-09-16 09:00:00');
 
 -- Interviews (Phase 4). Row 1 is far in the future, so it stays "upcoming" for any test date. Row 2 was held (DONE).
 -- Row 3 was cancelled; its interviewer, U5, is inactive. Times are the server's wall-clock time.

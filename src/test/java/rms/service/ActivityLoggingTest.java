@@ -21,6 +21,7 @@ import rms.dao.AssignmentDao;
 import rms.dao.DecisionDao;
 import rms.dao.MarksDao;
 import rms.dao.ScheduleDao;
+import rms.dao.StageDao;
 import rms.model.AssignmentInfo;
 import rms.model.Criterion;
 import rms.model.DecisionInfo;
@@ -50,6 +51,12 @@ class ActivityLoggingTest {
 	@Mock
 	ScheduleDao scheduledao;
 
+	@Mock
+	StageDao stagedao;
+
+	@Mock
+	StageService stageservice;
+
 	DecisionServiceImpl decisions;
 	MarksServiceImpl marks;
 	AssignmentServiceImpl assignments;
@@ -60,6 +67,8 @@ class ActivityLoggingTest {
 		decisions = new DecisionServiceImpl();
 		decisions.setDecisionDao(decisiondao);
 		decisions.setActivityService(activityservice);
+		decisions.setStageDao(stagedao);
+		decisions.setStageService(stageservice);
 		marks = new MarksServiceImpl();
 		marks.setMarksDao(marksdao);
 		marks.setActivityService(activityservice);
@@ -70,6 +79,7 @@ class ActivityLoggingTest {
 		schedule.setScheduleDao(scheduledao);
 		schedule.setAssignmentDao(assignmentdao);
 		schedule.setActivityService(activityservice);
+		schedule.setStageService(stageservice);
 	}
 
 	@Test
