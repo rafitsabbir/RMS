@@ -29,10 +29,11 @@ public class DecisionDaoImpl implements DecisionDao {
 			+ "decisiondate=:decisiondate, decidedby=:decidedby where candidateid=:candidateid and isactive=1";
 	private String savedecision = "insert into candidate_decision (candidateid, status, reason, decisiondate, "
 			+ "decidedby, decidedat) values (:candidateid, :status, :reason, :decisiondate, :decidedby, now())";
-	// Selected moves a candidate at Applied, Screening or Interview to Offer (owner decision 2026-10-20), in the same
-	// transaction as the decision; the history row comes from StageDaoImpl.SAVESTAGE
+	// The stage follows the decision (owner decision 2026-10-20), in the decision's transaction, on the row its update
+	// has locked: Selected moves Applied, Screening or Interview to Offer; On hold or Rejected moves Offer or Hired back
+	// to Interview, so Offer and Hired always mean Selected. The history row comes from StageDaoImpl.SAVESTAGE
 	private String getstage = "select stage from candidate where candidateid=:candidateid and isactive=1";
-	private String toOffer = "update candidate set stage='OFFER' where candidateid=:candidateid and isactive=1 "
+	private String movestage = "update candidate set stage=:tostage where candidateid=:candidateid and isactive=1 "
 			+ "and stage <=> :expected";
 	private String decisionsbycandidate = "select d.decisionkey, d.candidateid, d.status, d.reason, d.decisiondate, "
 			+ "d.decidedby, d.decidedat, (select min(concat_ws(' ', a.firstname, a.lastname)) from admin a "
@@ -83,25 +84,31 @@ public class DecisionDaoImpl implements DecisionDao {
 		params.addValue("decisiondate", decision.getDecisiondate());
 		params.addValue("decidedby", decision.getDecidedby());
 
-		Boolean saved = transactions().execute(status -> {
+		Boolean saved = transactions().execute(tx -> {
 			// The update locks the candidate's row, so an evaluation being saved waits (MarksDaoImpl.saveMarks). It counts
 			// matched rows (Connector/J's default useAffectedRows=false), so the same decision again still counts as 1
 			if (namedParameterJdbcTemplate.update(updatecandidate, params) == 0) {
 				return false;
 			}
 			namedParameterJdbcTemplate.update(savedecision, params);
-			if (DecisionStatus.parse(decision.getStatus()) == DecisionStatus.S) {
-				List<String> stages = namedParameterJdbcTemplate.queryForList(getstage, params, String.class);
-				String expected = stages.isEmpty() ? null : stages.get(0);
-				if (HiringStage.of(expected).isBeforeOffer()) {
-					MapSqlParameterSource move = new MapSqlParameterSource(params.getValues());
-					move.addValue("expected", expected);
-					move.addValue("tostage", HiringStage.OFFER.name());
-					move.addValue("note", "Decision: Selected");
-					move.addValue("userid", decision.getDecidedby());
-					if (namedParameterJdbcTemplate.update(toOffer, move) > 0) {
-						namedParameterJdbcTemplate.update(StageDaoImpl.SAVESTAGE, move);
-					}
+			List<String> stages = namedParameterJdbcTemplate.queryForList(getstage, params, String.class);
+			String current = stages.isEmpty() ? null : stages.get(0);
+			decision.setStagenow(current);
+			DecisionStatus status = DecisionStatus.parse(decision.getStatus());
+			HiringStage stage = HiringStage.of(current);
+			HiringStage target = status == DecisionStatus.S && stage.isBeforeOffer() ? HiringStage.OFFER
+					: status != DecisionStatus.S && stage.needsSelected() ? HiringStage.INTERVIEW : null;
+			if (target != null) {
+				MapSqlParameterSource move = new MapSqlParameterSource(params.getValues());
+				move.addValue("expected", current);
+				move.addValue("tostage", target.name());
+				move.addValue("note", "Decision: " + status.getLabel());
+				move.addValue("userid", decision.getDecidedby());
+				if (namedParameterJdbcTemplate.update(movestage, move) > 0) {
+					namedParameterJdbcTemplate.update(StageDaoImpl.SAVESTAGE, move);
+					decision.setStagemoved(true);
+					decision.setStagefrom(current);
+					decision.setStagenow(target.name());
 				}
 			}
 			return true;

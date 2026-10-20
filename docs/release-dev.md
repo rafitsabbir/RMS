@@ -26,6 +26,7 @@ Compared with the 2020 code, `dev` adds (details: [upgrade-status.md](upgrade-st
 - Five wrong passwords lock that username from that address for 15 minutes.
 - Only English text is accepted in names, reasons, comments and locations.
 - Opening a page that a role may not use gives RMS's own error page (HTTP 403); other errors show the same page, with no technical detail.
+- The candidates CSV has a new **Stage** column before Status (2026-10-20): a spreadsheet that reads the columns by position needs adjusting.
 - Pages and libraries load from `cdn.jsdelivr.net` only; a proxy that lists allowed sites must allow it.
 
 ## Before the release (owner)

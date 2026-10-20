@@ -20,6 +20,10 @@ public class DecisionInfo {
 	private String decidedby = null;
 	private String decidedbyname = null;
 	private LocalDateTime decidedat = null;
+	/** Set by DecisionDaoImpl.saveDecision: the stage after the decision, and whether the decision moved it. */
+	private String stagenow = null;
+	private boolean stagemoved = false;
+	private String stagefrom = null;
 
 	public String getStatuslabel() {
 		return DecisionStatus.labelOf(status);
@@ -96,4 +100,28 @@ public class DecisionInfo {
 		this.decidedat = decidedat;
 	}
 
+
+	public String getStagenow() {
+		return stagenow;
+	}
+
+	public void setStagenow(String stagenow) {
+		this.stagenow = stagenow;
+	}
+
+	public boolean isStagemoved() {
+		return stagemoved;
+	}
+
+	public void setStagemoved(boolean stagemoved) {
+		this.stagemoved = stagemoved;
+	}
+
+	public String getStagefrom() {
+		return stagefrom;
+	}
+
+	public void setStagefrom(String stagefrom) {
+		this.stagefrom = stagefrom;
+	}
 }

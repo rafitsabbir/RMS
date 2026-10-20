@@ -12,7 +12,8 @@ public interface StageDao {
 
 	/**
 	 * Moves an active candidate from the stage stored now (expected, compared NULL-safely) to another, and keeps the
-	 * change in the history, in one transaction. False when the candidate is gone or its stage changed meanwhile.
+	 * change in the history, in one transaction. False when the candidate is gone, its stage changed meanwhile, or its
+	 * decision doesn't allow the move (Rejected; Offer or Hired without Selected), checked on the locked row.
 	 */
 	public boolean moveStage(String candidateid, String expected, String tostage, String note, String userid);
 

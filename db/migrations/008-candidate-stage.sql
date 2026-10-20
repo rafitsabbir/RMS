@@ -14,12 +14,15 @@
 --
 -- BEFORE (on a copy first):
 --   1. SHOW CREATE TABLE candidate;   -- no column named stage yet
---   2. The history table's candidateid takes the database default collation, like candidate_decision (migration
---      005). If candidate.candidateid has another collation, add the same COLLATE to candidateid below, or the
---      profile's history query fails with "Illegal mix of collations":
---        SELECT COLLATION_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE()
---          AND TABLE_NAME = 'candidate' AND COLUMN_NAME = 'candidateid';
+--   2. The history table's candidateid and changedby take the database default collation, like candidate_decision
+--      (migration 005). candidateid is compared with candidate.candidateid and changedby with admin.userid; if either
+--      has another collation, add CHARACTER SET ... COLLATE ... to that column below, or the profile's history query
+--      fails with "Illegal mix of collations":
+--        SELECT TABLE_NAME, COLUMN_NAME, COLLATION_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE()
+--          AND ((TABLE_NAME = 'candidate' AND COLUMN_NAME = 'candidateid') OR (TABLE_NAME = 'admin' AND COLUMN_NAME = 'userid'));
 --        SELECT @@collation_database;
+--   3. SAFE UPDATES: the backfill UPDATE below has no key in its WHERE. MySQL Workbench (safe updates on) refuses it
+--      with error 1175; run SET SQL_SAFE_UPDATES = 0; first in that session (the mysql command line is not affected).
 --
 -- The database account RMS uses still needs only SELECT, INSERT and UPDATE.
 

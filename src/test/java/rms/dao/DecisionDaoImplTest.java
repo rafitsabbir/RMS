@@ -82,7 +82,10 @@ class DecisionDaoImplTest extends MySqlContainerSupport {
 	@Test
 	void selectedMovesACandidateBeforeOfferToOfferWithAHistoryRow() {
 		// C2 is at Interview in the seed
-		assertThat(dao.saveDecision(decision("C2", "S", "Second look went well"))).isTrue();
+		DecisionInfo selected = decision("C2", "S", "Second look went well");
+		assertThat(dao.saveDecision(selected)).isTrue();
+		assertThat(selected.isStagemoved()).isTrue();
+		assertThat(selected.getStagefrom()).isEqualTo("INTERVIEW");
 
 		assertThat(jdbcTemplate.queryForObject("select stage from candidate where candidateid='C2'", String.class))
 				.isEqualTo("OFFER");
@@ -95,18 +98,38 @@ class DecisionDaoImplTest extends MySqlContainerSupport {
 	}
 
 	@Test
-	void selectedLeavesOfferHiredAndWithdrawnAndOtherDecisionsLeaveTheStage() {
+	void selectedLeavesOfferAndHiredAndOtherDecisionsLeaveAStageBeforeOffer() {
 		int before = jdbcTemplate.queryForObject("select count(*) from candidate_stage", Integer.class);
 		jdbcTemplate.update("update candidate set stage='HIRED' where candidateid='C1'");
-		dao.saveDecision(decision("C1", "S", "Still selected"));
+		DecisionInfo again = decision("C1", "S", "Still selected");
+		dao.saveDecision(again);
 		assertThat(jdbcTemplate.queryForObject("select stage from candidate where candidateid='C1'", String.class))
 				.isEqualTo("HIRED");
+		assertThat(again.isStagemoved()).isFalse();
+		assertThat(again.getStagenow()).isEqualTo("HIRED");
 
 		dao.saveDecision(decision("C2", "H", "Waiting"));
 		dao.saveDecision(decision("C2", "R", "No"));
 		assertThat(jdbcTemplate.queryForObject("select stage from candidate where candidateid='C2'", String.class))
 				.isEqualTo("INTERVIEW");
 		assertThat(jdbcTemplate.queryForObject("select count(*) from candidate_stage", Integer.class)).isEqualTo(before);
+	}
+
+	@Test
+	void onHoldOrRejectedMovesOfferAndHiredBackToInterview() {
+		// C1 is Selected at Offer in the seed
+		DecisionInfo hold = decision("C1", "H", "Budget review");
+		dao.saveDecision(hold);
+		assertThat(hold.isStagemoved()).isTrue();
+		assertThat(hold.getStagefrom()).isEqualTo("OFFER");
+		assertThat(hold.getStagenow()).isEqualTo("INTERVIEW");
+		assertThat(jdbcTemplate.queryForObject("select note from candidate_stage where candidateid='C1' "
+				+ "order by stagekey desc limit 1", String.class)).isEqualTo("Decision: On hold");
+
+		jdbcTemplate.update("update candidate set stage='HIRED', candidatestatus='S' where candidateid='C1'");
+		dao.saveDecision(decision("C1", "R", "Offer withdrawn"));
+		assertThat(jdbcTemplate.queryForObject("select stage from candidate where candidateid='C1'", String.class))
+				.isEqualTo("INTERVIEW");
 	}
 
 	@Test

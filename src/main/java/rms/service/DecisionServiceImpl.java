@@ -9,7 +9,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import rms.dao.DecisionDao;
-import rms.dao.StageDao;
 import rms.model.DecisionInfo;
 import rms.model.DecisionStatus;
 import rms.model.HiringStage;
@@ -28,8 +27,6 @@ public class DecisionServiceImpl implements DecisionService {
 
 	DecisionDao decisiondao;
 
-	StageDao stagedao;
-
 	StageService stageservice;
 
 	ActivityService activityservice;
@@ -42,11 +39,6 @@ public class DecisionServiceImpl implements DecisionService {
 	@Autowired
 	public void setDecisionDao(DecisionDao decisiondao) {
 		this.decisiondao = decisiondao;
-	}
-
-	@Autowired
-	public void setStageDao(StageDao stagedao) {
-		this.stagedao = stagedao;
 	}
 
 	@Autowired
@@ -83,16 +75,13 @@ public class DecisionServiceImpl implements DecisionService {
 		decision.setReason(reason);
 		decision.setDecidedby(userid);
 
-		// Selected moves a candidate before Offer to Offer, in the decision's transaction (DecisionDaoImpl)
-		String stagebefore = stagedao.getStage(decision.getCandidateid());
+		// The stage follows the decision in its transaction; the DAO reports what it did (DecisionDaoImpl)
 		if (!decisiondao.saveDecision(decision)) {
 			return Outcome.refused("The candidate no longer exists.");
 		}
-		HiringStage moved = null;
-		if (status == DecisionStatus.S && stagebefore != null && HiringStage.of(stagebefore).isBeforeOffer()
-				&& HiringStage.of(stagedao.getStage(decision.getCandidateid())) == HiringStage.OFFER) {
-			moved = HiringStage.OFFER;
-			stageservice.record(userid, decision.getCandidateid(), stagebefore, moved);
+		HiringStage moved = decision.isStagemoved() ? HiringStage.of(decision.getStagenow()) : null;
+		if (moved != null) {
+			stageservice.record(userid, decision.getCandidateid(), decision.getStagefrom(), moved);
 		}
 		activityservice.record(userid, status.getLabel().toUpperCase(java.util.Locale.ROOT).replace(' ', '_'), "CANDIDATE",
 				decision.getCandidateid(), null);
@@ -104,7 +93,7 @@ public class DecisionServiceImpl implements DecisionService {
 		if (moved != null) {
 			message += " The candidate moves to " + moved.getLabel() + ".";
 		} else if (status == DecisionStatus.R) {
-			message += " The pipeline is closed at " + HiringStage.of(stagebefore).getLabel() + ".";
+			message += " The pipeline is closed at " + HiringStage.of(decision.getStagenow()).getLabel() + ".";
 		}
 		if (evaluations == 0) {
 			message += " Note: there are no evaluations yet.";
