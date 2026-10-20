@@ -1,6 +1,7 @@
 package rms.controller;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import jakarta.servlet.http.HttpSession;
 
@@ -24,11 +25,15 @@ import rms.model.ActivityInfo;
 import rms.model.CandidateFilter;
 import rms.model.CandidateInfo;
 import rms.model.Criterion;
+import rms.model.DecisionTime;
+import rms.model.HiringGroup;
+import rms.model.HiringReport;
 import rms.model.ResultInfo;
 import rms.model.ScheduleInfo;
 import rms.service.ActivityService;
 import rms.service.CandidateService;
 import rms.service.CsvWriter;
+import rms.service.HiringReportService;
 import rms.service.MarksService;
 import rms.service.ScheduleService;
 
@@ -54,9 +59,48 @@ public class ReportController {
 	@Autowired
 	ActivityService activityservice;
 
+	@Autowired
+	HiringReportService hiringreportservice;
+
+	/** The CSV downloads and the hiring report (counts only, computed on every visit). */
 	@RequestMapping(value = "/reports", method = RequestMethod.GET)
 	public ModelAndView reports() {
-		return new ModelAndView("reports");
+		ModelAndView mv = new ModelAndView("reports");
+		mv.addObject("hiring", hiringreportservice.getReport());
+		return mv;
+	}
+
+	/** The hiring report as one CSV: the decision times, then the rows per job, per source and per interviewer. */
+	@RequestMapping(value = "/exporthiring", method = RequestMethod.GET)
+	public ResponseEntity<byte[]> hiring(HttpSession session) {
+		HiringReport report = hiringreportservice.getReport();
+		CsvWriter csv = new CsvWriter().row("Days from applying to the decision", "Candidates", "Average", "Median",
+				"Shortest", "Longest");
+		time(csv, "Selected", report.getToselected());
+		time(csv, "Rejected", report.getTorejected());
+		csv.row();
+		groups(csv, "Job", report.getByjob());
+		csv.row();
+		groups(csv, "Source", report.getBysource());
+		csv.row();
+		csv.row("Interviewer", "Evaluations still to do");
+		for (HiringGroup row : report.getPendingbyinterviewer()) {
+			csv.row(row.getLabel(), row.getTotal());
+		}
+		return download(csv, "hiring-report", "HIRING", null, session);
+	}
+
+	private static void time(CsvWriter csv, String decision, DecisionTime time) {
+		csv.row(decision, time.getCount(), time.getAverage(), time.getMedian(), time.getShortest(), time.getLongest());
+	}
+
+	private static void groups(CsvWriter csv, String kind, List<HiringGroup> rows) {
+		csv.row(kind, "Candidates", "Pending", "On hold", "Selected", "Rejected", "No CV", "Not evaluated",
+				"Average days to Selected");
+		for (HiringGroup row : rows) {
+			csv.row(row.getLabel(), row.getTotal(), row.getPending(), row.getOnhold(), row.getSelected(),
+					row.getRejected(), row.getNocv(), row.getNotevaluated(), row.getAveragedaystoselected());
+		}
 	}
 
 	/** The Candidates list's filters, so its "Download CSV" exports what the list shows. */

@@ -9,6 +9,8 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import rms.model.HiringGroup;
+
 @Repository
 public class DashboardDaoImpl implements DashboardDao {
 
@@ -25,6 +27,13 @@ public class DashboardDaoImpl implements DashboardDao {
 			+ "candidate_interviewer ci join candidate c on c.candidateid=ci.candidateid and c.isactive=1 "
 			+ "where ci.isactive=1 and " + undecided + " and " + activeinterviewer + " and not exists (select 1 from "
 			+ "marks m where m.candidateid=ci.candidateid and m.interviewerid=ci.interviewerid and m.isactive=1)";
+	// The same pairs, per interviewer, with the name (by subquery: an interviewer missing from admin still counts)
+	private String pendingbyinterviewer = "select ci.interviewerid, (select min(concat_ws(' ', a.firstname, "
+			+ "a.lastname)) from admin a where a.userid=ci.interviewerid) as interviewername, count(distinct "
+			+ "ci.candidateid) as total from candidate_interviewer ci join candidate c on c.candidateid=ci.candidateid "
+			+ "and c.isactive=1 where ci.isactive=1 and " + undecided + " and " + activeinterviewer + " and not exists "
+			+ "(select 1 from marks m where m.candidateid=ci.candidateid and m.interviewerid=ci.interviewerid and "
+			+ "m.isactive=1) group by ci.interviewerid order by total desc, ci.interviewerid";
 	private String openjobs = "select count(*) from job where isactive=1 and status='OPEN'";
 	private String withoutcv = "select count(*) from candidate c where c.isactive=1 and not exists (select 1 from "
 			+ "candidate_document d where d.candidateid=c.candidateid and d.doctype='CV' and d.isactive=1 "
@@ -62,6 +71,16 @@ public class DashboardDaoImpl implements DashboardDao {
 			paramMap.put("interviewerid", interviewerid);
 		}
 		return namedParameterJdbcTemplate.queryForObject(sql, paramMap, Integer.class);
+	}
+
+	@Override
+	public List<HiringGroup> countPendingEvaluationsByInterviewer() {
+		return namedParameterJdbcTemplate.query(pendingbyinterviewer, new HashMap<String, Object>(), (rs, rowNum) -> {
+			String name = rs.getString("interviewername");
+			HiringGroup row = new HiringGroup((name == null ? "" : name + " ") + "(" + rs.getString("interviewerid") + ")");
+			row.setTotal(rs.getInt("total"));
+			return row;
+		});
 	}
 
 	@Override

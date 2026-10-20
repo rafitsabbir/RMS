@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
@@ -32,11 +33,14 @@ import rms.model.ActivityInfo;
 import rms.model.CandidateFilter;
 import rms.model.CandidateInfo;
 import rms.model.Criterion;
+import rms.model.HiringGroup;
+import rms.model.HiringReport;
 import rms.model.ResultInfo;
 import rms.model.Role;
 import rms.model.ScheduleInfo;
 import rms.service.ActivityService;
 import rms.service.CandidateService;
+import rms.service.HiringReportService;
 import rms.service.MarksService;
 import rms.service.ScheduleService;
 
@@ -56,6 +60,9 @@ class ReportControllerTest {
 	@Mock
 	ActivityService activityservice;
 
+	@Mock
+	HiringReportService hiringreportservice;
+
 	@InjectMocks
 	ReportController controller;
 
@@ -71,7 +78,42 @@ class ReportControllerTest {
 
 	@Test
 	void theReportsPageRenders() throws Exception {
-		mockMvc.perform(get("/reports")).andExpect(status().isOk()).andExpect(view().name("reports"));
+		HiringReport report = new HiringReport();
+		when(hiringreportservice.getReport()).thenReturn(report);
+
+		mockMvc.perform(get("/reports")).andExpect(status().isOk()).andExpect(view().name("reports"))
+				.andExpect(model().attribute("hiring", report));
+	}
+
+	@Test
+	void theHiringReportDownloadsAsOneCsv() throws Exception {
+		HiringReport report = new HiringReport();
+		HiringGroup job = new HiringGroup("Job 1: SOFTWARE ENGINEER");
+		job.add(decided("S", LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 11)));
+		job.add(decided(null, null, null));
+		report.setByjob(List.of(job));
+		report.getToselected().add(decided("S", LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 11)));
+		HiringGroup interviewer = new HiringGroup("Ivan Interviewer (U2)");
+		interviewer.setTotal(3);
+		report.setPendingbyinterviewer(List.of(interviewer));
+		when(hiringreportservice.getReport()).thenReturn(report);
+
+		String csv = body("/exporthiring");
+
+		assertThat(csv).contains("Days from applying to the decision,Candidates,Average,Median,Shortest,Longest\r\n"
+				+ "Selected,1,10.0,10.0,10,10\r\nRejected,0,,,,\r\n");
+		assertThat(csv).contains("Job,Candidates,Pending,On hold,Selected,Rejected,No CV,Not evaluated,"
+				+ "Average days to Selected\r\nJob 1: SOFTWARE ENGINEER,2,1,0,1,0,2,2,10.0\r\n");
+		assertThat(csv).contains("Interviewer,Evaluations still to do\r\nIvan Interviewer (U2),3\r\n");
+		verify(activityservice).record("U3", "REPORT_DOWNLOADED", "REPORT", "HIRING", null);
+	}
+
+	private static CandidateInfo decided(String status, LocalDate applied, LocalDate decided) {
+		CandidateInfo candidate = new CandidateInfo();
+		candidate.setCandidatestatus(status);
+		candidate.setApplieddate(applied);
+		candidate.setDecisiondate(decided);
+		return candidate;
 	}
 
 	@Test

@@ -1,9 +1,12 @@
 package rms.dao;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.groups.Tuple.tuple;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import rms.model.HiringGroup;
 
 /**
  * Characterization tests against db/schema.sql + db/test-seed.sql. C1 is Selected and C2 Rejected, so both are
@@ -124,5 +127,19 @@ class DashboardDaoImplTest extends MySqlContainerSupport {
 		// Unassigning the inactive interviewers and the changed one clears it
 		jdbcTemplate.update("update candidate_interviewer set isactive=0");
 		assertThat(dao.countCandidatesWithInactiveInterviewer()).isZero();
+	}
+
+	@Test
+	void pendingEvaluationsPerInterviewerMatchTheTotal() {
+		assertThat(dao.countPendingEvaluationsByInterviewer()).isEmpty();
+
+		jdbcTemplate.update("update candidate set candidatestatus=null");
+		jdbcTemplate.update("update marks set isactive=0");
+		// The same 2 as countPendingEvaluations: both are U2's, named from admin; a double assignment counts once
+		jdbcTemplate.update("insert into candidate_interviewer (candidateid, interviewerid, assignedby, assignedat, "
+				+ "isactive) values ('C1', 'U2', 'U3', now(), 1)");
+		assertThat(dao.countPendingEvaluationsByInterviewer())
+				.extracting(HiringGroup::getLabel, HiringGroup::getTotal)
+				.containsExactly(tuple("Ivan Interviewer (U2)", dao.countPendingEvaluations(null)));
 	}
 }

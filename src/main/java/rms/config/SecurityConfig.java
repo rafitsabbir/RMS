@@ -79,7 +79,7 @@ public class SecurityConfig {
 	/** Read-only staff pages: Super Admin, HR and Hiring Manager. */
 	static final String[] STAFF_READ_PAGES = { "/adminviewmarks", "/viewcandidatelist", "/viewevaluations",
 			"/viewjoblist", "/viewschedulelist", "/reports", "/exportcandidates", "/exportresults",
-			"/exportschedule" };
+			"/exportschedule", "/exporthiring" };
 	/**
 	 * A candidate's profile and documents: staff, and interviewers for the candidates they are assigned to (checked in
 	 * CandidateController and DocumentController, Phase 3).

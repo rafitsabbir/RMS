@@ -92,6 +92,7 @@ import rms.dao.LoginDao;
 import rms.model.CandidateInfo;
 import rms.model.DashboardInfo;
 import rms.model.DocumentInfo;
+import rms.model.HiringReport;
 import rms.model.LoginInfo;
 import rms.model.Role;
 import rms.model.UserInfo;
@@ -101,6 +102,7 @@ import rms.service.DashboardService;
 import rms.service.DecisionService;
 import rms.service.DocumentService;
 import rms.service.HealthService;
+import rms.service.HiringReportService;
 import rms.service.JobService;
 import rms.service.LanguageService;
 import rms.service.LoginServiceImpl;
@@ -271,6 +273,9 @@ class SecurityConfigTest {
 	@MockitoBean
 	HealthService healthservice;
 
+	@MockitoBean
+	HiringReportService hiringreportservice;
+
 	MockMvc mockMvc;
 
 	@BeforeEach
@@ -282,6 +287,7 @@ class SecurityConfigTest {
 		givenLogin(HR_ID, "test.hr", "{bcrypt}" + new BCryptPasswordEncoder().encode("test-only-3"), Role.HR);
 		givenLogin(HIRING_MANAGER_ID, "test.manager", "test-only-4", Role.HIRING_MANAGER);
 		givenLogin(NO_ROLE_ID, "test.norole", "test-only-6", null);
+		when(hiringreportservice.getReport()).thenReturn(new HiringReport());
 	}
 
 	// --- Access: who may open what ---
@@ -327,6 +333,7 @@ class SecurityConfigTest {
 				new Page(get("/exportcandidates"), STAFF),
 				new Page(get("/exportresults"), STAFF),
 				new Page(get("/exportschedule"), STAFF),
+				new Page(get("/exporthiring"), STAFF),
 				new Page(get("/viewactivity"), SUPER_ADMIN_ONLY),
 				new Page(get("/exportactivity"), SUPER_ADMIN_ONLY),
 				new Page(get("/viewdeletedcandidates"), SUPER_ADMIN_ONLY),
