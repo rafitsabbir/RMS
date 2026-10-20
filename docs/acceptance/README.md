@@ -255,3 +255,5 @@ Container trial (`deploy/docker-compose.yml`: Tomcat 11.0.27, MySQL 9.7.2, the s
 6. No console errors for any role; no SEVERE or ERROR lines on the server.
 
 **Bug found and fixed (`7ff41f3`):** assigning an interviewer answered HTTP 500 after saving, as did saving an evaluation, recording a decision and scheduling an interview: four services had lost the `@Autowired` on their activity log setter (2026-10-03), so the actions also never reached the activity log. Unit tests set the field themselves; `WiringTest` now catches a missing injection. Result after the fix: 27 of 27 checks.
+
+**Now automated:** `rms/WorkflowTest` runs these steps in Chrome in the CI `container` job on every PR and push ([build-run.md](../build-run.md), *Browser workflow*). The by-hand role checks in this folder still cover what it doesn't: the menus per role, phone width and accessibility.

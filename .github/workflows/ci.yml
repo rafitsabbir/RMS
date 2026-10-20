@@ -1,6 +1,6 @@
 # Builds the WAR and runs the tests on JDK 21 (docs/build-run.md).
-# The DAO tests use Testcontainers (Docker is available on ubuntu-latest); SmokeTest is
-# skipped because it needs a deployed app (RMS_BASE_URL).
+# The DAO tests use Testcontainers (Docker is available on ubuntu-latest); SmokeTest and WorkflowTest are
+# skipped here because they need a deployed app (RMS_BASE_URL): the container job runs them.
 name: CI
 
 on:
@@ -92,6 +92,25 @@ jobs:
           ./mvnw -B test -Dtest=SmokeTest
           # Every case is skipped when its environment variable is missing: fail rather than pass with none run
           grep -q 'skipped="0"' target/surefire-reports/TEST-rms.SmokeTest.xml
+
+      # After the smoke test, which changes no business data: the whole workflow in Chrome (WorkflowTest) adds,
+      # decides and purges a candidate on this throwaway seed. The runner's Chrome is used; nothing is downloaded.
+      - name: Workflow test against the container
+        env:
+          RMS_BASE_URL: http://127.0.0.1:8080/rms
+          RMS_WORKFLOW_SEEDED: "true"
+          PLAYWRIGHT_CHROMIUM_EXECUTABLE: /usr/bin/google-chrome
+        run: |
+          ./mvnw -B test -Dtest=WorkflowTest
+          grep -q 'skipped="0"' target/surefire-reports/TEST-rms.WorkflowTest.xml
+
+      - name: Upload workflow screenshots
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: workflow-screenshots
+          path: target/workflow/
+          if-no-files-found: ignore
 
       - name: Container logs
         if: ${{ !cancelled() }}
