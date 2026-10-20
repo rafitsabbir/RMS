@@ -1,7 +1,7 @@
 # Release Runbook: `dev` (Spring 7, Tomcat 11, MySQL 9.7 LTS)
 
 Purpose: How to release the current `dev` to production: what ships, what users notice, the owner checks, the ops steps in order (backup, MySQL server upgrade, migrations, application), the checks after deploy, and the rollback. It includes the rehearsal that proved those steps.
-Last updated: 2026-10-20 (health check after deploy, DB timeout options; written and rehearsed from a MySQL 5.7 + Tomcat 9 starting point)
+Last updated: 2026-10-20 (the database checks in one read-only script, `db/checks/`). 2026-10-20 (health check after deploy, DB timeout options; written and rehearsed from a MySQL 5.7 + Tomcat 9 starting point)
 Read this when: you're preparing, doing or signing off the release of `dev`, or rolling it back.
 
 No credentials, hostnames or JNDI definitions belong in this file. Each environment's values stay in its container or secret store.
@@ -29,7 +29,7 @@ Compared with the 2020 code, `dev` adds (details: [upgrade-status.md](upgrade-st
 
 ## Before the release (owner)
 1. **Decisions:** Tomcat 11 on the server, or the container image (#4, #17); the JDK standard (21); the release window.
-2. **Database checks** on production, read-only: the DDL against `db/schema.sql` (#19), and the checks of #27 (who becomes Super Admin, password column, keys, storage engine), #28 (documents and jobs), **#29 (`SHOW CREATE TABLE marks`; migration 005 is a draft until this is done)** and #30 (time zone). A difference found here stops the release until the migration is adjusted.
+2. **Database checks** on production, read-only, in one run: [`db/checks/pre-release-checks.sql`](../db/checks/README.md) (send its output to the developers). It covers the DDL against `db/schema.sql` (#19), and the checks of #27 (who becomes Super Admin, password column, keys, storage engine), #28 (documents and jobs), **#29 (`SHOW CREATE TABLE marks`; migration 005 is a draft until this is done)** and #30 (time zone). A difference found here stops the release until the migration is adjusted.
 3. **Migration 003** (hash the stored plain-text passwords): approve it now, later, or not (#25, #27). The release works without it.
 4. **Document storage:** a folder for `RMS_DOC_DIR` with its owner, rights, backup and size ([build-run.md](build-run.md), "Document storage").
 5. **Accounts:** the MySQL account the application uses (data rights on the RMS database only: SELECT, INSERT, UPDATE, DELETE) and an admin account for the server upgrade and the migrations (schema rights).
