@@ -1,6 +1,8 @@
 package rms.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -27,6 +29,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import rms.config.WebConfig;
 import rms.model.ActivityInfo;
+import rms.model.CandidateFilter;
 import rms.model.CandidateInfo;
 import rms.model.Criterion;
 import rms.model.ResultInfo;
@@ -81,7 +84,7 @@ class ReportControllerTest {
 		candidate.setApplieddate(LocalDate.of(2026, 9, 1));
 		candidate.setCandidatestatus("S");
 		candidate.setDecisionreason("=HYPERLINK(\"x\")");
-		when(candidateservice.getAllCandidate()).thenReturn(List.of(candidate));
+		when(candidateservice.getCandidates(any(CandidateFilter.class))).thenReturn(List.of(candidate));
 
 		String csv = body("/exportcandidates");
 
@@ -89,6 +92,15 @@ class ReportControllerTest {
 				+ "Applied date,Status,Decision date,Decided by,Reason for decision\r\n");
 		assertThat(csv).contains("C1,Carla,\"Candidate, Jr\",", "'+000 111", "2026-09-01,Selected", "'=HYPERLINK");
 		verify(activityservice).record("U3", "REPORT_DOWNLOADED", "REPORT", "CANDIDATES", null);
+	}
+
+	@Test
+	void theCandidatesCsvTakesTheListsFiltersAndTheLogSaysSo() throws Exception {
+		mockMvc.perform(get("/exportcandidates").param("status", "P").param("nocv", "true").session(session))
+				.andExpect(status().isOk());
+
+		verify(candidateservice).getCandidates(argThat(f -> "P".equals(f.getStatus()) && f.isNocv() && f.isActive()));
+		verify(activityservice).record("U3", "REPORT_DOWNLOADED", "REPORT", "CANDIDATES", "filtered");
 	}
 
 	@Test

@@ -2,12 +2,16 @@ package rms.service;
 
 import java.util.List;
 
+import rms.model.CandidateFilter;
 import rms.model.CandidateInfo;
 
 public interface CandidateService {
 	public String addCandidate(CandidateInfo candidateinfo);
 	public void updateCandidate(CandidateInfo candidateinfo);
 	public List<CandidateInfo> getAllCandidate();
+
+	/** The active candidates that pass the filter, in the list's order (all of them with no filter set). */
+	public List<CandidateInfo> getCandidates(CandidateFilter filter);
 	public List<CandidateInfo> getDeletedCandidates();
 	public CandidateInfo findCandidateById(String candidateid);
 	public void deleteCandidate(String candidateid);

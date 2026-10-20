@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import rms.dao.CandidateDao;
+import rms.model.CandidateFilter;
 import rms.model.CandidateInfo;
 
 @Service
@@ -33,6 +34,13 @@ public class CandidateServiceImpl implements CandidateService {
 	@Override
 	public List<CandidateInfo> getAllCandidate() {
 		return candidatedao.getAllCandidate();
+	}
+
+	/** Filtered here, not in SQL: the list is small (one row per candidate) and the rules stay in one place. */
+	@Override
+	public List<CandidateInfo> getCandidates(CandidateFilter filter) {
+		List<CandidateInfo> all = candidatedao.getAllCandidate();
+		return filter == null || !filter.isActive() ? all : all.stream().filter(filter::matches).toList();
 	}
 
 	@Override

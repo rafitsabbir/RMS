@@ -41,7 +41,8 @@ public class CandidateDaoImpl implements CandidateDao {
 			+ "(select count(distinct d.doctype) from candidate_document d where d.candidateid=c.candidateid "
 			+ "and d.isactive=1 and d.doctype in (:slottypes)) as slotcount, "
 			+ "(select count(*) from candidate_document d where d.candidateid=c.candidateid and d.isactive=1 "
-			+ "and d.doctype='PROFESSIONAL') as professionalcount "
+			+ "and d.doctype='PROFESSIONAL') as professionalcount, "
+			+ "(select count(*) from marks m where m.candidateid=c.candidateid and m.isactive=1) as evaluationcount "
 			+ "from candidate c left join position p on p.positionkey=c.positionkey "
 			+ "left join language l on l.languagekey=c.languagekey left join job j on j.jobkey=c.jobkey";
 	// Active candidates only (deleted ones keep isactive=0); shorter IDs first, so C2 comes before C10
@@ -107,6 +108,7 @@ public class CandidateDaoImpl implements CandidateDao {
 			candidate.setCvcount(rs.getInt("cvcount"));
 			candidate.setSlotcount(rs.getInt("slotcount"));
 			candidate.setProfessionalcount(rs.getInt("professionalcount"));
+			candidate.setEvaluationcount(rs.getInt("evaluationcount"));
 			candidate.setDecisionreason(rs.getString("decisionreason"));
 			candidate.setDecisiondate(rs.getObject("decisiondate", LocalDate.class));
 			candidate.setDecidedby(rs.getString("decidedby"));

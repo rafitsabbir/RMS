@@ -12,11 +12,16 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.WebDataBinder;
+import org.springframework.web.bind.annotation.InitBinder;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.servlet.ModelAndView;
 
 import rms.model.ActivityInfo;
+import rms.model.CandidateFilter;
 import rms.model.CandidateInfo;
 import rms.model.Criterion;
 import rms.model.ResultInfo;
@@ -54,16 +59,24 @@ public class ReportController {
 		return new ModelAndView("reports");
 	}
 
+	/** The Candidates list's filters, so its "Download CSV" exports what the list shows. */
+	@InitBinder("filter")
+	void bindFilterFieldsOnly(WebDataBinder binder) {
+		binder.setAllowedFields("jobkey", "status", "source", "appliedfrom", "appliedto", "nocv", "notevaluated");
+	}
+
+	/** Every active candidate, or with the list's filters only those that pass (a date that isn't one is ignored). */
 	@RequestMapping(value = "/exportcandidates", method = RequestMethod.GET)
-	public ResponseEntity<byte[]> candidates(HttpSession session) {
+	public ResponseEntity<byte[]> candidates(@ModelAttribute("filter") CandidateFilter filter, BindingResult binding,
+			HttpSession session) {
 		CsvWriter csv = new CsvWriter().row("Candidate ID", "First name", "Last name", "Position", "Language", "E-mail",
 				"Phone", "Source", "Applied date", "Status", "Decision date", "Decided by", "Reason for decision");
-		for (CandidateInfo c : candidateservice.getAllCandidate()) {
+		for (CandidateInfo c : candidateservice.getCandidates(filter)) {
 			csv.row(c.getCandidateid(), c.getFirstname(), c.getLastname(), c.getPositionname(), c.getLanguagename(),
 					c.getEmail(), c.getPhone(), c.getSourcelabel(), c.getApplieddate(), c.getStatuslabel(),
 					c.getDecisiondate(), c.getDecidedbyname(), c.getDecisionreason());
 		}
-		return download(csv, "candidates", "CANDIDATES", session);
+		return download(csv, "candidates", "CANDIDATES", filter.isActive() ? "filtered" : null, session);
 	}
 
 	@RequestMapping(value = "/exportresults", method = RequestMethod.GET)
@@ -99,7 +112,7 @@ public class ReportController {
 			row[j++] = r.getStatuslabel();
 			csv.row(row);
 		}
-		return download(csv, "candidate-status", "CANDIDATE_STATUS", session);
+		return download(csv, "candidate-status", "CANDIDATE_STATUS", null, session);
 	}
 
 	@RequestMapping(value = "/exportschedule", method = RequestMethod.GET)
@@ -110,7 +123,7 @@ public class ReportController {
 			csv.row(s.getStartlabel(), s.getCandidateid(), s.getCandidatename(), s.getInterviewerid(),
 					s.getInterviewername(), s.getLocation(), s.getStatus());
 		}
-		return download(csv, "interview-schedule", "INTERVIEW_SCHEDULE", session);
+		return download(csv, "interview-schedule", "INTERVIEW_SCHEDULE", null, session);
 	}
 
 	@RequestMapping(value = "/exportactivity", method = RequestMethod.GET)
@@ -121,14 +134,15 @@ public class ReportController {
 			csv.row(a.getCreatedlabel(), a.getUserid(), a.getUsername(), a.getActionlabel(), a.getEntitytype(),
 					a.getEntityid(), a.getDetail());
 		}
-		return download(csv, "activity-log", "ACTIVITY_LOG", session);
+		return download(csv, "activity-log", "ACTIVITY_LOG", null, session);
 	}
 
-	private ResponseEntity<byte[]> download(CsvWriter csv, String name, String report, HttpSession session) {
+	private ResponseEntity<byte[]> download(CsvWriter csv, String name, String report, String detail,
+			HttpSession session) {
 		String userid = CurrentUser.userid(session);
 		log.info("Report {} downloaded by {}", report, userid);
 		// The download itself is an activity too; the log export would list its own download from the next one on
-		activityservice.record(userid, "REPORT_DOWNLOADED", "REPORT", report, null);
+		activityservice.record(userid, "REPORT_DOWNLOADED", "REPORT", report, detail);
 		return ResponseEntity.ok()
 				.contentType(new MediaType("text", "csv", java.nio.charset.StandardCharsets.UTF_8))
 				.header(HttpHeaders.CONTENT_DISPOSITION,

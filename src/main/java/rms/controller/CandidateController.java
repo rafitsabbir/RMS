@@ -25,8 +25,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.ModelAndView;
 
+import rms.model.CandidateFilter;
 import rms.model.CandidateInfo;
 import rms.model.CandidateSource;
+import rms.model.DecisionStatus;
 import rms.model.DocumentInfo;
 import rms.model.DocumentType;
 import rms.model.JobInfo;
@@ -145,10 +147,25 @@ public class CandidateController {
 		return new ModelAndView("redirect:/viewcandidatelist");
 	}
 
+	/** The list's filters are GET parameters (bookmarkable); a date that isn't one is ignored with a message. */
+	@InitBinder("filter")
+	void bindFilterFieldsOnly(WebDataBinder binder) {
+		binder.setAllowedFields("jobkey", "status", "source", "appliedfrom", "appliedto", "nocv", "notevaluated");
+	}
+
 	@RequestMapping(value = "/viewcandidatelist", method = RequestMethod.GET)
-	public ModelAndView viewCandidate() {
+	public ModelAndView viewCandidate(@ModelAttribute("filter") CandidateFilter filter, BindingResult binding) {
 		ModelAndView mv = new ModelAndView("viewcandidate");
-		mv.addObject("candidatelist", candidateservice.getAllCandidate());
+		List<CandidateInfo> candidates = candidateservice.getCandidates(filter);
+		mv.addObject("candidatelist", candidates);
+		mv.addObject("totalcount", filter.isActive() ? candidateservice.getAllCandidate().size() : candidates.size());
+		if (binding.hasErrors()) {
+			mv.addObject("errorMessage", "Please enter the applied dates as dates; the other filters are applied.");
+		}
+		// Every job, closed ones too: candidates keep their job after it closes
+		mv.addObject("joblist", jobservice.getAllJob());
+		mv.addObject("sourcelist", CandidateSource.values());
+		mv.addObject("statuslist", DecisionStatus.values());
 		return mv;
 	}
 

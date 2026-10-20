@@ -3,6 +3,7 @@ package rms.controller;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasProperty;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
@@ -35,6 +36,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import rms.config.WebConfig;
+import rms.model.CandidateFilter;
 import rms.model.CandidateInfo;
 import rms.model.DocumentInfo;
 import rms.model.DocumentType;
@@ -252,12 +254,52 @@ class CandidateControllerTest {
 	@Test
 	void listShowsAllCandidates() throws Exception {
 		List<CandidateInfo> candidates = List.of(candidate("C1", 1, 1), candidate("C2", 2, 2));
-		when(candidateservice.getAllCandidate()).thenReturn(candidates);
+		when(candidateservice.getCandidates(any(CandidateFilter.class))).thenReturn(candidates);
 
 		mockMvc.perform(get("/viewcandidatelist"))
 				.andExpect(status().isOk())
 				.andExpect(view().name("viewcandidate"))
-				.andExpect(model().attribute("candidatelist", candidates));
+				.andExpect(model().attribute("candidatelist", candidates))
+				.andExpect(model().attribute("totalcount", 2))
+				.andExpect(model().attribute("filter", hasProperty("active", is(false))))
+				.andExpect(model().attributeDoesNotExist("errorMessage"));
+		// Without a filter the list is counted, not read twice
+		verify(candidateservice, never()).getAllCandidate();
+	}
+
+	@Test
+	void listFiltersBindFromTheUrlAndCountAgainstAll() throws Exception {
+		when(candidateservice.getCandidates(any(CandidateFilter.class))).thenReturn(List.of(candidate("C2", 2, 2)));
+		when(candidateservice.getAllCandidate()).thenReturn(List.of(candidate("C1", 1, 1), candidate("C2", 2, 2)));
+
+		mockMvc.perform(get("/viewcandidatelist").param("jobkey", "-1").param("status", "R").param("source", "NONE")
+				.param("appliedfrom", "2026-09-01").param("appliedto", "2026-09-30").param("nocv", "true")
+				.param("notevaluated", "true"))
+				.andExpect(model().attribute("totalcount", 2))
+				.andExpect(model().attribute("candidatelist", hasSize(1)));
+
+		ArgumentCaptor<CandidateFilter> captor = ArgumentCaptor.forClass(CandidateFilter.class);
+		verify(candidateservice).getCandidates(captor.capture());
+		CandidateFilter filter = captor.getValue();
+		assertThat(filter.getJobkey()).isEqualTo(CandidateFilter.NO_JOB);
+		assertThat(filter.getStatus()).isEqualTo("R");
+		assertThat(filter.getSource()).isEqualTo("NONE");
+		assertThat(filter.getAppliedfrom()).isEqualTo(LocalDate.of(2026, 9, 1));
+		assertThat(filter.getAppliedto()).isEqualTo(LocalDate.of(2026, 9, 30));
+		assertThat(filter.isNocv()).isTrue();
+		assertThat(filter.isNotevaluated()).isTrue();
+	}
+
+	@Test
+	void aBadFilterDateIsIgnoredWithAMessage() throws Exception {
+		mockMvc.perform(get("/viewcandidatelist").param("appliedfrom", "yesterday").param("status", "S"))
+				.andExpect(status().isOk())
+				.andExpect(model().attribute("errorMessage", org.hamcrest.Matchers.containsString("dates as dates")));
+
+		ArgumentCaptor<CandidateFilter> captor = ArgumentCaptor.forClass(CandidateFilter.class);
+		verify(candidateservice).getCandidates(captor.capture());
+		assertThat(captor.getValue().getAppliedfrom()).isNull();
+		assertThat(captor.getValue().getStatus()).isEqualTo("S");
 	}
 
 	@Test
