@@ -1,6 +1,9 @@
 package rms.dao;
 
+import java.util.List;
 import java.util.Map;
+
+import rms.model.HiringGroup;
 
 /** Counts for the home page dashboard (Phase 4). Read-only; every count is over active rows only. */
 public interface DashboardDao {
@@ -13,6 +16,9 @@ public interface DashboardDao {
 	 * that the interviewer has not evaluated yet. One interviewer's, or everyone's when interviewerid is null.
 	 */
 	public int countPendingEvaluations(String interviewerid);
+
+	/** The pending evaluations of countPendingEvaluations, per interviewer (label "Name (U2)", total), most first. */
+	public List<HiringGroup> countPendingEvaluationsByInterviewer();
 
 	/** Open jobs: status OPEN, not deleted. */
 	public int countOpenJobs();
