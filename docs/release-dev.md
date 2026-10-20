@@ -1,7 +1,7 @@
 # Release Runbook: `dev` (Spring 7, Tomcat 11, MySQL 9.7 LTS)
 
 Purpose: How to release the current `dev` to production: what ships, what users notice, the owner checks, the ops steps in order (backup, MySQL server upgrade, migrations, application), the checks after deploy, and the rollback. It includes the rehearsal that proved those steps.
-Last updated: 2026-10-20 (migration 008: hiring stages). 2026-10-20 (the database checks in one read-only script, `db/checks/`). 2026-10-20 (health check after deploy, DB timeout options; written and rehearsed from a MySQL 5.7 + Tomcat 9 starting point)
+Last updated: 2026-10-20 (re-rehearsed end to end with migrations 001-008 and the current `dev`). 2026-10-20 (migration 008: hiring stages). 2026-10-20 (the database checks in one read-only script, `db/checks/`). 2026-10-20 (health check after deploy, DB timeout options; written and rehearsed from a MySQL 5.7 + Tomcat 9 starting point)
 Read this when: you're preparing, doing or signing off the release of `dev`, or rolling it back.
 
 No credentials, hostnames or JNDI definitions belong in this file. Each environment's values stay in its container or secret store.
@@ -13,7 +13,7 @@ Compared with the 2020 code, `dev` adds (details: [upgrade-status.md](upgrade-st
 - **Stack:** Java 21, Spring 7.0.9 on Jakarta EE 11 and **Tomcat 11** (Servlet 6.1), Spring Security 7, Connector/J 9.7.0, Logback 1.5. The WAR no longer runs on Tomcat 9 or Java 8.
 - **Database:** **MySQL 9.7 LTS** (owner decision 2026-10-19). Connector/J 9.7 needs MySQL 8.0 or later, so a 5.7 server must be upgraded first ([mysql-upgrade.md](mysql-upgrade.md)).
 - **Schema changes:** migrations `001`, `002`, `004`, `005`, `006`, `007` and `008` in `db/migrations/` (new columns and seven new tables). `003` (hashing the stored passwords) is separate and optional (below).
-- **Features (since the rehearsal, on `dev` 2026-10-20):** hiring stages (migration 008), interview calendar files, a possible-duplicate warning, filters on the Candidates list, and a hiring report. Migration 008 was rehearsed on its own on MySQL 9.7 (run, rollback, re-run), not in the full 5.7 → 9.7 sequence below.
+- **Features added on `dev` on 2026-10-20:** hiring stages (migration 008), interview calendar files, a possible-duplicate warning, filters on the Candidates list, and a hiring report. All included in the second rehearsal below.
 - **Features:** four roles (Super Admin, HR, Hiring Manager, Interviewer) with Users and Roles; candidates with documents, jobs, interviewer assignment, evaluations on 10 criteria, decisions with reasons and history; the interview schedule and dashboard; CSV reports; the activity log; Deleted Candidates.
 - **UI:** a new look on Bootstrap 5 with a sidebar menu; every page is a real page (back, refresh and bookmarks work).
 - **Security:** form login with CSRF tokens and POST logout, deny-by-default access per role, a login lock after 5 failures, `{bcrypt}` for every new or changed password, inactive users signed out, security headers including a Content-Security-Policy.
@@ -69,7 +69,26 @@ These were rehearsed in this order (below). Keep everything you replace: it is t
 - **Only the application** (server and migrations kept, the new release misbehaves): deploying the previous `dev` build is the only quick path; the 2020 application can't run on 9.7.
 - The migration files' own rollback lines undo the schema on 9.7 (rehearsed on 2026-10-19), but they don't make the old application usable there; they are for repeating a migration step.
 
-## Rehearsal (2026-10-20)
+## Second rehearsal (2026-10-20, `dev` at `818d1e7`, migrations 001-008)
+The same steps again with everything on `dev` since the first rehearsal (calendar files, duplicate warning, filters, hiring report, hiring stages and migration 008). Throwaway containers and the synthetic test data only; the passwords were random, used once and deleted afterwards.
+- **Starting point:** MySQL 5.7.44 with the schema and seed from before the migrations, an application account on `mysql_native_password` with data rights only, and the 2020 application on Tomcat 9 / JDK 8 with Connector/J 5.1.36: it signed in and listed the positions.
+- **Steps 1–2:** application stopped; the `--all-databases` dump ended with `-- Dump completed`; slow shutdown.
+- **Step 3:** 5.7.44 → 8.0.46 (data dictionary upgraded) → the accounts moved to `caching_sha2_password` → 8.4.11 → 9.7.2; `CHECK TABLE` OK on the six old tables. The owner's check script (`db/checks/pre-release-checks.sql`) ran there with no errors.
+- **Step 4:** migrations 001, 002, 004, 005, 006, 007 and 008 ran with no errors or warnings; 13 tables; U1 SUPER_ADMIN, U2 INTERVIEWER; C1 (Selected) at Offer, C2 at Applied.
+- **Steps 5–7 (container image built from `dev`):** healthy; `/health` ok.
+- **After deploy:**
+  - `SmokeTest` with `RMS_SMOKE_SEEDED=false`: 19 of 19.
+  - In Chromium, 7 of 7:
+    - the old admin and interviewer signed in with their old passwords and got their roles' pages (403 on master data for the interviewer);
+    - C1 showed "Now at Offer", C2 "Rejected at Applied" with the form disabled;
+    - a stage move worked;
+    - a CV uploaded and downloaded through `RMS_DOC_DIR`;
+    - the hiring report rendered.
+  - No SEVERE or ERROR lines.
+- **Rollback:** the old application against 9.7 failed ("Could not create connection to database server"). A fresh 5.7.44 loaded from the dump brought back the accounts (`mysql_native_password`) and the six tables, and the old application signed in and listed the data again.
+- **Not covered (as before):** the real server, its configuration, data volume and TLS; the standalone Tomcat 11 variant; migration 003; real CDN access.
+
+## First rehearsal (2026-10-20, migrations 001-007)
 A scratch environment with throwaway containers and the synthetic test data only. Nothing real was touched.
 - **Starting point, like production is assumed to be:** MySQL 5.7.44 with the schema and seed from before the migrations (`git show 870e473:db/schema.sql`, `a3b92b0^:db/test-seed.sql`) and an application account created on 5.7 (`mysql_native_password`, data rights only); the 2020 application (`phase0.war`, built from `d813e71`) on Tomcat 9 / JDK 8 with Connector/J 5.1.36 in `lib/`. It signed in and listed the positions.
 - **Steps 1–2:** application stopped; the `--all-databases` dump completed; slow shutdown.
