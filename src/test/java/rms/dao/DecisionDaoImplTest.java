@@ -78,4 +78,46 @@ class DecisionDaoImplTest extends MySqlContainerSupport {
 		decision.setDecidedby("U1");
 		return decision;
 	}
+
+	@Test
+	void selectedMovesACandidateBeforeOfferToOfferWithAHistoryRow() {
+		// C2 is at Interview in the seed
+		assertThat(dao.saveDecision(decision("C2", "S", "Second look went well"))).isTrue();
+
+		assertThat(jdbcTemplate.queryForObject("select stage from candidate where candidateid='C2'", String.class))
+				.isEqualTo("OFFER");
+		Map<String, Object> history = jdbcTemplate.queryForMap("select * from candidate_stage where candidateid='C2' "
+				+ "order by stagekey desc limit 1");
+		assertThat(history.get("fromstage")).isEqualTo("INTERVIEW");
+		assertThat(history.get("tostage")).isEqualTo("OFFER");
+		assertThat(history.get("changedby")).isEqualTo("U1");
+		assertThat(history.get("note")).isEqualTo("Decision: Selected");
+	}
+
+	@Test
+	void selectedLeavesOfferHiredAndWithdrawnAndOtherDecisionsLeaveTheStage() {
+		int before = jdbcTemplate.queryForObject("select count(*) from candidate_stage", Integer.class);
+		jdbcTemplate.update("update candidate set stage='HIRED' where candidateid='C1'");
+		dao.saveDecision(decision("C1", "S", "Still selected"));
+		assertThat(jdbcTemplate.queryForObject("select stage from candidate where candidateid='C1'", String.class))
+				.isEqualTo("HIRED");
+
+		dao.saveDecision(decision("C2", "H", "Waiting"));
+		dao.saveDecision(decision("C2", "R", "No"));
+		assertThat(jdbcTemplate.queryForObject("select stage from candidate where candidateid='C2'", String.class))
+				.isEqualTo("INTERVIEW");
+		assertThat(jdbcTemplate.queryForObject("select count(*) from candidate_stage", Integer.class)).isEqualTo(before);
+	}
+
+	@Test
+	void aNullStageReadsAsAppliedAndMovesToOffer() {
+		jdbcTemplate.update("update candidate set stage=null where candidateid='C2'");
+
+		dao.saveDecision(decision("C2", "S", "Yes"));
+
+		assertThat(jdbcTemplate.queryForObject("select stage from candidate where candidateid='C2'", String.class))
+				.isEqualTo("OFFER");
+		assertThat(jdbcTemplate.queryForObject("select fromstage from candidate_stage where candidateid='C2' "
+				+ "order by stagekey desc limit 1", String.class)).isNull();
+	}
 }

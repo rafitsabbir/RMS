@@ -23,6 +23,8 @@
 --     db/migrations/005-assignment-evaluation-decision.sql, checked against SHOW CREATE TABLE marks first.
 --   * interview_schedule is NEW (2026-10-03, interview schedule and dashboard): production needs
 --     db/migrations/006-interview-schedule.sql before a WAR with it.
+--   * candidate.stage and the table candidate_stage are NEW (2026-10-20, hiring stages): production needs
+--     db/migrations/008-candidate-stage.sql before a WAR with them. activity_log comes from 007.
 --   * Types, lengths, keys and NULL rules: guessed. No unique index on names,
 --     which keeps the current duplicate behaviour (G33).
 -- Used only by the Testcontainers DAO tests (src/test/java/rms/dao).
@@ -79,6 +81,7 @@ CREATE TABLE candidate (
 	decisionreason VARCHAR(500),
 	decisiondate DATE,
 	decidedby VARCHAR(50),
+	stage VARCHAR(12),
 	PRIMARY KEY (candidateid)
 );
 
@@ -188,6 +191,20 @@ CREATE TABLE candidate_decision (
 -- An interview of a candidate by an assigned interviewer (Phase 4). startat is a DATETIME with no time zone: the
 -- wall-clock time in the MySQL server's time zone, which is what NOW() uses. status is SCHEDULED, DONE or
 -- CANCELLED; cancelling keeps the row. isactive is reserved for hiding a row; nothing sets it to 0 yet.
+-- A candidate's hiring stage changes (2026-10-20, migration 008): who moved them, from and to which stage, when.
+-- candidate.stage holds the current one.
+CREATE TABLE candidate_stage (
+	stagekey INT NOT NULL AUTO_INCREMENT,
+	candidateid VARCHAR(50) NOT NULL,
+	fromstage VARCHAR(12),
+	tostage VARCHAR(12) NOT NULL,
+	note VARCHAR(500),
+	changedby VARCHAR(50) NOT NULL,
+	changedat DATETIME NOT NULL,
+	PRIMARY KEY (stagekey),
+	KEY candidate_stage_candidate (candidateid, stagekey)
+) ENGINE=InnoDB;
+
 CREATE TABLE interview_schedule (
 	schedulekey INT NOT NULL AUTO_INCREMENT,
 	candidateid VARCHAR(50) NOT NULL,

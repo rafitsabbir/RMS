@@ -21,8 +21,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import rms.dao.AssignmentDao;
 import rms.dao.DecisionDao;
 import rms.dao.MarksDao;
+import rms.dao.StageDao;
 import rms.model.Criterion;
 import rms.model.DecisionInfo;
+import rms.model.HiringStage;
 import rms.model.MarksInfo;
 import rms.model.UserInfo;
 
@@ -159,8 +161,34 @@ class EvaluationServicesTest {
 		@Mock
 		ActivityService activityservice;
 
+		@Mock
+		StageDao stagedao;
+
+		@Mock
+		StageService stageservice;
+
 		@InjectMocks
 		DecisionServiceImpl service;
+
+		@Test
+		void selectedMovesACandidateBeforeOfferToOfferAndSaysSo() {
+			when(decisiondao.saveDecision(any(DecisionInfo.class))).thenReturn(true);
+			when(stagedao.getStage("C1")).thenReturn("INTERVIEW", "OFFER");
+
+			assertThat(service.saveDecision(decision("S", "Strong", LocalDate.now()), "U3", 2).message())
+					.endsWith("The candidate moves to Offer.");
+			verify(stageservice).record("U3", "C1", "INTERVIEW", HiringStage.OFFER);
+		}
+
+		@Test
+		void rejectedClosesThePipelineWhereItIs() {
+			when(decisiondao.saveDecision(any(DecisionInfo.class))).thenReturn(true);
+			when(stagedao.getStage("C1")).thenReturn("SCREENING");
+
+			assertThat(service.saveDecision(decision("R", "Weak", LocalDate.now()), "U3", 2).message())
+					.endsWith("The pipeline is closed at Screening.");
+			verify(stageservice, never()).record(anyString(), anyString(), any(), any());
+		}
 
 		@Test
 		void savesWithTheDeciderAndANote() {

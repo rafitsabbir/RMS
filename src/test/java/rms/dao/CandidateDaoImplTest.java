@@ -307,4 +307,14 @@ class CandidateDaoImplTest extends MySqlContainerSupport {
 		jdbcTemplate.update("update marks set isactive=0 where candidateid='C1'");
 		assertThat(dao.findCandidateById("C1").getEvaluationcount()).isZero();
 	}
+
+	@Test
+	void aNewCandidateStartsAtAppliedAndTheStageIsRead() {
+		String id = dao.addCandidate(candidate(null, "Dana", "Doe", 1, 1));
+
+		assertThat(dao.findCandidateById(id).getStage()).isEqualTo("APPLIED");
+		assertThat(dao.findCandidateById("C1").getStagelabel()).isEqualTo("Offer");
+		jdbcTemplate.update("update candidate set stage=null where candidateid='C2'");
+		assertThat(dao.findCandidateById("C2").getStagelabel()).isEqualTo("Applied");
+	}
 }

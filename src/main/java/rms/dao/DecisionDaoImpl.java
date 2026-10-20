@@ -18,6 +18,8 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import rms.model.DecisionInfo;
+import rms.model.DecisionStatus;
+import rms.model.HiringStage;
 
 @Repository
 public class DecisionDaoImpl implements DecisionDao {
@@ -27,6 +29,11 @@ public class DecisionDaoImpl implements DecisionDao {
 			+ "decisiondate=:decisiondate, decidedby=:decidedby where candidateid=:candidateid and isactive=1";
 	private String savedecision = "insert into candidate_decision (candidateid, status, reason, decisiondate, "
 			+ "decidedby, decidedat) values (:candidateid, :status, :reason, :decisiondate, :decidedby, now())";
+	// Selected moves a candidate at Applied, Screening or Interview to Offer (owner decision 2026-10-20), in the same
+	// transaction as the decision; the history row comes from StageDaoImpl.SAVESTAGE
+	private String getstage = "select stage from candidate where candidateid=:candidateid and isactive=1";
+	private String toOffer = "update candidate set stage='OFFER' where candidateid=:candidateid and isactive=1 "
+			+ "and stage <=> :expected";
 	private String decisionsbycandidate = "select d.decisionkey, d.candidateid, d.status, d.reason, d.decisiondate, "
 			+ "d.decidedby, d.decidedat, (select min(concat_ws(' ', a.firstname, a.lastname)) from admin a "
 			+ "where a.userid=d.decidedby) as decidedbyname from candidate_decision d "
@@ -83,6 +90,20 @@ public class DecisionDaoImpl implements DecisionDao {
 				return false;
 			}
 			namedParameterJdbcTemplate.update(savedecision, params);
+			if (DecisionStatus.parse(decision.getStatus()) == DecisionStatus.S) {
+				List<String> stages = namedParameterJdbcTemplate.queryForList(getstage, params, String.class);
+				String expected = stages.isEmpty() ? null : stages.get(0);
+				if (HiringStage.of(expected).isBeforeOffer()) {
+					MapSqlParameterSource move = new MapSqlParameterSource(params.getValues());
+					move.addValue("expected", expected);
+					move.addValue("tostage", HiringStage.OFFER.name());
+					move.addValue("note", "Decision: Selected");
+					move.addValue("userid", decision.getDecidedby());
+					if (namedParameterJdbcTemplate.update(toOffer, move) > 0) {
+						namedParameterJdbcTemplate.update(StageDaoImpl.SAVESTAGE, move);
+					}
+				}
+			}
 			return true;
 		});
 		return Boolean.TRUE.equals(saved);

@@ -38,6 +38,9 @@ class ScheduleServiceImplTest {
 	@Mock
 	ActivityService activityservice;
 
+	@Mock
+	StageService stageservice;
+
 	ScheduleServiceImpl service;
 
 	@BeforeEach
@@ -46,6 +49,7 @@ class ScheduleServiceImplTest {
 		service.setScheduleDao(scheduledao);
 		service.setAssignmentDao(assignmentdao);
 		service.setActivityService(activityservice);
+		service.setStageService(stageservice);
 	}
 
 	@Test
@@ -60,6 +64,8 @@ class ScheduleServiceImplTest {
 		assertThat(outcome.done()).isTrue();
 		assertThat(info.getStatus()).isEqualTo(ScheduleInfo.SCHEDULED);
 		verify(scheduledao).addSchedule(info, "U3");
+		// Hiring stages: Applied or Screening moves on to Interview (StageServiceImpl decides)
+		verify(stageservice).interviewScheduled("C1", "U3");
 	}
 
 	@Test

@@ -32,7 +32,7 @@ public class CandidateDaoImpl implements CandidateDao {
 	// The job's status only when the job is active. The document counts are of active documents: CV, how many
 	// of the six single-slot types (CV included), and professional certificates
 	private String selectcandidate = "select c.candidateid, c.firstname, c.lastname, c.positionkey, c.languagekey, "
-			+ "c.candidatestatus, c.email, c.phone, c.source, c.applieddate, c.jobkey, p.positionname, l.languagename, "
+			+ "c.candidatestatus, c.stage, c.email, c.phone, c.source, c.applieddate, c.jobkey, p.positionname, l.languagename, "
 			+ "c.decisionreason, c.decisiondate, c.decidedby, (select min(concat_ws(' ', a.firstname, a.lastname)) "
 			+ "from admin a where a.userid=c.decidedby) as decidedbyname, "
 			+ "(case when j.isactive=1 then j.status end) as jobstatus, "
@@ -58,8 +58,8 @@ public class CandidateDaoImpl implements CandidateDao {
 			+ "where candidateid regexp '^C[0-9]{1,9}$'";
 	private String savecandidate = "insert into candidate "
 			+ "(isactive, candidateid, firstname, lastname, positionkey, languagekey, email, phone, source, applieddate, "
-			+ "jobkey) VALUES (1, :candidateid, :firstname, :lastname, :positionkey, :languagekey, :email, :phone, "
-			+ ":source, :applieddate, :jobkey)";
+			+ "jobkey, stage) VALUES (1, :candidateid, :firstname, :lastname, :positionkey, :languagekey, :email, :phone, "
+			+ ":source, :applieddate, :jobkey, 'APPLIED')";
 	private String updatecandidate = "update candidate set firstname=:firstname, lastname=:lastname, "
 			+ "positionkey=:positionkey, languagekey=:languagekey, email=:email, phone=:phone, source=:source, "
 			+ "applieddate=:applieddate, jobkey=:jobkey where candidateid=:candidateid and isactive=1";
@@ -96,6 +96,7 @@ public class CandidateDaoImpl implements CandidateDao {
 			candidate.setPositionkey(rs.getInt("positionkey"));
 			candidate.setLanguagekey(rs.getInt("languagekey"));
 			candidate.setCandidatestatus(rs.getString("candidatestatus"));
+			candidate.setStage(rs.getString("stage"));
 			candidate.setPositionname(rs.getString("positionname"));
 			candidate.setLanguagename(rs.getString("languagename"));
 			candidate.setEmail(rs.getString("email"));
