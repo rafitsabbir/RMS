@@ -605,4 +605,62 @@ class CandidateControllerTest {
 				.andExpect(view().name("viewdeletedcandidates"))
 				.andExpect(model().attribute("candidatelist", List.of(deleted)));
 	}
+
+	@Test
+	void aPossibleDuplicateIsShownBeforeSaving() throws Exception {
+		CandidateInfo lookalike = candidate("C1", 1, 1);
+		lookalike.setDuplicatereason("same e-mail");
+		when(candidateservice.findPossibleDuplicates(any(CandidateInfo.class))).thenReturn(List.of(lookalike));
+
+		mockMvc.perform(save(null, "Dana", "Doe", "1", "1").param("email", "carla@example.test"))
+				.andExpect(status().isOk())
+				.andExpect(view().name("createcandidate"))
+				.andExpect(model().attribute("duplicates", List.of(lookalike)))
+				.andExpect(model().attributeDoesNotExist("errorMessage"))
+				// The entered values stay in the form
+				.andExpect(model().attribute("candidateinfo", hasProperty("email", is("carla@example.test"))));
+
+		verify(candidateservice, never()).addCandidate(any(CandidateInfo.class));
+	}
+
+	@Test
+	void saveAnywayAddsAndLogsTheLookalikesByIdOnly() throws Exception {
+		when(candidateservice.findPossibleDuplicates(any(CandidateInfo.class)))
+				.thenReturn(List.of(candidate("C1", 1, 1), candidate("C2", 1, 1)));
+		when(candidateservice.addCandidate(any(CandidateInfo.class))).thenReturn("C9");
+
+		mockMvc.perform(save(null, "Carla", "Candidate", "1", "1").param("confirmduplicate", "true").session(staff))
+				.andExpect(redirectedUrl("/viewcandidatelist"));
+
+		verify(activityservice).record("U1", "CANDIDATE_ADDED", "CANDIDATE", "C9", "possible duplicate of C1, C2");
+	}
+
+	@Test
+	void editingWithoutChangingTheNameEmailOrPhoneDoesNotCheckAgain() throws Exception {
+		CandidateInfo stored = candidate("C1", 1, 1);
+		stored.setEmail("carla@example.test");
+		when(candidateservice.findCandidateById("C1")).thenReturn(stored);
+
+		// Only the position changes; case and spaces in the e-mail don't count as a change
+		mockMvc.perform(save("C1", "Carla", "Candidate", "2", "1").param("email", " Carla@Example.test ")
+				.param("update", "true")).andExpect(redirectedUrl("/viewcandidatelist"));
+
+		verify(candidateservice, never()).findPossibleDuplicates(any(CandidateInfo.class));
+		verify(candidateservice).updateCandidate(any(CandidateInfo.class));
+	}
+
+	@Test
+	void editingTheEmailChecksForOthersWithIt() throws Exception {
+		when(candidateservice.findCandidateById("C1")).thenReturn(candidate("C1", 1, 1));
+		CandidateInfo lookalike = candidate("C2", 1, 1);
+		when(candidateservice.findPossibleDuplicates(any(CandidateInfo.class))).thenReturn(List.of(lookalike));
+
+		mockMvc.perform(save("C1", "Carla", "Candidate", "1", "1").param("email", "cody@example.test")
+				.param("update", "true"))
+				.andExpect(view().name("createcandidate"))
+				.andExpect(model().attribute("update", true))
+				.andExpect(model().attribute("duplicates", List.of(lookalike)));
+
+		verify(candidateservice, never()).updateCandidate(any(CandidateInfo.class));
+	}
 }

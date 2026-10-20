@@ -23,6 +23,23 @@
 				<span><c:out value="${errorMessage}"/></span>
 			</div>
 			</c:if>
+			<c:if test="${not empty duplicates}">
+			<div class="alert alert-warning" role="alert" id="duplicates">
+				<div class="d-flex align-items-center gap-2 mb-2">
+					<svg class="rms-icon" aria-hidden="true"><use href="${base}resources/img/icons.svg#exclamation-triangle-fill"/></svg>
+					<strong>This may be a candidate RMS already has.</strong>
+				</div>
+				<ul class="mb-2">
+				<c:forEach items="${duplicates}" var="item">
+					<c:url value="/viewcandidate" var="duplicateURL"><c:param name="candidateid" value="${item.candidateid}" /></c:url>
+					<li><a href="<c:out value='${duplicateURL}'/>" target="_blank" rel="noopener"><c:out value="${item.firstname} ${item.lastname}"/>
+						(<c:out value="${item.candidateid}"/>)</a>: <c:out value="${item.duplicatereason}"/></li>
+				</c:forEach>
+				</ul>
+				<p class="mb-0">Check the candidate (the link opens in a new tab). If this is someone else, choose <strong>Save anyway</strong>;
+					the activity log notes the possible duplicate.</p>
+			</div>
+			</c:if>
 			<form:form id="candidate" modelAttribute="candidateinfo" method="POST" action="${saveURL}">
 				<%-- A new candidate gets the next ID (C1, C2, ...) when saved; an existing one keeps its ID --%>
 				<c:if test="${update}">
@@ -94,7 +111,15 @@
 					</div>
 				</div>
 				<div class="d-flex gap-2">
+					<c:choose>
+					<c:when test="${not empty duplicates}">
+					<button type="submit" class="btn btn-warning" name="confirmduplicate" value="true">Save anyway</button>
+					<button type="submit" class="btn btn-outline-primary">Check again</button>
+					</c:when>
+					<c:otherwise>
 					<button type="submit" class="btn btn-primary">Save</button>
+					</c:otherwise>
+					</c:choose>
 					<a class="btn btn-outline-secondary" href="${listURL}">Cancel</a>
 				</div>
 			</form:form>

@@ -39,6 +39,8 @@ public class CandidateInfo {
 	private String decidedbyname = null;
 	/** Only on the deleted candidates list: documents whose files are still stored. */
 	private int unpurgedcount = 0;
+	/** Why another candidate may be the same person (possible-duplicate check): e.g. "same e-mail, same name". */
+	private String duplicatereason = null;
 
 	/** No names, e-mail or phone: they are personal data. */
 	@Override
@@ -194,6 +196,14 @@ public class CandidateInfo {
 
 	public void setUnpurgedcount(int unpurgedcount) {
 		this.unpurgedcount = unpurgedcount;
+	}
+
+	public String getDuplicatereason() {
+		return duplicatereason;
+	}
+
+	public void setDuplicatereason(String duplicatereason) {
+		this.duplicatereason = duplicatereason;
 	}
 
 	public int getCvcount() {

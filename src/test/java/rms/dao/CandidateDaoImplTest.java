@@ -263,4 +263,39 @@ class CandidateDaoImplTest extends MySqlContainerSupport {
 		jdbcTemplate.update("update candidate set isactive=1 where candidateid='C1'");
 		assertThat(dao.getDeletedCandidates()).extracting("candidateid").containsExactly("C2");
 	}
+
+	@Test
+	void possibleDuplicatesMatchEmailPhoneDigitsOrFullNameAnyCase() {
+		// C1 in the seed: Carla Candidate, carla@example.test, 000-1001
+		CandidateInfo byEmail = candidate(null, "Dana", "Doe", 1, 1);
+		byEmail.setEmail("CARLA@Example.Test");
+		assertThat(dao.findPossibleDuplicates(byEmail, null))
+				.extracting(CandidateInfo::getCandidateid, CandidateInfo::getDuplicatereason)
+				.containsExactly(tuple("C1", "same e-mail"));
+
+		assertThat(dao.findPossibleDuplicates(candidate(null, "Dana", "Doe", 1, 1), "0001001"))
+				.extracting(CandidateInfo::getDuplicatereason).containsExactly("same phone");
+
+		// The seed has two "Candidate"s; only the full name counts
+		assertThat(dao.findPossibleDuplicates(candidate(null, "carla", "CANDIDATE", 1, 1), null))
+				.extracting(CandidateInfo::getCandidateid).containsExactly("C1");
+
+		CandidateInfo all = candidate(null, "Carla", "Candidate", 1, 1);
+		all.setEmail("carla@example.test");
+		assertThat(dao.findPossibleDuplicates(all, "0001001")).extracting(CandidateInfo::getDuplicatereason)
+				.containsExactly("same e-mail, same phone, same name");
+	}
+
+	@Test
+	void possibleDuplicatesLeaveOutTheCandidateItselfDeletedOnesAndEmptyValues() {
+		CandidateInfo self = candidate("C1", "Carla", "Candidate", 1, 1);
+		self.setEmail("carla@example.test");
+		assertThat(dao.findPossibleDuplicates(self, "0001001")).isEmpty();
+
+		// No e-mail and no phone match nothing (C2 has neither)
+		assertThat(dao.findPossibleDuplicates(candidate(null, "Dana", "Doe", 1, 1), null)).isEmpty();
+
+		jdbcTemplate.update("update candidate set isactive=0 where candidateid='C1'");
+		assertThat(dao.findPossibleDuplicates(candidate(null, "Carla", "Candidate", 1, 1), null)).isEmpty();
+	}
 }
