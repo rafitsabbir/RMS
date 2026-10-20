@@ -101,6 +101,7 @@ jobs:
           RMS_WORKFLOW_SEEDED: "true"
           PLAYWRIGHT_CHROMIUM_EXECUTABLE: /usr/bin/google-chrome
         run: |
+          "$PLAYWRIGHT_CHROMIUM_EXECUTABLE" --version
           ./mvnw -B test -Dtest=WorkflowTest
           grep -q 'skipped="0"' target/surefire-reports/TEST-rms.WorkflowTest.xml
 

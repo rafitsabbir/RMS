@@ -1,13 +1,16 @@
 package rms;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import java.io.IOException;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -36,6 +39,7 @@ import com.microsoft.playwright.Download;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
+import com.microsoft.playwright.PlaywrightException;
 import com.microsoft.playwright.Response;
 import com.microsoft.playwright.Route;
 import com.microsoft.playwright.options.FormData;
@@ -46,7 +50,9 @@ import com.microsoft.playwright.options.RequestOptions;
  * The whole recruitment workflow in Chromium, across the four roles, against a deployed trial with a FRESH
  * synthetic seed (db/test-seed.sql), as the CI container job starts it (deploy/docker-compose.yml).
  * It adds, decides, deletes and purges a candidate, so it is enabled only when RMS_BASE_URL is set AND
- * RMS_WORKFLOW_SEEDED=true. Never set that against a real database.
+ * RMS_WORKFLOW_SEEDED=true. Never set that against a real database. Before any write it also fails unless
+ * RMS_BASE_URL is on this machine and the seed is untouched (the candidates are exactly C1 and C2 and the
+ * activity log has no candidate added), so the candidate it adds is C3 and nothing else is changed.
  * The steps depend on each other and run in order; after a failure the rest are skipped. Screenshots of the
  * failing step go to target/workflow/.
  * Browser: PLAYWRIGHT_CHROMIUM_EXECUTABLE when set (a local Chromium or Chrome), else Playwright's own Chromium.
@@ -84,8 +90,14 @@ class WorkflowTest {
 		@Override
 		public void testFailed(ExtensionContext context, Throwable cause) {
 			broken = true;
-			pages.forEach((who, page) -> page.screenshot(new Page.ScreenshotOptions().setFullPage(true)
-					.setPath(OUT.resolve(context.getRequiredTestMethod().getName() + "-" + who + ".png"))));
+			pages.forEach((who, page) -> {
+				try {
+					page.screenshot(new Page.ScreenshotOptions().setFullPage(true)
+							.setPath(OUT.resolve(context.getRequiredTestMethod().getName() + "-" + who + ".png")));
+				} catch (PlaywrightException e) {
+					// A closed or crashed page: the other roles still get theirs
+				}
+			});
 		}
 	};
 
@@ -109,6 +121,22 @@ class WorkflowTest {
 			playwright = Playwright.create();
 		}
 		browser = playwright.chromium().launch(options);
+
+		// Guards before any write: a local trial, and an untouched seed
+		String host = URI.create(base).getHost();
+		if (!List.of("127.0.0.1", "localhost", "[::1]").contains(host)) {
+			fail("WorkflowTest writes data: RMS_BASE_URL must be a local trial, not " + host);
+		}
+		Page sa = signIn("SA");
+		APIResponse candidates = sa.context().request().get(base + "/exportcandidates");
+		assertThat(candidates.status()).isEqualTo(200);
+		List<String> ids = candidates.text().lines().skip(1).map(row -> row.split(",", 2)[0]).toList();
+		// A deleted candidate leaves the list but not the log: the seed's log has no candidate added
+		long added = activity(sa, "CANDIDATE").stream().filter(row -> row.contains(",Candidate added,")).count();
+		if (!ids.equals(List.of("C1", "C2")) || added > 0) {
+			fail("WorkflowTest needs a fresh db/test-seed.sql (candidates C1 and C2 only, none added since), found "
+					+ ids + " and " + added + " added");
+		}
 	}
 
 	@AfterAll
@@ -148,7 +176,9 @@ class WorkflowTest {
 		hr.fill("#applieddate", "2026-10-15");
 		submit(hr, "form#candidate button[type=submit]");
 		assertThat(path(hr)).isEqualTo("/viewcandidatelist");
-		assertThat(text(hr)).contains("C3").contains("Nora");
+		Locator row = hr.locator("#candidatetable tbody tr", new Page.LocatorOptions().setHasText("Newcomer"));
+		assertThat(row.count()).isEqualTo(1);
+		assertThat(row.locator("td").first().innerText().trim()).isEqualTo("C3");
 	}
 
 	@Test
@@ -176,12 +206,13 @@ class WorkflowTest {
 		assertThat(path(hr)).doesNotEndWith("/viewschedulelist");
 		assertThat(text(hr)).containsIgnoringCase("hasn't passed");
 
-		schedule(hr, "2030-06-01T10:00", "Room 2");
+		String next = LocalDate.now().plusYears(1) + "T10:00";
+		schedule(hr, next, "Room 2");
 		assertThat(path(hr)).isEqualTo("/viewschedulelist");
 		assertThat(text(hr, "#scheduletable")).contains("Room 2");
 
 		// The same interviewer at the same minute again
-		schedule(hr, "2030-06-01T10:00", "Room 3");
+		schedule(hr, next, "Room 3");
 		assertThat(path(hr)).doesNotEndWith("/viewschedulelist");
 	}
 
@@ -224,13 +255,16 @@ class WorkflowTest {
 		Page hm = signIn("HM");
 		hm.navigate(base + "/adminviewmarks");
 		// 82 = the sum of the ten scores (each out of 10)
-		assertThat(text(hm)).containsPattern("Nora.*82");
+		assertThat(hm.locator("#markstable tbody tr", new Page.LocatorOptions().setHasText("Newcomer")).innerText())
+				.containsPattern("\\b82\\b");
 		hm.navigate(base + "/viewevaluations?candidateid=C3");
 		assertThat(text(hm)).contains("Clear thinker");
 		assertThat(hm.locator("form#savedecision").count()).isZero();
 
+		// With a valid CSRF token, so the 403 comes from the role rule, not from the CSRF filter
+		String token = hm.locator("form#logout input[name=_csrf]").inputValue();
 		APIResponse post = hm.context().request().post(base + "/savedecision", RequestOptions.create()
-				.setForm(FormData.create().set("candidateid", "C3").set("status", "S")).setMaxRedirects(0));
+				.setForm(FormData.create().set("_csrf", token).set("candidateid", "C3").set("status", "S")).setMaxRedirects(0));
 		assertThat(post.status()).isEqualTo(403);
 	}
 
@@ -247,15 +281,14 @@ class WorkflowTest {
 
 		Page iv = pages.get("IV");
 		iv.navigate(base + "/evaluate?candidateid=C3");
-		boolean locked = iv.locator("form#evaluation button[type=submit]").count() == 0
-				|| Pattern.compile("locked|decided|can no longer|Selected", Pattern.CASE_INSENSITIVE).matcher(text(iv)).find();
-		assertThat(locked).as("the evaluation is locked after the decision").isTrue();
+		assertThat(iv.locator("form#evaluation button[type=submit]").count()).isZero();
+		assertThat(text(iv)).contains("the evaluations can't be changed");
 	}
 
 	@Test
 	@Order(7)
 	void reportsAndTheActivityLog() {
-		Page sa = signIn("SA");
+		Page sa = pages.get("SA");
 		APIResponse csv = sa.context().request().get(base + "/exportresults");
 		assertThat(csv.status()).isEqualTo(200);
 		assertThat(csv.text()).contains("Nora").contains("Selected");
@@ -320,16 +353,16 @@ class WorkflowTest {
 		page.navigate(base + "/login");
 		page.fill("#username", USERS.get(who)[0]);
 		page.fill("#password", USERS.get(who)[1]);
-		page.click("#Login button[type=submit]");
-		page.waitForURL("**/home");
+		submit(page, "#Login button[type=submit]");
+		assertThat(path(page)).as("signed in as " + USERS.get(who)[0]).isEqualTo("/home");
 		return page;
 	}
 
-	/** The rows of the activity log's CSV (Activity Log, Download CSV) that name the record. */
+	/** The rows of the activity log's CSV (Activity Log, Download CSV) with that field, e.g. a record ID. */
 	private List<String> activity(Page sa, String record) {
 		APIResponse csv = sa.context().request().get(base + "/exportactivity");
 		assertThat(csv.status()).isEqualTo(200);
-		return csv.text().lines().filter(row -> row.contains(record)).toList();
+		return csv.text().lines().filter(row -> row.contains("," + record + ",")).toList();
 	}
 
 	private void schedule(Page hr, String startAt, String location) {
@@ -359,7 +392,8 @@ class WorkflowTest {
 		try {
 			page.evaluate("window.__rmsBefore = true");
 			button.click();
-			page.waitForFunction("!window.__rmsBefore");
+			// A submit that loads no page (a browser-side validation stopped it) fails here after 15 s
+			page.waitForFunction("!window.__rmsBefore", null, new Page.WaitForFunctionOptions().setTimeout(15000));
 			page.waitForLoadState(LoadState.NETWORKIDLE);
 		} finally {
 			page.offResponse(navigation);
