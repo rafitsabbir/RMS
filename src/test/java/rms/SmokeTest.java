@@ -22,6 +22,9 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
  * Enabled only when RMS_BASE_URL is set, e.g. the local Tomcat context URL.
  * The login tests also need RMS_SMOKE_USER and RMS_SMOKE_PASSWORD (seed test values); the Latin-1 post
  * needs only a working database (it expects a failed login).
+ * Some checks expect rows of the synthetic seed (db/test-seed.sql: C1's averages, documents and interviews).
+ * Against any other database, such as one just released (docs/release-dev.md), set RMS_SMOKE_SEEDED=false:
+ * the pages, the layout, the CSRF tokens and the access rules are still checked, the seed's rows are not.
  * Every POST first opens a page for the session cookie and the CSRF token, as a browser does (G32).
  */
 @EnabledIfEnvironmentVariable(named = "RMS_BASE_URL", matches = ".+")
@@ -29,6 +32,11 @@ class SmokeTest {
 
 	/** The hidden field Spring's form:form writes for Spring Security's CSRF token. */
 	private static final Pattern CSRF_FIELD = Pattern.compile("name=\"_csrf\" value=\"([^\"]+)\"");
+
+	/** False only when RMS_SMOKE_SEEDED=false: the database doesn't hold db/test-seed.sql. */
+	private static boolean seeded() {
+		return !"false".equalsIgnoreCase(System.getenv("RMS_SMOKE_SEEDED"));
+	}
 
 	private static String baseUrl() {
 		String url = System.getenv("RMS_BASE_URL");
@@ -157,6 +165,10 @@ class SmokeTest {
 		HttpURLConnection status = open("/adminviewmarks", cookie);
 		assertThat(status.getResponseCode()).isEqualTo(200);
 		String body = read(status);
+		assertThat(body).contains("<title>Candidate Status - RMS</title>");
+		if (!seeded()) {
+			return;
+		}
 		// The seed's averages for C1 (db/test-seed.sql)
 		assertThat(body).contains("74.5");
 
@@ -191,6 +203,9 @@ class SmokeTest {
 		body = read(form);
 		assertThat(body).contains("id=\"closingdate\"");
 		assertThat(CSRF_FIELD.matcher(body).find()).isTrue();
+		if (!seeded()) {
+			return;
+		}
 
 		HttpURLConnection profile = open("/viewcandidate?candidateid=C1", cookie);
 		assertThat(profile.getResponseCode()).isEqualTo(200);
@@ -225,21 +240,24 @@ class SmokeTest {
 		body = read(list);
 		assertThat(body).contains("<title>Interview Schedule - RMS</title>");
 		assertThat(body).contains("id=\"scheduletable\"");
-		assertThat(body).contains("Room 1");
 
 		// Step 1 chooses the candidate; step 2 is the form
 		HttpURLConnection choose = open("/createschedule", cookie);
 		assertThat(choose.getResponseCode()).isEqualTo(200);
 		assertThat(read(choose)).contains("id=\"candidateid\"");
+
+		// An interviewer's page isn't open to the Super Admin
+		assertThat(open("/myschedule", cookie).getResponseCode()).isEqualTo(403);
+		if (!seeded()) {
+			return;
+		}
+		assertThat(body).contains("Room 1");
 		HttpURLConnection form = open("/createschedule?candidateid=C1", cookie);
 		assertThat(form.getResponseCode()).isEqualTo(200);
 		body = read(form);
 		assertThat(body).contains("id=\"startat\"");
 		assertThat(body).contains("type=\"datetime-local\"");
 		assertThat(CSRF_FIELD.matcher(body).find()).isTrue();
-
-		// An interviewer's page isn't open to the Super Admin
-		assertThat(open("/myschedule", cookie).getResponseCode()).isEqualTo(403);
 	}
 
 	/** Needs a Super Admin smoke user (test.admin in the seed). */
