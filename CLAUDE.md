@@ -41,10 +41,10 @@ Evidence: `pom.xml`, `.mvn/wrapper/maven-wrapper.properties`, `rms/config/WebCon
 pom.xml                       Maven build (WAR)
 src/main/java/rms/
   config/                     WebInitializer (bootstrap), WebConfig (MVC, DataSource), SecurityConfig + SecurityInitializer (Spring Security), AccountCheckFilter, LoginThrottle
-  controller/                 Login, Account, User, Position, Language, Candidate, Job, Document, Assignment, Evaluation, Marks, Schedule, Report, Activity
+  controller/                 Login, Account, User, Position, Language, Candidate, Job, Document, Assignment, Evaluation, Marks, Schedule, Report, Activity, Health
   service/  dao/  model/      *Service(+Impl), *Dao(+Impl), *Info
 src/main/webapp/
-  WEB-INF/jsp/                24 JSP views (main.jsp = home page)
+  WEB-INF/jsp/                25 JSP views (main.jsp = home page, error.jsp = error page)
   WEB-INF/tags/status.tag     decision badge (Selected, Rejected, On hold, Pending)
   WEB-INF/tags/schedulestatus.tag  interview badge (Scheduled, Done, Cancelled)
   WEB-INF/tags/layout.tag     shared page shell: head, sidebar menu, top bar
@@ -55,7 +55,7 @@ db/                           schema.sql (inferred), test-seed.sql (synthetic)
   local/                      local MySQL setup: create DB + load schema and seed (README.md)
   migrations/                 numbered changes for existing databases, run by the owner (001 candidate.isactive, 002 roles, 003 password hashing, 004 candidate documents and jobs, 005 assignment, evaluation and decision: a draft, 006 interview schedule, 007 activity log)
 mvnw, .mvn/wrapper/           Maven Wrapper
-.github/workflows/            CI: build + tests (JDK 21, Testcontainers), OSV-Scanner
+.github/workflows/            CI: build + tests (JDK 21, Testcontainers), OSV-Scanner; dependabot.yml
 deploy/tomcat/rms.xml         JNDI context template (env-var placeholders only)
 deploy/docker-compose.yml     local trial: app container + throwaway MySQL (synthetic data)
 Dockerfile, .dockerignore     container image (Tomcat 11 on JDK 21); see docs/build-run.md "Container"
