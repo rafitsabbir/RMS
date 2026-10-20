@@ -244,3 +244,14 @@ Not followed one by one in the run of 2026-10-19 (below), which crawled the cand
 - CSV reports download with `Content-Disposition: attachment`, a single `Cache-Control: no-store` and a UTF-8 BOM. A PDF uploaded as HR to C2 downloads back byte-identical as an attachment with `nosniff`.
 
 **Accepted side effects of the CSP:** Tomcat's own error report pages (403 and 404 through `sendError` or `ResponseStatusException`; `web.xml` has no `error-page`) lose their inline styling (cosmetic). CSV downloads also carry `Pragma: no-cache` and `Expires: 0`.
+
+## Workflow run of 2026-10-20: one candidate through every role (Chromium)
+Container trial (`deploy/docker-compose.yml`: Tomcat 11.0.27, MySQL 9.7.2, the synthetic seed), Chromium at 1366 px, CDN files from the npm stand-in. One new candidate, end to end:
+1. **HR:** a non-English first name is refused with a message; Nora Newcomer is added as C3 (job 1, referral, Java); the profile shows "No CV", then a CV upload makes it "CV ✓"; Ivan Interviewer is assigned; an interview in the past is refused ("a time that hasn't passed yet"); one on 2030-06-01 10:00 in Room 2 is scheduled; a second one for the same interviewer at the same minute is refused.
+2. **Interviewer:** My Schedule shows the interview and My Evaluations the candidate; the CV downloads byte for byte; the 10 scores and a comment are saved.
+3. **Hiring Manager:** Candidate Status shows Nora with the average 82; the evaluation page has no decision form, and a decision posted anyway is refused (403).
+4. **HR:** Selected is recorded with a reason; the interviewer can no longer change the evaluation.
+5. **Super Admin:** the Candidate Status CSV has Nora as Selected; the activity log has the candidate, upload, assignment, interview, evaluation (`MARKED`, total 82), decision, delete and permanent-delete entries; after HR's delete, Deleted Candidates lists C3, and the permanent delete removes the file (download 404), with the reason kept on the document record (`purgereason`).
+6. No console errors for any role; no SEVERE or ERROR lines on the server.
+
+**Bug found and fixed (`7ff41f3`):** assigning an interviewer answered HTTP 500 after saving, as did saving an evaluation, recording a decision and scheduling an interview: four services had lost the `@Autowired` on their activity log setter (2026-10-03), so the actions also never reached the activity log. Unit tests set the field themselves; `WiringTest` now catches a missing injection. Result after the fix: 27 of 27 checks.
