@@ -37,7 +37,7 @@ Interviewers get HTTP 403 for all of them (deny by default; `SecurityConfigTest.
 ## Hiring report (2026-10-20, `HiringReportServiceImpl`)
 On the Reports page under the downloads, computed on every visit from the active candidates (nothing stored):
 - **Days to Selected / to Rejected:** from the applied date to the current decision's date (`candidate.decisiondate`): median, average, shortest, longest and how many. Candidates without both dates, or decided before they applied (a data error), are left out. An earlier On hold doesn't count separately.
-- **Candidates per job and per source:** totals by decision (Pending covers no decision and unknown values), no CV, not evaluated (no active evaluation), and the average days to Selected. Jobs follow the job list, a deleted job keeps a "Job n (deleted)" row, "No job" comes last; known sources first, then unknown texts, then "Not recorded"; empty rows are left out; a total row closes each table.
+- **Candidates per stage** (every stage in pipeline order, empty ones too), **per job and per source:** totals by decision (Pending covers no decision and unknown values), no CV, not evaluated (no active evaluation), and the average days to Selected. Jobs follow the job list, a deleted job keeps a "Job n (deleted)" row, "No job" comes last; known sources first, then unknown texts, then "Not recorded"; empty rows are left out; a total row closes each table.
 - **Evaluations still to do per interviewer:** the home page's count (`DashboardDaoImpl`), grouped by interviewer.
 - If the report can't be read (a database error), the page says so and the downloads still work.
 
