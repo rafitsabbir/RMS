@@ -338,7 +338,7 @@ class DocumentServiceImplTest {
 
 		verify(activityservice).record("U3", "DOCUMENT_UPLOADED", "CANDIDATE", "C1", "document 7, CV");
 		verify(activityservice).record("U3", "DOCUMENT_DELETED", "DOCUMENT", "1", null);
-		verify(activityservice).record("U1", "DOCUMENTS_PURGED", "CANDIDATE", "C1", "1 files");
+		verify(activityservice).record("U1", "DOCUMENTS_PURGED", "CANDIDATE", "C1", "1 file");
 	}
 
 	@Test

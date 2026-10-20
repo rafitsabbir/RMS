@@ -28,7 +28,7 @@ public class DecisionServiceImpl implements DecisionService {
 
 	ActivityService activityservice;
 
-	
+	@Autowired
 	public void setActivityService(ActivityService activityservice) {
 		this.activityservice = activityservice;
 	}
