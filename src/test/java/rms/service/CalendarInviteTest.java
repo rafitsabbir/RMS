@@ -59,6 +59,11 @@ class CalendarInviteTest {
 		schedule.setStatus(ScheduleInfo.CANCELLED);
 
 		assertThat(CalendarInvite.sequence(schedule)).isGreaterThan(before);
+		// Minutes since 2026-01-01: a small 32-bit INTEGER, also far in the future
+		assertThat(before).isEqualTo(273 * 24 * 60 + 9 * 60);
+		schedule.setChangedat(LocalDateTime.of(2100, 1, 1, 0, 0));
+		assertThat(CalendarInvite.sequence(schedule)).isLessThan(Integer.MAX_VALUE);
+		schedule.setChangedat(LocalDateTime.of(2026, 10, 2, 9, 0));
 		assertThat(ics(schedule)).contains("UID:rms-interview-12\r\n", "STATUS:CANCELLED\r\n",
 				"SEQUENCE:" + CalendarInvite.sequence(schedule) + "\r\n");
 	}

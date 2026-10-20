@@ -156,14 +156,26 @@ public class CandidateController {
 	@RequestMapping(value = "/viewcandidatelist", method = RequestMethod.GET)
 	public ModelAndView viewCandidate(@ModelAttribute("filter") CandidateFilter filter, BindingResult binding) {
 		ModelAndView mv = new ModelAndView("viewcandidate");
-		List<CandidateInfo> candidates = candidateservice.getCandidates(filter);
-		mv.addObject("candidatelist", candidates);
-		mv.addObject("totalcount", filter.isActive() ? candidateservice.getAllCandidate().size() : candidates.size());
-		if (binding.hasErrors()) {
+		// One read: the filter (CandidateFilter.matches) runs on the list, and the total is its size
+		List<CandidateInfo> all = candidateservice.getAllCandidate();
+		mv.addObject("candidatelist", filter.isActive() ? all.stream().filter(filter::matches).toList() : all);
+		mv.addObject("totalcount", all.size());
+		if (binding.hasFieldErrors("appliedfrom") || binding.hasFieldErrors("appliedto")) {
 			mv.addObject("errorMessage", "Please enter the applied dates as dates; the other filters are applied.");
+		} else if (binding.hasErrors()) {
+			mv.addObject("errorMessage", "A filter couldn't be read and was left out; the others are applied.");
 		}
-		// Every job, closed ones too: candidates keep their job after it closes
-		mv.addObject("joblist", jobservice.getAllJob());
+		// Every job, closed ones too: candidates keep their job after it closes. A deleted job that candidates still
+		// have is offered too, as "Job n (deleted)", like on the edit form
+		List<JobInfo> joblist = new ArrayList<JobInfo>(jobservice.getAllJob());
+		all.stream().map(CandidateInfo::getJobkey).filter(key -> key > 0).distinct().sorted()
+				.filter(key -> joblist.stream().noneMatch(j -> j.getJobkey() == key)).forEach(key -> {
+					JobInfo deleted = new JobInfo();
+					deleted.setJobkey(key);
+					deleted.setStatus(null);
+					joblist.add(deleted);
+				});
+		mv.addObject("joblist", joblist);
 		mv.addObject("sourcelist", CandidateSource.values());
 		mv.addObject("statuslist", DecisionStatus.values());
 		return mv;

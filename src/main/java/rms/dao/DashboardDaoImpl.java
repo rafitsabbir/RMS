@@ -27,7 +27,7 @@ public class DashboardDaoImpl implements DashboardDao {
 			+ "candidate_interviewer ci join candidate c on c.candidateid=ci.candidateid and c.isactive=1 "
 			+ "where ci.isactive=1 and " + undecided + " and " + activeinterviewer + " and not exists (select 1 from "
 			+ "marks m where m.candidateid=ci.candidateid and m.interviewerid=ci.interviewerid and m.isactive=1)";
-	// The same pairs, per interviewer, with the name (by subquery: an interviewer missing from admin still counts)
+	// The same pairs, per interviewer, with the name from admin (activeinterviewer needs that row, so it is there)
 	private String pendingbyinterviewer = "select ci.interviewerid, (select min(concat_ws(' ', a.firstname, "
 			+ "a.lastname)) from admin a where a.userid=ci.interviewerid) as interviewername, count(distinct "
 			+ "ci.candidateid) as total from candidate_interviewer ci join candidate c on c.candidateid=ci.candidateid "

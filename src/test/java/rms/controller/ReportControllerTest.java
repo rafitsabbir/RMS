@@ -24,6 +24,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -83,6 +84,15 @@ class ReportControllerTest {
 
 		mockMvc.perform(get("/reports")).andExpect(status().isOk()).andExpect(view().name("reports"))
 				.andExpect(model().attribute("hiring", report));
+	}
+
+	@Test
+	void theReportsPageKeepsTheDownloadsWhenTheHiringReportFails() throws Exception {
+		when(hiringreportservice.getReport()).thenThrow(new DataAccessResourceFailureException("down"));
+
+		mockMvc.perform(get("/reports")).andExpect(status().isOk()).andExpect(view().name("reports"))
+				.andExpect(model().attributeDoesNotExist("hiring"))
+				.andExpect(model().attributeExists("hiringerror"));
 	}
 
 	@Test

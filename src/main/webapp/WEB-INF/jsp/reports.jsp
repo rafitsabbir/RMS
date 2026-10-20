@@ -65,6 +65,11 @@
 
 	<%-- The hiring report: counts of the active candidates, computed on every visit (HiringReportServiceImpl) --%>
 	<h2 class="h4 mt-5 mb-1" id="hiring">Hiring report</h2>
+	<c:choose>
+	<c:when test="${empty hiring}">
+	<div class="alert alert-warning mt-3" role="status"><c:out value="${hiringerror}"/></div>
+	</c:when>
+	<c:otherwise>
 	<p class="text-body-secondary">Active candidates only. Days count from the applied date to the date of the current decision; candidates without both dates are left out.</p>
 	<div class="row g-3 mb-3">
 		<c:forEach items="${[hiring.toselected, hiring.torejected]}" var="time" varStatus="t">
@@ -92,7 +97,8 @@
 			<c:choose>
 			<c:when test="${empty rows}"><p class="mb-0 text-body-secondary">No candidates yet.</p></c:when>
 			<c:otherwise>
-			<div class="table-responsive">
+			<%-- Focusable, so the table can be scrolled with the keyboard at phone width --%>
+			<div class="table-responsive" tabindex="0" role="region" aria-label="${g.first ? 'Candidates per job' : 'Candidates per source'}">
 				<table id="${g.first ? 'hiringbyjob' : 'hiringbysource'}" class="table table-sm table-striped align-middle mb-0">
 					<thead>
 						<tr>
@@ -161,4 +167,6 @@
 			</c:choose>
 		</div>
 	</div>
+	</c:otherwise>
+	</c:choose>
 </rms:layout>

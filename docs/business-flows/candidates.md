@@ -1,7 +1,7 @@
 # Flow: Candidate Management
 
 Purpose: Traces adding, listing, editing and deleting candidates (G1), with the contact details, source, applied date and job added in Phase 2 of the roles plan.
-Last updated: 2026-10-02 (Phase 3: the Interviewers card, decision fields, interviewer access). 2026-10-02 (Phase 2 of the roles plan: e-mail, phone, source, applied date, job link, profile page and document column; access by role; migration 004). 2026-10-02 (soft delete by owner decision; needs `db/migrations/001-candidate-isactive.sql`). 2026-10-02 (generated IDs C1, C2, ... by owner decision; list sorted by number). 2026-10-02 (first version: add, list and edit; no delete)
+Last updated: 2026-10-20 (filters on the list; possible-duplicate warning). 2026-10-02 (Phase 3: the Interviewers card, decision fields, interviewer access). 2026-10-02 (Phase 2 of the roles plan: e-mail, phone, source, applied date, job link, profile page and document column; access by role; migration 004). 2026-10-02 (soft delete by owner decision; needs `db/migrations/001-candidate-isactive.sql`). 2026-10-02 (generated IDs C1, C2, ... by owner decision; list sorted by number). 2026-10-02 (first version: add, list and edit; no delete)
 Read this when: you're fixing or extending candidate management, or building a module that picks a candidate (score entry G5, schedules G3).
 
 Evidence: `rms/controller/CandidateController.java`, `rms/service/CandidateServiceImpl.java`, `rms/dao/CandidateDaoImpl.java`, `rms/model/CandidateInfo.java`, `WEB-INF/jsp/createcandidate.jsp`, `viewcandidate.jsp`, `WEB-INF/tags/layout.tag:71-74` (menu), `main.jsp` (home tile). Tests: `rms/controller/CandidateControllerTest`, `rms/dao/CandidateDaoImplTest` (needs Docker), `rms/config/SecurityConfigTest` (access and CSRF), `rms/SmokeTest.candidatePagesRender`.
@@ -95,3 +95,18 @@ sequenceDiagram
 - **Profile:** staff see an **Interviewers** card (assign and unassign for Super Admin and HR; [evaluation.md](evaluation.md)) and the latest decision's reason, date and decider under Status; an "Evaluations and decision" button opens `/viewevaluations`. An interviewer reaches only the profiles of candidates assigned to them (403 otherwise, `CandidateController.profile`) and sees the details and documents, with an Evaluate button.
 - **Status:** the list and profile show Selected, Rejected, On hold or Pending (`WEB-INF/tags/status.tag`). Edit never changes the status or the decision columns; only a decision does (`DecisionDaoImpl`, G9).
 - **Database change:** `candidate.decisionreason`, `decisiondate`, `decidedby` (migration 005).
+
+## Filters and the possible-duplicate warning (2026-10-20)
+- **Filters on the list** (`CandidateFilter`, GET parameters, so a filtered list can be bookmarked):
+  - job: any, no job, or one job (closed and deleted ones included);
+  - status: Selected, Rejected, On hold, or Pending (no decision or an unknown value);
+  - source, or "not recorded";
+  - applied-date range, both ends included (no date doesn't pass);
+  - "No CV yet";
+  - "Not evaluated yet" (no active `marks` row, the `evaluationcount` subquery).
+
+  They combine with AND. The page shows "Showing n of m candidates". A date that isn't one is ignored with a message. "Download these as CSV" passes the same filters to `/exportcandidates` ([reports-activity.md](reports-activity.md)). Filtering runs in Java on the list RMS already reads (one query).
+- **Possible duplicates** (`CandidateDaoImpl.possibleduplicates`): on add, and on an edit that changes the e-mail, phone or name, RMS looks for other active candidates with the same e-mail (any case), the same phone digits (at least 6; formatting ignored; `REGEXP_REPLACE`, MySQL 8.0+) or the same first and last name (any case), up to 10.
+  - If there are any, the form comes back with the matches (links to their profiles) and **Check again** (the default button, so Enter can't skip the warning) or **Save anyway**.
+  - A save anyway adds `possible duplicate of C1, …` (IDs only) to the `CANDIDATE_ADDED` / `CANDIDATE_CHANGED` activity entry.
+  - Nothing is merged or blocked.
