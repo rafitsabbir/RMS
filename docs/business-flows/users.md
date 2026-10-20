@@ -27,7 +27,7 @@ Evidence: `rms/model/Role.java`, `rms/config/SecurityConfig.java`, `rms/config/A
 - `SCHEDULE_INVITE_PAGES` (`/scheduleinvite/*`, the interview calendar file): all four roles; an interviewer only for interviews on their own schedule, checked in `ScheduleController` (404 otherwise).
 - `CANDIDATE_READ_PAGES` (`/viewcandidate`, `/downloaddocument/*`): all four roles; an interviewer only for candidates assigned to them, checked in `CandidateController` and `DocumentController` (403 otherwise).
 - `INTERVIEWER_PAGES` (`/myevaluations`, `/evaluate`, `/saveevaluation`): Interviewer; the assignment is checked in `EvaluationController`.
-- `HR_PAGES` (candidate, document, assignment and decision changes, jobs, positions, languages): Super Admin, HR.
+- `HR_PAGES` (candidate, document, assignment, decision and hiring stage changes (`/savestage`), jobs, positions, languages, the interview schedule changes): Super Admin, HR.
 - **Everything else is refused** (`anyRequest().denyAll()`), including pages that don't exist and `/x/` for `/x`: HTTP 403 when logged in, a redirect to `/login` when not. A new page needs its own rule and cases in `SecurityConfigTest.pages()`.
 - The candidate list hides Add, Edit and Delete from a Hiring Manager (`viewcandidate.jsp`, `canedit`); the URLs behind them are refused anyway.
 

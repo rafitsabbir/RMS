@@ -57,6 +57,7 @@ Staff can't evaluate, and interviewers can't open Candidate Status, other interv
 - `DecisionDaoImpl.saveDecision`: in one transaction, `candidate.candidatestatus`, `decisionreason`, `decisiondate`, `decidedby`, and a new `candidate_decision` row (`decidedat = now()`). Every change is logged, also the same decision again.
 - The status shows everywhere through `status.tag`: S Selected (green), R Rejected (red), H On hold (yellow), anything else Pending. `S`/`R` stay compatible with older rows and older WARs (which show H as Pending).
 - The profile shows the latest reason, date and decider to staff.
+- **Hiring stages (2026-10-20, [candidates.md](candidates.md)):** in the same transaction, **Selected** moves a candidate at Applied, Screening or Interview to **Offer** (`DecisionDaoImpl`, with a `candidate_stage` row "Decision: Selected"); **Rejected** closes the pipeline where it is ("Rejected at Interview"); On hold changes nothing. The message says which.
 
 ## Logging
 Keys only: "Evaluation {markkey} of candidate {id} saved by {userid}", "Interviewer {userid} assigned to candidate {id} by {userid}", "Decision on candidate {id} saved by {userid}", and refused profile or download attempts by interviewers. No scores, comments, statuses or reasons.

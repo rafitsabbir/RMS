@@ -1,7 +1,7 @@
 # Flow: Candidate Management
 
 Purpose: Traces adding, listing, editing and deleting candidates (G1), with the contact details, source, applied date and job added in Phase 2 of the roles plan.
-Last updated: 2026-10-20 (filters on the list; possible-duplicate warning). 2026-10-02 (Phase 3: the Interviewers card, decision fields, interviewer access). 2026-10-02 (Phase 2 of the roles plan: e-mail, phone, source, applied date, job link, profile page and document column; access by role; migration 004). 2026-10-02 (soft delete by owner decision; needs `db/migrations/001-candidate-isactive.sql`). 2026-10-02 (generated IDs C1, C2, ... by owner decision; list sorted by number). 2026-10-02 (first version: add, list and edit; no delete)
+Last updated: 2026-10-20 (hiring stages, migration 008). 2026-10-20 (filters on the list; possible-duplicate warning). 2026-10-02 (Phase 3: the Interviewers card, decision fields, interviewer access). 2026-10-02 (Phase 2 of the roles plan: e-mail, phone, source, applied date, job link, profile page and document column; access by role; migration 004). 2026-10-02 (soft delete by owner decision; needs `db/migrations/001-candidate-isactive.sql`). 2026-10-02 (generated IDs C1, C2, ... by owner decision; list sorted by number). 2026-10-02 (first version: add, list and edit; no delete)
 Read this when: you're fixing or extending candidate management, or building a module that picks a candidate (score entry G5, schedules G3).
 
 Evidence: `rms/controller/CandidateController.java`, `rms/service/CandidateServiceImpl.java`, `rms/dao/CandidateDaoImpl.java`, `rms/model/CandidateInfo.java`, `WEB-INF/jsp/createcandidate.jsp`, `viewcandidate.jsp`, `WEB-INF/tags/layout.tag:71-74` (menu), `main.jsp` (home tile). Tests: `rms/controller/CandidateControllerTest`, `rms/dao/CandidateDaoImplTest` (needs Docker), `rms/config/SecurityConfigTest` (access and CSRF), `rms/SmokeTest.candidatePagesRender`.
@@ -110,3 +110,22 @@ sequenceDiagram
   - If there are any, the form comes back with the matches (links to their profiles) and **Check again** (the default button, so Enter can't skip the warning) or **Save anyway**.
   - A save anyway adds `possible duplicate of C1, …` (IDs only) to the `CANDIDATE_ADDED` / `CANDIDATE_CHANGED` activity entry.
   - Nothing is merged or blocked.
+
+## Hiring stages (2026-10-20, migration 008)
+Owner decision: the standard stages, linked to the decision.
+- **Stages** (`HiringStage`, `candidate.stage`): Applied → Screening → Interview → Offer → Hired, and **Withdrawn** at any point. NULL or an unknown text reads as Applied; a new candidate starts at Applied. Rejected and On hold stay decisions, not stages.
+- **Pipeline card** on the profile (`candidateprofile.jsp`, `#pipeline`): a step bar for every role ("Now at …", "Rejected at …", "Withdrawn"); the history with notes for staff; a **Move** form for Super Admin and HR (`POST /savestage`, `StageController`).
+- **Rules** (`StageServiceImpl`):
+  - Offer and Hired need the decision Selected.
+  - Nothing moves while the decision is Rejected (the form is disabled: "change the decision first").
+  - Hired and Withdrawn may be left again, for mistakes.
+  - The note is optional, English only, at most 500 characters.
+  - The form sends the stage it showed; if the stage changed meanwhile the move is refused ("changed meanwhile"), and the update itself is guarded (`stage <=> :expected`), so two moves can't both pass.
+- **Automatic moves:** Selected moves Applied, Screening or Interview to Offer ([evaluation.md](evaluation.md)); scheduling a new interview moves Applied or Screening to Interview ([schedule.md](schedule.md)).
+- **History:** every change, by hand or automatic, is a `candidate_stage` row (from, to, note, who, when) and a `STAGE_CHANGED` activity entry with the codes only (e.g. `OFFER>HIRED`).
+- **Elsewhere:**
+  - Candidates list: a Stage column (sorted in pipeline order) and a Stage filter.
+  - Candidates CSV: a Stage column.
+  - Hiring report: "Candidates per stage".
+  - Dashboard: a "Candidates by stage" row; each tile opens the filtered list.
+- Open for the owner to confirm: [open-questions.md](../open-questions.md) #32.

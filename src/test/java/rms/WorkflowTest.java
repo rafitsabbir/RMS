@@ -214,6 +214,11 @@ class WorkflowTest {
 		// The same interviewer at the same minute again
 		schedule(hr, next, "Room 3");
 		assertThat(path(hr)).doesNotEndWith("/viewschedulelist");
+
+		// Hiring stages: scheduling moved the new candidate from Applied to Interview
+		hr.navigate(base + "/viewcandidate?candidateid=C3");
+		assertThat(text(hr, "#pipeline-state")).isEqualTo("Now at Interview");
+		assertThat(text(hr, "#stagehistory")).contains("Applied → Interview", "Interview scheduled");
 	}
 
 	@Test
@@ -257,6 +262,9 @@ class WorkflowTest {
 		// 82 = the sum of the ten scores (each out of 10)
 		assertThat(hm.locator("#markstable tbody tr", new Page.LocatorOptions().setHasText("Newcomer")).innerText())
 				.containsPattern("\\b82\\b");
+		hm.navigate(base + "/viewcandidate?candidateid=C3");
+		assertThat(text(hm, "#pipeline-state")).isEqualTo("Now at Interview");
+		assertThat(hm.locator("form#movestage").count()).isZero();
 		hm.navigate(base + "/viewevaluations?candidateid=C3");
 		assertThat(text(hm)).contains("Clear thinker");
 		assertThat(hm.locator("form#savedecision").count()).isZero();
@@ -266,6 +274,10 @@ class WorkflowTest {
 		APIResponse post = hm.context().request().post(base + "/savedecision", RequestOptions.create()
 				.setForm(FormData.create().set("_csrf", token).set("candidateid", "C3").set("status", "S")).setMaxRedirects(0));
 		assertThat(post.status()).isEqualTo(403);
+		APIResponse move = hm.context().request().post(base + "/savestage", RequestOptions.create()
+				.setForm(FormData.create().set("_csrf", token).set("candidateid", "C3").set("stage", "WITHDRAWN"))
+				.setMaxRedirects(0));
+		assertThat(move.status()).isEqualTo(403);
 	}
 
 	@Test
@@ -283,6 +295,16 @@ class WorkflowTest {
 		iv.navigate(base + "/evaluate?candidateid=C3");
 		assertThat(iv.locator("form#evaluation button[type=submit]").count()).isZero();
 		assertThat(text(iv)).contains("the evaluations can't be changed");
+
+		// Selected moved the candidate to Offer; HR then records the hire
+		hr.navigate(base + "/viewcandidate?candidateid=C3");
+		assertThat(text(hr, "#pipeline-state")).isEqualTo("Now at Offer");
+		hr.selectOption("#stage", "HIRED");
+		hr.fill("#stagenote", "Signed the contract");
+		submit(hr, "form#movestage button[type=submit]");
+		assertThat(text(hr)).contains("Moved to Hired.");
+		assertThat(text(hr, "#pipeline-state")).isEqualTo("Now at Hired");
+		assertThat(text(hr, "#stagehistory")).contains("Offer → Hired", "Signed the contract", "Interview → Offer");
 	}
 
 	@Test
@@ -294,7 +316,8 @@ class WorkflowTest {
 		assertThat(csv.text()).contains("Nora").contains("Selected");
 
 		// The CSV holds the whole log; the page shows only its first 10 rows
-		assertThat(activity(sa, "C3")).anyMatch(row -> row.contains(",Marked,")).anyMatch(row -> row.contains(",Selected,"));
+		assertThat(activity(sa, "C3")).anyMatch(row -> row.contains(",Marked,")).anyMatch(row -> row.contains(",Selected,"))
+				.anyMatch(row -> row.contains(",Stage changed,") && row.contains("OFFER>HIRED"));
 	}
 
 	@Test
