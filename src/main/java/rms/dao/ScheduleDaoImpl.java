@@ -23,7 +23,8 @@ public class ScheduleDaoImpl implements ScheduleDao {
 	private String visible = "s.isactive=1 and exists (select 1 from candidate c where c.candidateid=s.candidateid "
 			+ "and c.isactive=1)";
 	private String selectschedule = "select s.schedulekey, s.candidateid, s.interviewerid, s.startat, s.location, "
-			+ "s.status, (select min(concat_ws(' ', c.firstname, c.lastname)) from candidate c "
+			+ "s.status, coalesce(s.updatedat, s.createdat) as changedat, "
+			+ "(select min(concat_ws(' ', c.firstname, c.lastname)) from candidate c "
 			+ "where c.candidateid=s.candidateid) as candidatename, (select min(concat_ws(' ', a.firstname, "
 			+ "a.lastname)) from admin a where a.userid=s.interviewerid) as interviewername from interview_schedule s "
 			+ "where " + visible;
@@ -68,6 +69,7 @@ public class ScheduleDaoImpl implements ScheduleDao {
 			schedule.setStartat(rs.getObject("startat", LocalDateTime.class));
 			schedule.setLocation(rs.getString("location"));
 			schedule.setStatus(rs.getString("status"));
+			schedule.setChangedat(rs.getObject("changedat", LocalDateTime.class));
 			return schedule;
 		}
 	}

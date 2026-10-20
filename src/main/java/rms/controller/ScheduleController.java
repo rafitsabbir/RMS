@@ -1,12 +1,19 @@
 package rms.controller;
 
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 
 import jakarta.servlet.http.HttpSession;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.WebDataBinder;
@@ -23,6 +30,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import rms.model.AssignmentInfo;
 import rms.model.CandidateInfo;
 import rms.model.ScheduleInfo;
+import rms.service.CalendarInvite;
 import rms.service.CandidateService;
 import rms.service.Outcome;
 import rms.service.ScheduleService;
@@ -63,6 +71,27 @@ public class ScheduleController {
 		ModelAndView mv = new ModelAndView("myschedule");
 		mv.addObject("schedulelist", scheduleservice.getScheduleOf(CurrentUser.requireUserid(session)));
 		return mv;
+	}
+
+	/**
+	 * The interview as a calendar file (.ics) to import into Outlook, Google Calendar or Apple Calendar. Staff may
+	 * fetch any interview's; an interviewer only one on their own schedule (the same rows as /myschedule), else 404,
+	 * so nobody learns which keys exist. Importing it sends nothing (no attendees, no e-mail).
+	 */
+	@RequestMapping(value = "/scheduleinvite/{schedulekey}", method = RequestMethod.GET)
+	public ResponseEntity<byte[]> invite(@PathVariable("schedulekey") int schedulekey, HttpSession session) {
+		ScheduleInfo schedule = CurrentUser.isStaff(session) ? scheduleservice.findScheduleById(schedulekey)
+				: scheduleservice.getScheduleOf(CurrentUser.requireUserid(session)).stream()
+						.filter(s -> s.getSchedulekey() == schedulekey).findFirst().orElse(null);
+		if (schedule == null || schedule.getStartat() == null) {
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+		}
+		return ResponseEntity.ok()
+				.contentType(new MediaType("text", "calendar", StandardCharsets.UTF_8))
+				.header(HttpHeaders.CONTENT_DISPOSITION,
+						ContentDisposition.attachment().filename(CalendarInvite.fileName(schedule)).build().toString())
+				.header(HttpHeaders.CACHE_CONTROL, "no-store")
+				.body(CalendarInvite.of(schedule, LocalDateTime.now(ZoneOffset.UTC)));
 	}
 
 	/** Without a candidate ID: the list of candidates to choose from. With one: the interview form for them. */

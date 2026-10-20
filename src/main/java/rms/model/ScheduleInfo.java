@@ -29,6 +29,8 @@ public class ScheduleInfo {
 	private LocalDateTime startat = null;
 	private String location = null;
 	private String status = SCHEDULED;
+	/** When the row was last changed (updatedat, else createdat): the calendar invite's SEQUENCE. */
+	private LocalDateTime changedat = null;
 
 	/** Keys and the status only: no names, no location. */
 	@Override
@@ -116,5 +118,13 @@ public class ScheduleInfo {
 
 	public void setStatus(String status) {
 		this.status = status;
+	}
+
+	public LocalDateTime getChangedat() {
+		return changedat;
+	}
+
+	public void setChangedat(LocalDateTime changedat) {
+		this.changedat = changedat;
 	}
 }
