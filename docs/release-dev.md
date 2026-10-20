@@ -1,7 +1,7 @@
 # Release Runbook: `dev` (Spring 7, Tomcat 11, MySQL 9.7 LTS)
 
 Purpose: How to release the current `dev` to production: what ships, what users notice, the owner checks, the ops steps in order (backup, MySQL server upgrade, migrations, application), the checks after deploy, and the rollback. It includes the rehearsal that proved those steps.
-Last updated: 2026-10-20 (written and rehearsed from a MySQL 5.7 + Tomcat 9 starting point)
+Last updated: 2026-10-20 (health check after deploy, DB timeout options; written and rehearsed from a MySQL 5.7 + Tomcat 9 starting point)
 Read this when: you're preparing, doing or signing off the release of `dev`, or rolling it back.
 
 No credentials, hostnames or JNDI definitions belong in this file. Each environment's values stay in its container or secret store.
@@ -24,7 +24,7 @@ Compared with the 2020 code, `dev` adds (details: [upgrade-status.md](upgrade-st
 - Existing passwords keep working (plain-text rows are still checked exactly, open question #25). A password set or reset from now on is stored hashed.
 - Five wrong passwords lock that username from that address for 15 minutes.
 - Only English text is accepted in names, reasons, comments and locations.
-- Opening a page that a role may not use gives an error page (HTTP 403).
+- Opening a page that a role may not use gives RMS's own error page (HTTP 403); other errors show the same page, with no technical detail.
 - Pages and libraries load from `cdn.jsdelivr.net` only; a proxy that lists allowed sites must allow it.
 
 ## Before the release (owner)
@@ -46,19 +46,20 @@ These were rehearsed in this order (below). Keep everything you replace: it is t
 4. **Run the migrations** with the admin account, in this order, against the RMS database: `001-candidate-isactive.sql`, `002-user-roles.sql`, `004-candidate-documents-jobs.sql`, `005-assignment-evaluation-decision.sql`, `006-interview-schedule.sql`, `007-activity-log.sql`. Each must finish without errors; run the check queries at the end of each file. (`003` only if approved: [db/migrations/003-hash-passwords/README.md](../db/migrations/003-hash-passwords/README.md).) The application account needs no new grant when it has its rights on the whole RMS database.
 5. **Create the document folder** for `RMS_DOC_DIR`, writable by the application only.
 6. **Install the application**, one of:
-   - **Tomcat 11 on JDK 21:** remove old MySQL driver jars (`mysql-connector-java-5.1.*`, `mysql-connector-j-8.*`) from Tomcat's `lib/` and put `mysql-connector-j-9.7.0.jar` there (check it against its published checksum); use `deploy/tomcat/rms.xml` as the context file (`conf/Catalina/localhost/rms.xml`) with `RMS_DB_URL` (with `sslMode=REQUIRED`), `RMS_DB_USER`, `RMS_DB_PASSWORD` and `RMS_DOC_DIR` in Tomcat's environment and the property source set as the file says; deploy the WAR built from `dev` (`./mvnw -B verify`) at `/rms`.
+   - **Tomcat 11 on JDK 21:** remove old MySQL driver jars (`mysql-connector-java-5.1.*`, `mysql-connector-j-8.*`) from Tomcat's `lib/` and put `mysql-connector-j-9.7.0.jar` there (check it against its published checksum); use `deploy/tomcat/rms.xml` as the context file (`conf/Catalina/localhost/rms.xml`) with `RMS_DB_URL` (with `sslMode=REQUIRED&connectTimeout=5000&socketTimeout=60000`, as the file's comment says; `socketTimeout` must exceed the slowest query), `RMS_DB_USER`, `RMS_DB_PASSWORD` and `RMS_DOC_DIR` in Tomcat's environment and the property source set as the file says; deploy the WAR built from `dev` (`./mvnw -B verify`) at `/rms`.
    - **Container:** build the image from `dev` ([build-run.md](build-run.md), "Container") and run it with the same four variables from the orchestrator's secret store and the document folder mounted at `/var/rms/docs` (UID 10001).
 7. **Start** and check the log: no SEVERE or ERROR lines.
 
 ## After deploy
-1. **Smoke test** from a dev machine, against the release: `RMS_BASE_URL=<the release URL> RMS_SMOKE_SEEDED=false RMS_SMOKE_USER=<a Super Admin> RMS_SMOKE_PASSWORD=<…> ./mvnw -B test -Dtest=SmokeTest`. Keep the credentials in environment variables only. `RMS_SMOKE_SEEDED=false` leaves out the checks that need the synthetic test data. It changes no business data: it signs in and out, reads pages, downloads the candidates CSV and sends posts that are refused (no CSRF token, a wrong password). Those sign-ins, failed sign-ins and the download appear in the activity log, made by the smoke account.
-2. **By hand** (about 15 minutes):
+1. **Health:** `GET /rms/health` returns `ok` (HTTP 200). `unavailable` (503) means the application can't reach the database; check the URL options, the account and the log ([build-run.md](build-run.md), *Container*). The container's HEALTHCHECK uses the same URL.
+2. **Smoke test** from a dev machine, against the release: `RMS_BASE_URL=<the release URL> RMS_SMOKE_SEEDED=false RMS_SMOKE_USER=<a Super Admin> RMS_SMOKE_PASSWORD=<…> ./mvnw -B test -Dtest=SmokeTest`. Keep the credentials in environment variables only. `RMS_SMOKE_SEEDED=false` leaves out the checks that need the synthetic test data. It changes no business data: it signs in and out, reads pages, downloads the candidates CSV and sends posts that are refused (no CSRF token, a wrong password). Those sign-ins, failed sign-ins and the download appear in the activity log, made by the smoke account.
+3. **By hand** (about 15 minutes):
    - A Super Admin signs in: the menu has Recruitment, Master data, Administration and Account; Candidate Status, Candidates, Positions and Languages show the existing data.
    - An interviewer signs in: Home, My Evaluations, My Schedule and Change password only; opening `/viewpositionlist` gives 403.
    - The Super Admin gives an HR and a Hiring Manager role under Users and Roles; each signs in and sees their menu.
    - Upload a small PDF on a candidate's profile and download it again (checks `RMS_DOC_DIR`).
-3. **Acceptance:** the domain user runs the role checks in [acceptance/](acceptance/README.md).
-4. **Update** [upgrade-status.md](upgrade-status.md): `dev` is in production.
+4. **Acceptance:** the domain user runs the role checks in [acceptance/](acceptance/README.md).
+5. **Update** [upgrade-status.md](upgrade-status.md): `dev` is in production.
 
 ## Rollback
 - **Before step 3** (server not upgraded yet): start the old application again. Nothing changed.
