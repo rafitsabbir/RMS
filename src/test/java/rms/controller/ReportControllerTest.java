@@ -36,6 +36,7 @@ import rms.model.CandidateInfo;
 import rms.model.Criterion;
 import rms.model.HiringGroup;
 import rms.model.HiringReport;
+import rms.model.WorkloadRow;
 import rms.model.ResultInfo;
 import rms.model.Role;
 import rms.model.ScheduleInfo;
@@ -106,9 +107,17 @@ class ReportControllerTest {
 		HiringGroup interviewer = new HiringGroup("Ivan Interviewer (U2)");
 		interviewer.setTotal(3);
 		report.setPendingbyinterviewer(List.of(interviewer));
+		WorkloadRow workload = new WorkloadRow("U2", "Ivan Interviewer (U2)", 2);
+		workload.addInterview(1);
+		workload.setPending(3);
+		report.setWorkload(List.of(workload));
+		report.setWeeklabels(List.of("This week, 2 Nov", "9 Nov"));
 		when(hiringreportservice.getReport()).thenReturn(report);
 
 		String csv = body("/exporthiring");
+		// Interviewer workload (F9), last
+		assertThat(csv).endsWith("Interviewer workload,\"This week, 2 Nov\",9 Nov,Evaluations still to do\r\n"
+				+ "Ivan Interviewer (U2),0,1,3\r\n");
 
 		assertThat(csv).contains("Days from applying to the decision,Candidates,Average,Median,Shortest,Longest\r\n"
 				+ "Selected,1,10.0,10.0,10,10\r\nRejected,0,,,,\r\n");

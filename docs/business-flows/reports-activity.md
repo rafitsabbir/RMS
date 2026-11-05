@@ -1,7 +1,7 @@
 # Flow: Reports, Activity Log and English-only Text
 
 Purpose: Traces the CSV reports, the activity log (who marked, selected, rejected and so on) and the English-only rule for entered text.
-Last updated: 2026-11-05 (F1: e-mail notifications to staff). 2026-10-20 (hiring report and `/exporthiring`; filtered candidate CSV; duplicate note on candidate changes). 2026-10-03 (second round: sign-ins, documents, jobs and master data logged; Deleted Candidates page; new:  owner request after roles plan Phase 4; migration 007, DB-verified NO; G34 closed by decision)
+Last updated: 2026-11-05 (F9: interviewer workload). 2026-11-05 (F1: e-mail notifications to staff). 2026-10-20 (hiring report and `/exporthiring`; filtered candidate CSV; duplicate note on candidate changes). 2026-10-03 (second round: sign-ins, documents, jobs and master data logged; Deleted Candidates page; new:  owner request after roles plan Phase 4; migration 007, DB-verified NO; G34 closed by decision)
 Read this when: you're working on a report or CSV download, the Activity Log page, `activity_log`, or any check that refuses non-English text.
 
 Evidence: `rms/controller/ReportController.java`, `ActivityController.java`; `rms/service/ActivityServiceImpl.java`, `CsvWriter.java`, `EnglishText.java`; `rms/dao/ActivityDaoImpl.java`; `rms/model/ActivityInfo.java`; `WEB-INF/jsp/reports.jsp`, `viewactivity.jsp`; `db/migrations/007-activity-log.sql`; `rms/config/SecurityConfig.java`.
@@ -102,3 +102,9 @@ The message says what to change: "… can use English letters only. Please use E
   - **Tests:** `NotificationServiceImplTest` (recipients, text, attachment, failures), `NotificationTriggersTest` (which action sends what; refusals send nothing), `MailSettingsTest`, `MailDeliveryTest` (a real SMTP server, Mailpit, in Docker).
 - A retention period for the activity log and for documents: the owner decides ([open-questions.md](../open-questions.md) #31).
 - Excel (`.xlsx`) and PDF output: only CSV.
+
+## Interviewer workload (F9, 2026-11-05)
+On the Reports page (staff), above "Evaluations still to do", and as the last section of the Hiring Report CSV (`HiringReportServiceImpl.workload`, `DashboardDaoImpl.getActiveInterviewers` / `countInterviewsByDay`, `WorkloadRow`):
+- **Rows:** every active interviewer (the Interviewer role, or a staff role that also interviews, F3), by name, even with nothing to do; an interviewer with evaluations to do who is no longer active is listed too.
+- **Columns:** interviews per week, Monday to Sunday by the server's date, for this week and the next three ("This week, 2 Nov", "9 Nov", …): scheduled or done, not cancelled, of active candidates. Then the evaluations still to do (the same count as the section below).
+- Read only, computed on every visit; no schema change. Tests: `DashboardDaoImplTest`, `HiringReportServiceImplTest.theWorkloadCountsInterviewsPerWeekFromThisMonday`, `ReportControllerTest` (the CSV), `WorkflowTest.theReportsShowTheInterviewerWorkload`.

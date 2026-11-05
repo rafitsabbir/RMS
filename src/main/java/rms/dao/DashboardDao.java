@@ -1,5 +1,6 @@
 package rms.dao;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -22,6 +23,15 @@ public interface DashboardDao {
 
 	/** The pending evaluations of countPendingEvaluations, per interviewer (label "Name (U2)", total), most first. */
 	public List<HiringGroup> countPendingEvaluationsByInterviewer();
+
+	/** Active interviewers (F9): userid and "Name (U2)", by name; the Interviewer role or a staff role that also interviews. */
+	public Map<String, String> getActiveInterviewers();
+
+	/**
+	 * Interviews that aren't cancelled, of active candidates, starting from (inclusive) to (exclusive), per
+	 * interviewer and day (F9): interviewerid, then the day and its count.
+	 */
+	public Map<String, Map<LocalDate, Integer>> countInterviewsByDay(LocalDate from, LocalDate to);
 
 	/** Open jobs: status OPEN, not deleted. */
 	public int countOpenJobs();

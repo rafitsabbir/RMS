@@ -150,6 +150,32 @@
 		</div>
 	</div>
 	</c:forEach>
+	<%-- Interviewer workload (F9): interviews per week from this week on, and evaluations to do --%>
+	<div class="card rms-card mb-3">
+		<div class="card-body">
+			<h3 class="h6">Interviewer workload</h3>
+			<p class="small text-body-secondary">Active interviewers (and staff who also interview): their interviews per week, Monday to Sunday, scheduled or done but not cancelled; and the evaluations they still have to do.</p>
+			<c:choose>
+			<c:when test="${empty hiring.workload}"><p class="mb-0">No active interviewers.</p></c:when>
+			<c:otherwise>
+			<div class="table-responsive" tabindex="0" role="region" aria-label="Interviewer workload">
+			<table id="workload" class="table table-sm table-striped align-middle mb-0">
+				<thead><tr><th scope="col">Interviewer</th>
+				<c:forEach items="${hiring.weeklabels}" var="week"><th scope="col" class="text-end"><c:out value="${week}"/></th></c:forEach>
+				<th scope="col" class="text-end">Evaluations to do</th></tr></thead>
+				<tbody>
+				<c:forEach items="${hiring.workload}" var="row">
+					<tr><th scope="row" class="fw-normal"><c:out value="${row.label}"/></th>
+					<c:forEach items="${row.weeks}" var="count"><td class="text-end${count == 0 ? ' text-body-secondary' : ''}">${count}</td></c:forEach>
+					<td class="text-end">${row.pending}</td></tr>
+				</c:forEach>
+				</tbody>
+			</table>
+			</div>
+			</c:otherwise>
+			</c:choose>
+		</div>
+	</div>
 	<div class="card rms-card">
 		<div class="card-body">
 			<h3 class="h6">Evaluations still to do</h3>

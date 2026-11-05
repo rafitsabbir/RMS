@@ -459,6 +459,16 @@ class WorkflowTest {
 
 	@Test
 	@Order(14)
+	void theReportsShowTheInterviewerWorkload() {
+		// F9: every active interviewer, interviews per week from this week on, and evaluations to do
+		Page hm = pages.get("HM");
+		hm.navigate(base + "/reports");
+		assertThat(text(hm, "#workload")).contains("Interviewer", "This week", "Evaluations to do",
+				"Ivan Interviewer (U2)", "Max Manager (U4)");
+	}
+
+	@Test
+	@Order(15)
 	void noConsoleErrors() {
 		errors.forEach((page, list) -> assertThat(list).as("console errors").isEmpty());
 	}

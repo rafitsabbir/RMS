@@ -1,6 +1,7 @@
 package rms.controller;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 import jakarta.servlet.http.HttpSession;
@@ -30,6 +31,7 @@ import rms.model.HiringGroup;
 import rms.model.HiringReport;
 import rms.model.ResultInfo;
 import rms.model.ScheduleInfo;
+import rms.model.WorkloadRow;
 import rms.service.ActivityService;
 import rms.service.CandidateService;
 import rms.service.CsvWriter;
@@ -94,6 +96,20 @@ public class ReportController {
 		csv.row("Interviewer", "Evaluations still to do");
 		for (HiringGroup row : report.getPendingbyinterviewer()) {
 			csv.row(row.getLabel(), row.getTotal());
+		}
+		// Interviewer workload (F9): interviews per week from this week on, and the evaluations to do
+		csv.row();
+		List<Object> heading = new ArrayList<Object>();
+		heading.add("Interviewer workload");
+		heading.addAll(report.getWeeklabels());
+		heading.add("Evaluations still to do");
+		csv.row(heading.toArray());
+		for (WorkloadRow row : report.getWorkload()) {
+			List<Object> cells = new ArrayList<Object>();
+			cells.add(row.getLabel());
+			cells.addAll(row.getWeeks());
+			cells.add(row.getPending());
+			csv.row(cells.toArray());
 		}
 		return download(csv, "hiring-report", "HIRING", null, session);
 	}

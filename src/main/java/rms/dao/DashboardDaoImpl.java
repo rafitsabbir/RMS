@@ -1,6 +1,8 @@
 package rms.dao;
 
+import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -38,6 +40,15 @@ public class DashboardDaoImpl implements DashboardDao {
 			+ "(select 1 from marks m where m.candidateid=ci.candidateid and m.interviewerid=ci.interviewerid and "
 			+ "m.isactive=1) group by ci.interviewerid order by total desc, ci.interviewerid";
 	private String openjobs = "select count(*) from job where isactive=1 and status='OPEN'";
+	// Workload (F9): the same "active interviewer" as the assignments, read from admin directly
+	private String activeinterviewers = "select a.userid, concat_ws(' ', a.firstname, a.lastname) as name from admin a "
+			+ "where a.isactive=1 and (upper(trim(a.role))='INTERVIEWER' or (a.role is null and upper(a.isinterviewer)='Y') "
+			+ "or (a.alsointerviewer=1 and upper(trim(a.role)) in ('SUPER_ADMIN', 'HR', 'HIRING_MANAGER'))) "
+			+ "order by a.firstname, a.lastname, a.userid";
+	private String interviewsbyday = "select s.interviewerid, date(s.startat) as day, count(*) as total "
+			+ "from interview_schedule s where s.isactive=1 and s.status<>'CANCELLED' and s.startat>=:from "
+			+ "and s.startat<:to and exists (select 1 from candidate c where c.candidateid=s.candidateid and c.isactive=1) "
+			+ "group by s.interviewerid, date(s.startat)";
 	private String withoutcv = "select count(*) from candidate c where c.isactive=1 and not exists (select 1 from "
 			+ "candidate_document d where d.candidateid=c.candidateid and d.doctype='CV' and d.isactive=1 "
 			+ "and d.purgedat is null)";
@@ -83,6 +94,30 @@ public class DashboardDaoImpl implements DashboardDao {
 			paramMap.put("interviewerid", interviewerid);
 		}
 		return namedParameterJdbcTemplate.queryForObject(sql, paramMap, Integer.class);
+	}
+
+	@Override
+	public Map<String, String> getActiveInterviewers() {
+		Map<String, String> interviewers = new LinkedHashMap<String, String>();
+		namedParameterJdbcTemplate.query(activeinterviewers, new HashMap<String, Object>(), rs -> {
+			String name = rs.getString("name");
+			interviewers.put(rs.getString("userid"), (name == null || name.isBlank() ? "" : name.trim() + " ") + "("
+					+ rs.getString("userid") + ")");
+		});
+		return interviewers;
+	}
+
+	@Override
+	public Map<String, Map<LocalDate, Integer>> countInterviewsByDay(LocalDate from, LocalDate to) {
+		Map<String, Object> paramMap = new HashMap<String, Object>();
+		paramMap.put("from", from.atStartOfDay());
+		paramMap.put("to", to.atStartOfDay());
+		Map<String, Map<LocalDate, Integer>> counts = new HashMap<String, Map<LocalDate, Integer>>();
+		namedParameterJdbcTemplate.query(interviewsbyday, paramMap, rs -> {
+			counts.computeIfAbsent(rs.getString("interviewerid"), k -> new HashMap<LocalDate, Integer>())
+					.put(rs.getObject("day", LocalDate.class), rs.getInt("total"));
+		});
+		return counts;
 	}
 
 	@Override

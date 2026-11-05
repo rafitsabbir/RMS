@@ -62,7 +62,8 @@ The four roles: On the first day, the old administrators are **Super Admins** an
 - **Hiring report (new):** on the Reports page:
   - how many days from application to Selected or Rejected;
   - candidates per stage, per job and per source;
-  - evaluations still to do per interviewer.
+  - evaluations still to do per interviewer;
+  - each interviewer's workload (new): interviews this week and the next three weeks, and evaluations to do.
 - **Home page:** candidates by decision and by stage (click a stage to see its candidates), evaluations still to do, upcoming interviews, open jobs, and candidates without a CV.
 - **Note for spreadsheet users:** the candidates CSV now has a **Stage** column before Status. A spreadsheet that reads the columns by position needs adjusting.
 
