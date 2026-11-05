@@ -1,5 +1,7 @@
 package rms.service;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +17,11 @@ import rms.model.Role;
 /** The home page dashboard (Phase 4): counts only, read from the DAOs on every visit. */
 @Service
 public class DashboardServiceImpl implements DashboardService {
+
+	/** Reminders (F10): an evaluation is overdue this many days after its interview (owner may change, #35). */
+	static final int OVERDUE_DAYS = 3;
+	/** Reminders (F10): a candidate is "long at a stage" after this many days there. */
+	static final int STUCK_DAYS = 14;
 
 	/** How many upcoming interviews the home page lists. */
 	static final int NEXT_INTERVIEWS = 5;
@@ -40,6 +47,7 @@ public class DashboardServiceImpl implements DashboardService {
 			own.setPendingevaluations(dashboarddao.countPendingEvaluations(userid));
 			own.setUpcominginterviews(scheduledao.countUpcoming(userid));
 			own.setNextinterviews(scheduledao.getUpcoming(userid, NEXT_INTERVIEWS));
+			own.setOverdueevaluations(dashboarddao.getOverdueEvaluations(userid, overdueBefore()));
 			return own;
 		}
 		if (role != Role.SUPER_ADMIN && role != Role.HR && role != Role.HIRING_MANAGER) {
@@ -74,6 +82,13 @@ public class DashboardServiceImpl implements DashboardService {
 		all.setOpenjobs(dashboarddao.countOpenJobs());
 		all.setCandidateswithoutcv(dashboarddao.countCandidatesWithoutCv());
 		all.setCandidateswithinactiveinterviewer(dashboarddao.countCandidatesWithInactiveInterviewer());
+		all.setOverdueevaluations(dashboarddao.getOverdueEvaluations(null, overdueBefore()));
+		all.setStuckcandidates(dashboarddao.getStuckCandidates(LocalDate.now().minusDays(STUCK_DAYS)));
 		return all;
+	}
+
+	/** An evaluation is overdue OVERDUE_DAYS full days after its interview started. */
+	private static LocalDateTime overdueBefore() {
+		return LocalDateTime.now().minusDays(OVERDUE_DAYS);
 	}
 }

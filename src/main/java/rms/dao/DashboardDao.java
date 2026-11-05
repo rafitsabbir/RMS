@@ -1,10 +1,12 @@
 package rms.dao;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
 import rms.model.HiringGroup;
+import rms.model.ReminderInfo;
 
 /** Counts for the home page dashboard (Phase 4). Read-only; every count is over active rows only. */
 public interface DashboardDao {
@@ -32,6 +34,20 @@ public interface DashboardDao {
 	 * interviewer and day (F9): interviewerid, then the day and its count.
 	 */
 	public Map<String, Map<LocalDate, Integer>> countInterviewsByDay(LocalDate from, LocalDate to);
+
+	/**
+	 * Overdue evaluations (F10): interviews (not cancelled) that started before the given time, of undecided active
+	 * candidates, whose interviewer is still assigned and active but hasn't evaluated the candidate in that round (any
+	 * evaluation counts for an interview without a round). One per candidate, interviewer and round, oldest first; of
+	 * one interviewer, or of all when null.
+	 */
+	public List<ReminderInfo> getOverdueEvaluations(String interviewerid, LocalDateTime before);
+
+	/**
+	 * Candidates long at one stage (F10): active, not Rejected, not Hired or Withdrawn, who reached their stage before
+	 * the given day (the last move into it, else the applied date for Applied; neither: not listed). Oldest first.
+	 */
+	public List<ReminderInfo> getStuckCandidates(LocalDate before);
 
 	/** Open jobs: status OPEN, not deleted. */
 	public int countOpenJobs();

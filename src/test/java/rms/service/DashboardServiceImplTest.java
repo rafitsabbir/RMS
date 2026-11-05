@@ -1,18 +1,24 @@
 package rms.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.any;
 import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -20,6 +26,7 @@ import rms.dao.DashboardDao;
 import rms.dao.ScheduleDao;
 import rms.model.DashboardInfo;
 import rms.model.HiringStage;
+import rms.model.ReminderInfo;
 import rms.model.Role;
 import rms.model.ScheduleInfo;
 
@@ -114,5 +121,29 @@ class DashboardServiceImplTest {
 		assertThat(service.getDashboard(Role.INTERVIEWER, null)).isNull();
 
 		verifyNoInteractions(dashboarddao, scheduledao);
+	}
+
+	@Test
+	void remindersAreEveryonesForStaffAndOnesOwnForAnInterviewer() {
+		List<ReminderInfo> all = List.of(new ReminderInfo(), new ReminderInfo());
+		List<ReminderInfo> mine = List.of(new ReminderInfo());
+		List<ReminderInfo> stuck = List.of(new ReminderInfo());
+		when(dashboarddao.getOverdueEvaluations(isNull(), any(LocalDateTime.class))).thenReturn(all);
+		when(dashboarddao.getOverdueEvaluations(eq("U2"), any(LocalDateTime.class))).thenReturn(mine);
+		when(dashboarddao.getStuckCandidates(any(LocalDate.class))).thenReturn(stuck);
+
+		DashboardInfo staff = service.getDashboard(Role.HR, "U3");
+		assertThat(staff.getOverdueevaluations()).isSameAs(all);
+		assertThat(staff.getStuckcandidates()).isSameAs(stuck);
+		DashboardInfo own = service.getDashboard(Role.INTERVIEWER, "U2");
+		assertThat(own.getOverdueevaluations()).isSameAs(mine);
+		assertThat(own.getStuckcandidates()).isEmpty();
+
+		// F10: 3 days after the interview; 14 days at one stage
+		ArgumentCaptor<LocalDateTime> before = ArgumentCaptor.forClass(LocalDateTime.class);
+		verify(dashboarddao).getOverdueEvaluations(isNull(), before.capture());
+		assertThat(before.getValue()).isBetween(LocalDateTime.now().minusDays(3).minusMinutes(1),
+				LocalDateTime.now().minusDays(3));
+		verify(dashboarddao).getStuckCandidates(LocalDate.now().minusDays(14));
 	}
 }

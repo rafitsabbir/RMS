@@ -64,6 +64,7 @@ The four roles: On the first day, the old administrators are **Super Admins** an
   - candidates per stage, per job and per source;
   - evaluations still to do per interviewer;
   - each interviewer's workload (new): interviews this week and the next three weeks, and evaluations to do.
+- **Reminders (new):** the home page lists evaluations overdue more than 3 days after an interview, and candidates at the same stage for more than 14 days. Interviewers see their own overdue evaluations, with a link to the form.
 - **Home page:** candidates by decision and by stage (click a stage to see its candidates), evaluations still to do, upcoming interviews, open jobs, and candidates without a CV.
 - **Note for spreadsheet users:** the candidates CSV now has a **Stage** column before Status. A spreadsheet that reads the columns by position needs adjusting.
 

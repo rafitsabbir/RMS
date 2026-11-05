@@ -4,12 +4,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.groups.Tuple.tuple;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import rms.model.HiringGroup;
+import rms.model.ReminderInfo;
 
 /**
  * Characterization tests against db/schema.sql + db/test-seed.sql. C1 is Selected and C2 Rejected, so both are
@@ -173,5 +175,51 @@ class DashboardDaoImplTest extends MySqlContainerSupport {
 		assertThat(dao.countInterviewsByDay(LocalDate.of(2099, 1, 12), LocalDate.of(2099, 1, 15))).isEmpty();
 		jdbcTemplate.update("update candidate set isactive=0 where candidateid='C1'");
 		assertThat(dao.countInterviewsByDay(LocalDate.of(2099, 1, 12), LocalDate.of(2099, 1, 19))).isEmpty();
+	}
+
+	@Test
+	void anEvaluationIsOverdueAfterAnInterviewInItsRound() {
+		LocalDateTime now = LocalDateTime.of(2026, 11, 5, 9, 0);
+		// Seed: U2 interviewed C2 on 2026-09-18 and evaluated; C2 is Rejected (decided): no reminder
+		assertThat(dao.getOverdueEvaluations(null, now)).isEmpty();
+
+		jdbcTemplate.update("update candidate set candidatestatus=null where candidateid='C2'");
+		assertThat(dao.getOverdueEvaluations(null, now)).isEmpty();
+		jdbcTemplate.update("update marks set isactive=0 where candidateid='C2' and interviewerid='U2'");
+		assertThat(dao.getOverdueEvaluations(null, now)).extracting(ReminderInfo::getCandidateid,
+				ReminderInfo::getInterviewerid, ReminderInfo::getSince, ReminderInfo::getCandidatename,
+				ReminderInfo::getInterviewername).containsExactly(tuple("C2", "U2", LocalDate.of(2026, 9, 18),
+						"Cody Candidate", "Ivan Interviewer"));
+		// Of one interviewer only; not before the interview
+		assertThat(dao.getOverdueEvaluations("U5", now)).isEmpty();
+		assertThat(dao.getOverdueEvaluations("U2", LocalDateTime.of(2026, 9, 18, 9, 0))).isEmpty();
+
+		// With a round, only an evaluation in that round counts
+		jdbcTemplate.update("update interview_schedule set interviewround='TECHNICAL' where schedulekey=2");
+		jdbcTemplate.update("update marks set isactive=1 where candidateid='C2' and interviewerid='U2'");
+		assertThat(dao.getOverdueEvaluations("U2", now)).extracting(ReminderInfo::getInterviewround)
+				.containsExactly("TECHNICAL");
+		jdbcTemplate.update("update marks set interviewround='TECHNICAL' where candidateid='C2' and interviewerid='U2'");
+		assertThat(dao.getOverdueEvaluations("U2", now)).isEmpty();
+
+		// A cancelled interview, or an interviewer no longer assigned, is no reminder
+		jdbcTemplate.update("update marks set isactive=0 where candidateid='C2'");
+		jdbcTemplate.update("update candidate_interviewer set isactive=0 where candidateid='C2' and interviewerid='U2'");
+		assertThat(dao.getOverdueEvaluations(null, now)).isEmpty();
+	}
+
+	@Test
+	void aCandidateIsLongAtAStageFromTheLastMoveIntoIt() {
+		// Seed: C1 (Selected) reached Offer on 2026-09-20; C2 is Rejected
+		assertThat(dao.getStuckCandidates(LocalDate.of(2026, 11, 1))).extracting(ReminderInfo::getCandidateid,
+				ReminderInfo::getStage, ReminderInfo::getSince, ReminderInfo::getCandidatename)
+				.containsExactly(tuple("C1", "OFFER", LocalDate.of(2026, 9, 20), "Carla Candidate"));
+		assertThat(dao.getStuckCandidates(LocalDate.of(2026, 9, 20))).isEmpty();
+
+		// Hired and Withdrawn are done; a candidate at Applied without history counts from the applied date
+		jdbcTemplate.update("update candidate set stage='HIRED' where candidateid='C1'");
+		jdbcTemplate.update("update candidate set candidatestatus=null, stage=null where candidateid='C2'");
+		assertThat(dao.getStuckCandidates(LocalDate.of(2026, 11, 1))).extracting(ReminderInfo::getCandidateid,
+				ReminderInfo::getSince).containsExactly(tuple("C2", LocalDate.of(2026, 9, 15)));
 	}
 }
