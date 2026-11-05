@@ -3,7 +3,9 @@ package rms.dao;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -13,6 +15,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import rms.model.HiringStage;
 import rms.model.JobInfo;
 
 @Repository
@@ -30,6 +33,14 @@ public class JobDaoImpl implements JobDao {
 			+ "closingdate=:closingdate, status=:status where jobkey=:jobkey and isactive=1";
 	// Soft delete: candidates keep candidate.jobkey, and their profile shows the job as deleted
 	private String deletejob = "update job set isactive=0 where jobkey=:jobkey";
+	// The pipeline per job (F6): active candidates linked to an active job, per stage (NULL or unknown reads as Applied,
+	// rms.model.HiringStage.of) and how many are Rejected; and when the candidates now Hired were moved there
+	private String pipeline = "select c.jobkey, upper(trim(c.stage)) as stage, count(*) as total, "
+			+ "sum(case when upper(trim(c.candidatestatus))='R' then 1 else 0 end) as rejected from candidate c "
+			+ "where c.isactive=1 and c.jobkey is not null group by c.jobkey, upper(trim(c.stage))";
+	private String lasthired = "select c.jobkey, max(cs.changedat) as hiredat from candidate_stage cs "
+			+ "join candidate c on c.candidateid=cs.candidateid where c.isactive=1 and c.jobkey is not null "
+			+ "and upper(trim(c.stage))='HIRED' and cs.tostage='HIRED' group by c.jobkey";
 
 	NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
@@ -66,6 +77,35 @@ public class JobDaoImpl implements JobDao {
 	@Override
 	public List<JobInfo> getAllJob() {
 		return namedParameterJdbcTemplate.query(alljob, new HashMap<String, Object>(), new JobMapper());
+	}
+
+	@Override
+	public List<JobInfo> getJobsWithPipeline() {
+		List<JobInfo> jobs = getAllJob();
+		Map<Integer, JobInfo> byKey = new HashMap<Integer, JobInfo>();
+		for (JobInfo job : jobs) {
+			Map<String, Integer> counts = new LinkedHashMap<String, Integer>();
+			for (HiringStage stage : HiringStage.values()) {
+				counts.put(stage.name(), 0);
+			}
+			job.setStagecounts(counts);
+			byKey.put(job.getJobkey(), job);
+		}
+		namedParameterJdbcTemplate.query(pipeline, new HashMap<String, Object>(), rs -> {
+			JobInfo job = byKey.get(rs.getInt("jobkey"));
+			if (job != null) {
+				job.getStagecounts().merge(HiringStage.of(rs.getString("stage")).name(), rs.getInt("total"), Integer::sum);
+				job.setRejectedcount(job.getRejectedcount() + rs.getInt("rejected"));
+			}
+		});
+		namedParameterJdbcTemplate.query(lasthired, new HashMap<String, Object>(), rs -> {
+			JobInfo job = byKey.get(rs.getInt("jobkey"));
+			LocalDateTime hiredat = rs.getObject("hiredat", LocalDateTime.class);
+			if (job != null && hiredat != null) {
+				job.setLasthiredat(hiredat.toLocalDate());
+			}
+		});
+		return jobs;
 	}
 
 	@Override

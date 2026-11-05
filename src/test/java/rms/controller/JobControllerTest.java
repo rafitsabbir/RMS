@@ -35,6 +35,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import rms.config.WebConfig;
+import rms.model.HiringStage;
 import rms.model.JobInfo;
 import rms.model.PositionInfo;
 import rms.service.ActivityService;
@@ -70,14 +71,15 @@ class JobControllerTest {
 	}
 
 	@Test
-	void listShowsTheActiveJobs() throws Exception {
+	void listShowsTheActiveJobsWithTheirPipeline() throws Exception {
 		List<JobInfo> jobs = List.of(job(1, 1, "OPEN"), job(2, 2, "CLOSED"));
-		when(jobservice.getAllJob()).thenReturn(jobs);
+		when(jobservice.getJobsWithPipeline()).thenReturn(jobs);
 
 		mockMvc.perform(get("/viewjoblist"))
 				.andExpect(status().isOk())
 				.andExpect(view().name("viewjob"))
-				.andExpect(model().attribute("joblist", jobs));
+				.andExpect(model().attribute("joblist", jobs))
+				.andExpect(model().attribute("stages", HiringStage.values()));
 	}
 
 	@Test

@@ -11,4 +11,6 @@ public interface JobService {
 	public List<JobInfo> getOpenJob();
 	public JobInfo findJobById(int jobkey);
 	public void deleteJob(int jobkey);
+	/** Active jobs with their pipeline (F6), for the Jobs page. */
+	public List<JobInfo> getJobsWithPipeline();
 }

@@ -19,6 +19,8 @@ public interface JobDao {
 	/** An active job, open or closed, or null. */
 	public JobInfo findJobById(int jobkey);
 
+	/** Active jobs with their pipeline (F6): candidates per stage, rejected ones, and the last hire's date. */
+	public List<JobInfo> getJobsWithPipeline();
 	/** Soft delete: sets isactive=0; candidates linked to it keep the link. */
 	public void deleteJob(int jobkey);
 }

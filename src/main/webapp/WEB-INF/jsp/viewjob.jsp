@@ -28,6 +28,7 @@
 						<th class="rms-col-id">Job Id</th>
 						<th>Position</th>
 						<th>Vacancies</th>
+						<th data-orderable="false">Pipeline</th>
 						<th>Closing date</th>
 						<th>Status</th>
 						<c:if test="${canedit}">
@@ -41,6 +42,29 @@
 						<td>${job.jobkey}</td>
 						<td class="rms-name"><c:out value="${empty job.positionname ? ('Position ' += job.positionkey) : job.positionname}"/></td>
 						<td>${job.vacancies}</td>
+						<%-- The pipeline (F6): candidates linked to the job per stage, each opening the list filtered to them --%>
+						<td class="rms-pipeline">
+							<c:set var="anycandidate" value="false"/>
+							<c:forEach items="${stages}" var="stage">
+							<c:set var="count" value="${job.stagecounts[stage.name]}"/>
+							<c:if test="${count > 0}">
+							<c:set var="anycandidate" value="true"/>
+							<c:url value="/viewcandidatelist" var="stageURL"><c:param name="jobkey" value="${job.jobkey}"/><c:param name="stage" value="${stage.name}"/></c:url>
+							<a class="badge rounded-pill text-bg-light border text-decoration-none" href="<c:out value='${stageURL}'/>"><c:out value="${stage.label} ${count}"/></a>
+							</c:if>
+							</c:forEach>
+							<c:if test="${job.rejectedcount > 0}">
+							<c:url value="/viewcandidatelist" var="rejectedURL"><c:param name="jobkey" value="${job.jobkey}"/><c:param name="status" value="R"/></c:url>
+							<a class="badge rounded-pill text-bg-light border text-danger text-decoration-none" href="<c:out value='${rejectedURL}'/>">Rejected ${job.rejectedcount}</a>
+							</c:if>
+							<c:if test="${not anycandidate}"><span class="text-body-secondary small">No candidates</span></c:if>
+							<div class="small text-body-secondary mt-1">
+								<c:choose>
+								<c:when test="${job.filled}">Filled<c:if test="${not empty job.filledat}"> on <c:out value="${job.filledat}"/></c:if></c:when>
+								<c:otherwise>${job.hiredcount} of ${job.vacancies} hired</c:otherwise>
+								</c:choose>
+							</div>
+						</td>
 						<td><c:out value="${job.closingdate}"/></td>
 						<td>
 						<c:choose>

@@ -1,7 +1,7 @@
 # Flow: Jobs
 
 Purpose: Traces the Jobs module (G4): openings built on a position, and linking a candidate to one.
-Last updated: 2026-10-02 (Phase 2 of the roles plan: first version; migration 004)
+Last updated: 2026-11-05 (F6: pipeline per job). 2026-10-02 (Phase 2 of the roles plan: first version; migration 004)
 Read this when: you're changing jobs or the candidate's job link.
 
 Evidence: `rms/controller/JobController.java`, `rms/service/JobServiceImpl.java`, `rms/dao/JobDaoImpl.java`, `rms/model/JobInfo.java`, `WEB-INF/jsp/viewjob.jsp`, `createjob.jsp`, `layout.tag` (Recruitment › Jobs), `main.jsp` (tile); the link: `CandidateController.checkJob`, `createcandidate.jsp`. Tests: `JobControllerTest`, `CandidateControllerTest` (job cases), `JobDaoImplTest` (needs Docker), `SecurityConfigTest`, `SmokeTest.jobAndProfilePagesRender`.
@@ -38,3 +38,10 @@ flowchart LR
 - A new link must be to an open job ("That job is closed. Please choose an open job, or none."). A candidate who already has a job keeps it when the job is later closed or deleted; the form offers it as "(closed)" or "(deleted)". A deleted job keeps the candidate's current position.
 
 Known gaps: G4 (fixed 2026-10-02 in Phase 2; migration 004 still to run in production), G22.
+
+## Pipeline per job (F6, 2026-11-05)
+The Jobs list (`viewjob.jsp`, staff) has a **Pipeline** column (`JobService.getJobsWithPipeline`, `JobDaoImpl`):
+- A badge per stage with candidates, e.g. "Applied 3", "Interview 1": the active candidates linked to the job at that stage (a NULL or unknown stage counts as Applied, `HiringStage.of`). Rejected candidates count in the stage they reached, like the dashboard and the stage filter, and also in a red "Rejected n" badge.
+- Each badge opens the Candidates list filtered to the job and that stage (`?jobkey=&stage=`), or to the job and the decision Rejected (`?jobkey=&status=R`), so the number and the list always match.
+- Under the badges: "Filled on <date>" once as many candidates are Hired as the job has vacancies (the date the last of them was moved to Hired, from `candidate_stage`), else "h of v hired". Filling doesn't close the job; HR closes it as before.
+- No schema change. Tests: `JobDaoImplTest` (counts, rejected, NULL stage, filled date), `JobControllerTest`, `WorkflowTest.hrSeesThePipelinePerJob`.
