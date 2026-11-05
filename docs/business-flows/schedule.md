@@ -1,7 +1,7 @@
 # Flow: Interview Schedule and Dashboard
 
 Purpose: Traces scheduling an interview, the schedule lists, and the figures on the home page (the dashboard).
-Last updated: 2026-10-20 (calendar invites, `/scheduleinvite`). 2026-10-03 (Phase 4 of the roles plan: new; G3 fixed; migration 006, DB-verified NO)
+Last updated: 2026-11-05 (F1: e-mails to the interviewer). 2026-10-20 (calendar invites, `/scheduleinvite`). 2026-10-03 (Phase 4 of the roles plan: new; G3 fixed; migration 006, DB-verified NO)
 Read this when: you're working on interview scheduling, the Interview Schedule or My Schedule pages, or the home page dashboard.
 
 Evidence: `rms/controller/ScheduleController.java`, `LoginController.java` (`home`); `rms/service/ScheduleServiceImpl.java`, `DashboardServiceImpl.java`; `rms/dao/ScheduleDaoImpl.java`, `DashboardDaoImpl.java`; `rms/model/ScheduleInfo.java`, `DashboardInfo.java`; `WEB-INF/jsp/viewschedule.jsp`, `myschedule.jsp`, `createschedule.jsp`, `main.jsp`; `WEB-INF/tags/schedulestatus.tag`, `layout.tag`; `rms/config/SecurityConfig.java`; `db/migrations/006-interview-schedule.sql`; tests `ScheduleControllerTest`, `ScheduleServiceImplTest`, `DashboardServiceImplTest`, `ScheduleModelTest`, `ScheduleDaoImplTest`, `DashboardDaoImplTest`, `SecurityConfigTest`, `LoginControllerTest`.
@@ -70,7 +70,7 @@ The cards link to Candidate Status, the candidate, schedule and job lists, and M
 `layout.tag` shows **Interview Schedule** (`active` key `schedule`) under Recruitment to Super Admin, HR and Hiring Manager, and **My Schedule** (`myschedule`) to Interviewers. The disabled "Coming soon" entry and tile are gone.
 
 ## Not built (open)
-- No e-mail notification to the interviewer or the candidate (the calendar file is downloaded, not sent) ([open-questions.md](../open-questions.md) #10).
+- Since 2026-11-05 (F1) the interviewer gets an e-mail with the calendar file when an interview is scheduled, changed or cancelled, if a mail server is configured ([reports-activity.md](reports-activity.md)). Candidates are never e-mailed (owner decision).
 - No link from the candidate profile to the schedule, and no history of changes beyond `updatedby` and `updatedat` on the row.
 - No overlap check for different start times, no check that the time is in the future, and no automatic DONE.
 - The DAO tests, the JSPs and migration 006 have not run against a real MySQL or on Tomcat ([../acceptance/roles-phase4.md](../acceptance/roles-phase4.md)).

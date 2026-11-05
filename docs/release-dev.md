@@ -34,9 +34,10 @@ The user-facing version, for announcing the release: [release-notes.md](release-
 1. **Decisions (made 2026-11-05, [release-tracker.md](release-tracker.md) item 6):** Tomcat 11 on a server (not the container); the company's standard JDK 21 (any JDK 21 or later); HTTPS in front of RMS; migration 003 runs at the release; release window February–March 2027 (the exact date still to fix, before 31 March 2027); the stage rules stay as built (#32).
 2. **Database checks** on production, read-only, in one run: [`db/checks/pre-release-checks.sql`](../db/checks/README.md) (send its output to the developers). It covers the DDL against `db/schema.sql` (#19), and the checks of #27 (who becomes Super Admin, password column, keys, storage engine), #28 (documents and jobs), **#29 (`SHOW CREATE TABLE marks`; migration 005 is a draft until this is done)** and #30 (time zone). A difference found here stops the release until the migration is adjusted.
 3. **Migration 003** (hash the stored plain-text passwords): **approved** 2026-11-05; it runs in ops step 4b. Answer its #25 checks first (they are in item 2's output).
-4. **Document storage:** a folder for `RMS_DOC_DIR` with its owner, rights, backup and size ([build-run.md](build-run.md), "Document storage").
-5. **Accounts:** the MySQL account the application uses (data rights on the RMS database only: SELECT, INSERT, UPDATE, DELETE) and an admin account for the server upgrade and the migrations (schema rights).
-6. **Sign-off:** a domain user for the checks after deploy.
+4. **Mail server** (optional, for the staff e-mails, F1): the SMTP host, port, sender address and, if needed, an account; RMS's address for the links (`RMS_APP_URL`). Without them RMS sends no e-mail ([config.md](config.md)). Check that every user has their work e-mail in Users and Roles.
+5. **Document storage:** a folder for `RMS_DOC_DIR` with its owner, rights, backup and size ([build-run.md](build-run.md), "Document storage").
+6. **Accounts:** the MySQL account the application uses (data rights on the RMS database only: SELECT, INSERT, UPDATE, DELETE) and an admin account for the server upgrade and the migrations (schema rights).
+7. **Sign-off:** a domain user for the checks after deploy.
 
 ## Ops steps
 These were rehearsed in this order (below). Keep everything you replace: it is the rollback. Users are off the system from step 1 to step 7.
@@ -53,6 +54,7 @@ These were rehearsed in this order (below). Keep everything you replace: it is t
    - **Tomcat 11 on JDK 21** (the decision; the company's standard JDK 21 or later): remove old MySQL driver jars (`mysql-connector-java-5.1.*`, `mysql-connector-j-8.*`) from Tomcat's `lib/` and put `mysql-connector-j-9.7.0.jar` there (check it against its published checksum); use `deploy/tomcat/rms.xml` as the context file (`conf/Catalina/localhost/rms.xml`) with `RMS_DB_URL` (with `sslMode=REQUIRED&connectTimeout=5000&socketTimeout=60000`, as the file's comment says; `socketTimeout` must exceed the slowest query), `RMS_DB_USER`, `RMS_DB_PASSWORD` and `RMS_DOC_DIR` in Tomcat's environment and the property source set as the file says; deploy the WAR built from `dev` (`./mvnw -B verify`) at `/rms`.
    - **Container:** build the image from `dev` ([build-run.md](build-run.md), "Container") and run it with the same four variables from the orchestrator's secret store and the document folder mounted at `/var/rms/docs` (UID 10001).
    - **HTTPS** (the decision): either a TLS connector on Tomcat, or a proxy or load balancer in front that ends HTTPS, sends `X-Forwarded-Proto` and `X-Forwarded-For`, and redirects plain HTTP to HTTPS; with a proxy, enable the `RemoteIpValve` in the context file (its comment says how). In both cases set `RMS_SECURE_COOKIE=true` in Tomcat's environment.
+   - **E-mail** (if item 4 gave a mail server): the `RMS_MAIL_*` variables and `RMS_APP_URL` in Tomcat's environment; the log then says `E-mail notifications are on`.
 7. **Start** and check the log: no SEVERE or ERROR lines, and `Session cookie Secure flag: always`.
 
 ## After deploy

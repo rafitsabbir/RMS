@@ -29,6 +29,7 @@
 		<slf4j.version>2.0.20</slf4j.version>
 		<logback.version>1.6.6</logback.version>
 		<testcontainers.version>2.0.5</testcontainers.version>
+		<angus.mail.version>2.0.5</angus.mail.version>
 		<playwright.version>1.64.0</playwright.version>
 
 	</properties>
@@ -88,6 +89,18 @@
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-context</artifactId>
+		</dependency>
+
+		<!-- E-mail notifications to staff (rms.service.NotificationServiceImpl): Spring's JavaMailSender over Eclipse
+			Angus Mail, the Jakarta Mail 2.1 implementation. Only used when RMS_MAIL_HOST is set -->
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-context-support</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.angus</groupId>
+			<artifactId>angus-mail</artifactId>
+			<version>${angus.mail.version}</version>
 		</dependency>
 
 		<!-- Login, roles and CSRF tokens (rms.config.SecurityConfig) -->

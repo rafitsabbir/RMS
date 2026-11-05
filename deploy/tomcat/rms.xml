@@ -16,6 +16,9 @@
 	mysql-connector-j-9.7.0.jar goes in Tomcat's lib/. Pool sizes are the DBCP2 defaults (maxTotal 8);
 	add maxTotal/maxIdle here if production needs more. See docs/build-run.md.
 
+	E-mail to staff (optional, docs/config.md): RMS_MAIL_HOST, RMS_MAIL_PORT, RMS_MAIL_USER, RMS_MAIL_PASSWORD,
+	RMS_MAIL_FROM, RMS_MAIL_SECURITY and RMS_APP_URL in Tomcat's environment too. Without RMS_MAIL_HOST no e-mail is sent.
+
 	HTTPS (owner decision 2026-11-05, docs/release-dev.md): set RMS_SECURE_COOKIE=true in Tomcat's environment
 	too, so the session cookie always carries Secure. If a proxy or load balancer ends HTTPS and forwards plain
 	HTTP to Tomcat, remove the comment marks around the RemoteIpValve below and set internalProxies to the
