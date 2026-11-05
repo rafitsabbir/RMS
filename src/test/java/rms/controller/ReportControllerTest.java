@@ -149,10 +149,12 @@ class ReportControllerTest {
 
 	@Test
 	void theCandidatesCsvTakesTheListsFiltersAndTheLogSaysSo() throws Exception {
-		mockMvc.perform(get("/exportcandidates").param("status", "P").param("nocv", "true").session(session))
-				.andExpect(status().isOk());
+		mockMvc.perform(get("/exportcandidates").param("status", "P").param("nocv", "true").param("q", "nora")
+				.session(session)).andExpect(status().isOk());
 
-		verify(candidateservice).getCandidates(argThat(f -> "P".equals(f.getStatus()) && f.isNocv() && f.isActive()));
+		// The search (F7) is a filter like the others
+		verify(candidateservice).getCandidates(argThat(f -> "P".equals(f.getStatus()) && f.isNocv() && f.isActive()
+				&& "nora".equals(f.getQ())));
 		verify(activityservice).record("U3", "REPORT_DOWNLOADED", "REPORT", "CANDIDATES", "filtered");
 	}
 

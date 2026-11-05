@@ -114,4 +114,31 @@ class CandidateFilterTest {
 		candidate.setEvaluationcount(evaluations);
 		return candidate;
 	}
+
+	@Test
+	void searchFindsEveryWordInTheIdNameEmailOrPhone() {
+		CandidateInfo nora = new CandidateInfo();
+		nora.setCandidateid("C12");
+		nora.setFirstname("Nora");
+		nora.setLastname("Newcomer");
+		nora.setEmail("nora.n@example.test");
+		nora.setPhone("+1 (555) 010-0123");
+		CandidateFilter filter = new CandidateFilter();
+
+		filter.setQ("  ");
+		assertThat(filter.isActive()).isFalse();
+		for (String hit : new String[] { "nora", "NEWCOMER", "nora newcomer", "c12", "example.test", "555 010",
+				"5550100123", "(555)", "n@ex" }) {
+			filter.setQ(hit);
+			assertThat(filter.isActive()).isTrue();
+			assertThat(filter.matches(nora)).as(hit).isTrue();
+		}
+		for (String miss : new String[] { "nora smith", "c13", "999", "ivan" }) {
+			filter.setQ(miss);
+			assertThat(filter.matches(nora)).as(miss).isFalse();
+		}
+		// Missing fields don't break the search
+		filter.setQ("nora");
+		assertThat(filter.matches(new CandidateInfo())).isFalse();
+	}
 }

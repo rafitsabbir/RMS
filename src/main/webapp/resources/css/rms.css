@@ -248,6 +248,16 @@ body {
 	color: var(--rms-navy);
 }
 
+.rms-search {
+	flex: 0 1 18rem;
+	margin-left: auto;
+}
+
+/* With the search box, it takes the free space and the user block follows it */
+.rms-search + .rms-user {
+	margin-left: 0;
+}
+
 .rms-user {
 	display: flex;
 	align-items: center;

@@ -281,12 +281,13 @@ class CandidateControllerTest {
 
 		CandidateFilter filter = (CandidateFilter) mockMvc.perform(get("/viewcandidatelist").param("jobkey", "-1")
 				.param("status", "R").param("source", "NONE").param("appliedfrom", "2026-09-01")
-				.param("appliedto", "2026-09-30").param("nocv", "true").param("notevaluated", "true"))
+				.param("appliedto", "2026-09-30").param("nocv", "true").param("notevaluated", "true").param("q", "c"))
 				.andExpect(model().attribute("totalcount", 2))
 				.andExpect(model().attribute("candidatelist", List.of(rejected)))
 				.andReturn().getModelAndView().getModel().get("filter");
 		assertThat(filter.getJobkey()).isEqualTo(CandidateFilter.NO_JOB);
 		assertThat(filter.getStatus()).isEqualTo("R");
+		assertThat(filter.getQ()).isEqualTo("c");
 		assertThat(filter.getSource()).isEqualTo("NONE");
 		assertThat(filter.getAppliedfrom()).isEqualTo(LocalDate.of(2026, 9, 1));
 		assertThat(filter.getAppliedto()).isEqualTo(LocalDate.of(2026, 9, 30));
