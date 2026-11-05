@@ -2,7 +2,7 @@
 # Build the WAR first (./mvnw -B clean package), then: docker build -t rms .
 # The image holds no credentials: the JNDI DataSource reads RMS_DB_URL, RMS_DB_USER and RMS_DB_PASSWORD from the
 # container's environment at start-up (deploy/tomcat/rms.xml). Documents go to the /var/rms/docs volume.
-FROM tomcat:11.0-jre21-temurin@sha256:07a9af94a3cc93d229887acd70b9645e8fb668b9cb79406f7bce3a581d50e279
+FROM tomcat:11.0-jre21-temurin@sha256:ee05c9b532b75b0de6155becbe072b3fab62727de44b2251bafd5bdb614d0dc0
 
 ENV RMS_DOC_DIR=/var/rms/docs
 
