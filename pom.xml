@@ -10,9 +10,9 @@
   
   
   	<properties>
-		<spring.version>7.0.9</spring.version>
+		<spring.version>7.0.10</spring.version>
 		<!-- 7.0.7 is built against Spring 7.0.9 (spring-security-core's pom) -->
-		<spring-security.version>7.0.7</spring-security.version>
+		<spring-security.version>7.1.2</spring-security.version>
 		<servletapi.version>6.1.0</servletapi.version>
 		<jstl.api.version>3.0.2</jstl.api.version>
 		<jstl.impl.version>3.0.1</jstl.impl.version>
@@ -27,9 +27,9 @@
 		<hamcrest.version>2.2</hamcrest.version>
 		<mysql.version>9.7.0</mysql.version>
 		<slf4j.version>2.0.20</slf4j.version>
-		<logback.version>1.5.38</logback.version>
+		<logback.version>1.6.6</logback.version>
 		<testcontainers.version>2.0.5</testcontainers.version>
-		<playwright.version>1.63.0</playwright.version>
+		<playwright.version>1.64.0</playwright.version>
 
 	</properties>
 
@@ -212,22 +212,22 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-compiler-plugin</artifactId>
-					<version>3.13.0</version>
+					<version>3.16.0</version>
 				</plugin>
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-surefire-plugin</artifactId>
-					<version>3.5.3</version>
+					<version>3.6.1</version>
 				</plugin>
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-dependency-plugin</artifactId>
-					<version>3.9.0</version>
+					<version>3.11.0</version>
 				</plugin>
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-war-plugin</artifactId>
-					<version>3.4.0</version>
+					<version>3.5.1</version>
 					<configuration>
 						<warSourceDirectory>src/main/webapp</warSourceDirectory>
 						<failOnMissingWebXml>false</failOnMissingWebXml>
