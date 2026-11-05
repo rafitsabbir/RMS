@@ -437,6 +437,28 @@ class WorkflowTest {
 
 	@Test
 	@Order(13)
+	void hrRecordsAnAcceptedOffer() {
+		// F8: Carla (seed C1) is Selected and at Offer; an accepted offer moves her to Hired
+		Page hr = pages.get("HR");
+		hr.navigate(base + "/viewcandidate?candidateid=C1");
+		hr.fill("#salaryband", "Band 3");
+		hr.selectOption("#offerstatus", "ACCEPTED");
+		hr.fill("#offernote", "Signed on the phone");
+		submit(hr, "form#saveoffer button[type=submit]");
+		assertThat(text(hr)).contains("Offer recorded. The candidate moves to Hired.");
+		assertThat(text(hr, "#pipeline-state")).isEqualTo("Now at Hired");
+		assertThat(text(hr, "#offerlist")).contains("Accepted", "Band 3", "Signed on the phone");
+		assertThat(text(hr, "#stagehistory")).contains("Offer accepted");
+
+		// The Hiring Manager reads the offer, but not the salary band, and has no form
+		Page hm = pages.get("HM");
+		hm.navigate(base + "/viewcandidate?candidateid=C1");
+		assertThat(text(hm, "#offerlist")).contains("Accepted").doesNotContain("Band 3");
+		assertThat(hm.locator("form#saveoffer").count()).isZero();
+	}
+
+	@Test
+	@Order(14)
 	void noConsoleErrors() {
 		errors.forEach((page, list) -> assertThat(list).as("console errors").isEmpty());
 	}

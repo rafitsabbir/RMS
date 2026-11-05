@@ -50,6 +50,7 @@ The four roles: On the first day, the old administrators are **Super Admins** an
     - Scheduling an interview moves Applied or Screening to Interview.
   - A Rejected candidate's pipeline is closed until the decision changes.
 - **Import from Excel (new):** Candidates → **Import**: download the template, fill one candidate per line in Excel, save as CSV and upload it. RMS shows every line first (ready, possible duplicate, or what is wrong) and adds nothing until you press Import. Lines with a problem are skipped; possible duplicates only if you tick the box. Up to 500 candidates per file.
+- **Offers (new):** on a Selected candidate's profile, record the offer: date, salary band, start date, and whether it was accepted, declined or withdrawn. An accepted offer moves the candidate to Hired. Hiring Managers see the offers but not the salary band.
 - **Possible duplicates (new):** adding a candidate whose e-mail, phone number or full name is already in RMS shows the existing candidate first. Choose **Check again** after correcting, or **Save anyway** if it is someone else.
 - **Search (new):** the search box at the top of every page finds candidates by name, e-mail, phone or ID (Super Admin, HR, Hiring Manager).
 - **Filters (new):** on Candidates, filter by job, stage, status, source, applied dates, "No CV yet" or "Not evaluated yet".
