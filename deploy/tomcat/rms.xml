@@ -15,6 +15,12 @@
 	(a free pooled connection) and validationQueryTimeout (seconds, the pool's check of a connection) do the same.
 	mysql-connector-j-9.7.0.jar goes in Tomcat's lib/. Pool sizes are the DBCP2 defaults (maxTotal 8);
 	add maxTotal/maxIdle here if production needs more. See docs/build-run.md.
+
+	HTTPS (owner decision 2026-11-05, docs/release-dev.md): set RMS_SECURE_COOKIE=true in Tomcat's environment
+	too, so the session cookie always carries Secure. If a proxy or load balancer ends HTTPS and forwards plain
+	HTTP to Tomcat, remove the comment marks around the RemoteIpValve below and set internalProxies to the
+	proxy's address (a regular expression): Tomcat then sees the request as HTTPS (HSTS is sent) and
+	the browser's address, so the login lock counts per user address, not per proxy.
 -->
 <Context>
 	<Resource name="jdbc/springrms" auth="Container" type="javax.sql.DataSource"
@@ -22,4 +28,8 @@
 		url="${RMS_DB_URL}" username="${RMS_DB_USER}" password="${RMS_DB_PASSWORD}"
 		validationQuery="SELECT 1" validationQueryTimeout="5"
 		maxWaitMillis="10000"/>
+	<!--
+	<Valve className="org.apache.catalina.valves.RemoteIpValve"
+		internalProxies="10\.0\.0\.5" remoteIpHeader="X-Forwarded-For" protocolHeader="X-Forwarded-Proto"/>
+	-->
 </Context>

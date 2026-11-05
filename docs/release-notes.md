@@ -1,14 +1,15 @@
 # RMS: What's New
 
 Purpose: the release notes for the people who use RMS: what is new and what changes for them when the new version (`dev`) goes live. Plain language; the technical details are in [release-dev.md](release-dev.md).
-Last updated: 2026-10-20 (written for release-tracker item 3)
+Last updated: 2026-11-05 (passwords all encrypted at the release, HTTPS). 2026-10-20 (written for release-tracker item 3)
 Read this when: you announce the release to users, or a user asks what changed.
 
 The new RMS replaces the version from 2020. Your data stays: candidates, scores, positions and languages are all kept. Below: what changes for everyone, then what is new for each role.
 
 ## For everyone
 - **A new look.** A menu on the left with the pages your role can use, and a home page with the figures that matter to you. It also works on a phone.
-- **Your password still works.** Sign in as before. A password you change from now on is stored encrypted. Everyone can change their own password under **Change password**.
+- **Your password still works.** Sign in as before. From the release on, every password is stored encrypted, the existing ones included. Everyone can change their own password under **Change password**.
+- **Secure connection.** RMS opens over `https://`; an old `http://` bookmark takes you there.
 - **Five wrong passwords lock the sign-in** for that user name, from that computer, for 15 minutes.
 - **Your role decides what you see.** If a page isn't for your role, RMS says so instead of showing it.
 - **English only.** Names, reasons, comments, notes and locations accept English letters only. Other scripts are refused with a message instead of being stored as codes.
