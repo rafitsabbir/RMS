@@ -80,6 +80,7 @@ import rms.controller.CandidateController;
 import rms.controller.DocumentController;
 import rms.controller.EvaluationController;
 import rms.controller.HealthController;
+import rms.controller.ImportController;
 import rms.controller.JobController;
 import rms.controller.LanguageController;
 import rms.controller.LoginController;
@@ -93,10 +94,12 @@ import rms.model.CandidateInfo;
 import rms.model.DashboardInfo;
 import rms.model.DocumentInfo;
 import rms.model.HiringReport;
+import rms.model.ImportPreview;
 import rms.model.LoginInfo;
 import rms.model.Role;
 import rms.model.UserInfo;
 import rms.service.AssignmentService;
+import rms.service.CandidateImportService;
 import rms.service.CandidateService;
 import rms.service.DashboardService;
 import rms.service.DecisionService;
@@ -208,6 +211,11 @@ class SecurityConfigTest {
 		}
 
 		@Bean
+		ImportController importcontroller() {
+			return new ImportController();
+		}
+
+		@Bean
 		InternalResourceViewResolver viewResolver() {
 			return new WebConfig().viewResolver();
 		}
@@ -278,6 +286,9 @@ class SecurityConfigTest {
 	HiringReportService hiringreportservice;
 
 	@MockitoBean
+	CandidateImportService importservice;
+
+	@MockitoBean
 	StageService stageservice;
 
 	MockMvc mockMvc;
@@ -292,6 +303,7 @@ class SecurityConfigTest {
 		givenLogin(HIRING_MANAGER_ID, "test.manager", "test-only-4", Role.HIRING_MANAGER);
 		givenLogin(NO_ROLE_ID, "test.norole", "test-only-6", null);
 		when(hiringreportservice.getReport()).thenReturn(new HiringReport());
+		when(importservice.preview(any())).thenReturn(new ImportPreview());
 	}
 
 	// --- Access: who may open what ---
@@ -344,6 +356,11 @@ class SecurityConfigTest {
 				new Page(multipart("/uploaddocument").file(new MockMultipartFile("file", "cv.pdf", "application/pdf",
 						"%PDF-1".getBytes())).with(csrf()).param("candidateid", "C1").param("doctype", "CV"), HR_AND_UP),
 				new Page(get("/downloaddocument/1"), EVERY_ROLE),
+				new Page(get("/importcandidates"), HR_AND_UP),
+				new Page(get("/candidatetemplate"), HR_AND_UP),
+				new Page(multipart("/previewimport").file(new MockMultipartFile("file", "c.csv", "text/csv",
+						"First name,Last name\n".getBytes())).with(csrf()), HR_AND_UP),
+				new Page(post("/confirmimport").with(csrf()), HR_AND_UP),
 				new Page(get("/viewevaluations").param("candidateid", "C1"), STAFF),
 				new Page(post("/assigninterviewer").with(csrf()).param("candidateid", "C1"), HR_AND_UP),
 				new Page(post("/unassigninterviewer").with(csrf()).param("candidateid", "C1"), HR_AND_UP),

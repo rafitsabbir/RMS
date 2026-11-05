@@ -24,10 +24,21 @@
 			<p>The people being interviewed, with the position and language they are assessed on. Open a name for the profile and documents.</p>
 		</div>
 		<c:if test="${canedit}">
+		<div class="d-flex flex-wrap gap-2">
+		<spring:url value="/importcandidates" var="importURL" />
+		<a class="btn btn-outline-primary d-inline-flex align-items-center gap-2" href="${importURL}">
+			<svg class="rms-icon" aria-hidden="true"><use href="${icons}#upload"/></svg>Import</a>
 		<a class="btn btn-primary d-inline-flex align-items-center gap-2" href="${createURL}">
 			<svg class="rms-icon" aria-hidden="true"><use href="${icons}#plus-lg"/></svg>Add candidate</a>
+		</div>
 		</c:if>
 	</div>
+	<c:if test="${not empty message}">
+	<div class="alert alert-success d-flex align-items-center gap-2" role="status">
+		<svg class="rms-icon" aria-hidden="true"><use href="${icons}#check-circle-fill"/></svg>
+		<span><c:out value="${message}"/></span>
+	</div>
+	</c:if>
 	<c:if test="${not empty errorMessage}">
 	<div class="alert alert-danger d-flex align-items-center gap-2" role="alert">
 		<svg class="rms-icon" aria-hidden="true"><use href="${icons}#exclamation-triangle-fill"/></svg>
