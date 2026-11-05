@@ -50,7 +50,7 @@ public class UserController {
 	@InitBinder("userinfo")
 	void bindProfileFieldsOnly(WebDataBinder binder) {
 		binder.setAllowedFields("userid", "username", "firstname", "lastname", "email", "phone", "designation",
-				"role");
+				"role", "alsointerviewer");
 	}
 
 	@RequestMapping(value = "/viewuserlist", method = RequestMethod.GET)
@@ -88,6 +88,8 @@ public class UserController {
 		userinfo.setDesignation(blankToNull(userinfo.getDesignation()));
 		Role role = Role.parse(userinfo.getRole());
 		userinfo.setRole(role == null ? null : role.name());
+		// Only a staff role can also interview (F3); an Interviewer already does
+		userinfo.setAlsointerviewer(role != null && role.isStaff() && userinfo.getAlsointerviewer() == 1 ? 1 : 0);
 
 		if (update) {
 			UserInfo stored = found(userservice.findUserById(trim(userinfo.getUserid())));
@@ -96,7 +98,7 @@ public class UserController {
 			userinfo.setIsactive(stored.getIsactive());
 			String errorMessage = checkProfile(userinfo);
 			if (errorMessage == null) {
-				errorMessage = checkRoleChange(session, stored, role);
+				errorMessage = checkRoleChange(session, stored, role, userinfo.isAlsointerviewing());
 			}
 			if (errorMessage != null) {
 				ModelAndView mv = form(userinfo, true, errorMessage);
@@ -104,7 +106,7 @@ public class UserController {
 				return mv;
 			}
 			userservice.updateUser(userinfo);
-			activityservice.record(currentUserid(session), "USER_CHANGED", "USER", stored.getUserid(), "role " + userinfo.getRole());
+			activityservice.record(currentUserid(session), "USER_CHANGED", "USER", stored.getUserid(), roleDetail(userinfo));
 			log.info("User {} edited by {}", stored.getUserid(), currentUserid(session));
 			return new ModelAndView("redirect:/viewuserlist");
 		}
@@ -125,7 +127,7 @@ public class UserController {
 		if (userid == null) {
 			return form(userinfo, false, "That username is already taken.");
 		}
-		activityservice.record(currentUserid(session), "USER_ADDED", "USER", userid, "role " + userinfo.getRole());
+		activityservice.record(currentUserid(session), "USER_ADDED", "USER", userid, roleDetail(userinfo));
 		log.info("User {} created by {}", userid, currentUserid(session));
 		return new ModelAndView("redirect:/viewuserlist");
 	}
@@ -229,9 +231,17 @@ public class UserController {
 		return null;
 	}
 
-	/** Refuses changing one's own role, and demoting the last active Super Admin. */
-	private String checkRoleChange(HttpSession session, UserInfo stored, Role role) {
+	/** The activity log's detail: the role code, and "also interviewer" for a staff user who interviews (F3). */
+	private static String roleDetail(UserInfo userinfo) {
+		return "role " + userinfo.getRole() + (userinfo.isAlsointerviewing() ? ", also interviewer" : "");
+	}
+
+	/** Refuses changing one's own role (also interviewing or not, F3), and demoting the last active Super Admin. */
+	private String checkRoleChange(HttpSession session, UserInfo stored, Role role, boolean alsointerviewing) {
 		if (Role.parse(stored.getRole()) == role) {
+			if (stored.isAlsointerviewing() != alsointerviewing && stored.getUserid().equals(currentUserid(session))) {
+				return "You can't change your own role.";
+			}
 			return null;
 		}
 		if (stored.getUserid().equals(currentUserid(session))) {

@@ -41,7 +41,8 @@ public class MarksDaoImpl implements MarksDao {
 			+ "m.attitudecomment, m.personalitycomment, m.createdat, m.updatedat, m.interviewround, "
 			+ "(select min(concat_ws(' ', a.firstname, a.lastname)) from admin a where a.userid=m.interviewerid) "
 			+ "as interviewername, coalesce((select max(case when a.isactive=1 and (upper(trim(a.role))='INTERVIEWER' "
-			+ "or (a.role is null and upper(a.isinterviewer)='Y')) then 1 else 0 end) from admin a "
+			+ "or (a.role is null and upper(a.isinterviewer)='Y') or (a.alsointerviewer=1 "
+			+ "and upper(trim(a.role)) in ('SUPER_ADMIN', 'HR', 'HIRING_MANAGER'))) then 1 else 0 end) from admin a "
 			+ "where a.userid=m.interviewerid), 0) as intervieweractive, "
 			+ "(select count(*) from candidate_interviewer ci where ci.candidateid=m.candidateid "
 			+ "and ci.interviewerid=m.interviewerid and ci.isactive=1) as assigned from marks m";

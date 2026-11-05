@@ -23,7 +23,7 @@ import rms.service.RmsUserDetails;
 /**
  * Re-reads the logged-in user's admin row on every request, so changes made on the Users screen apply at once:
  * <ul>
- * <li>deactivated, admin row gone, or role changed: the session ends and the browser goes to /login?ended</li>
+ * <li>deactivated, admin row gone, or role changed (also interviewing or not, F3): the session ends and the browser goes to /login?ended</li>
  * <li>a password reset (users.mustchangepassword = 1): every page except Change password redirects there</li>
  * <li>otherwise the session's profile ("user", read by the JSPs) is refreshed, so profile edits show at once</li>
  * </ul>
@@ -54,7 +54,8 @@ class AccountCheckFilter extends OncePerRequestFilter {
 
 		RmsUserDetails user = (RmsUserDetails) authentication.getPrincipal();
 		UserInfo now = loginservice.currentProfile(user.getUserid());
-		if (now == null || now.getIsactive() != 1 || Role.parse(now.getRole()) != user.getRole()) {
+		if (now == null || now.getIsactive() != 1 || Role.parse(now.getRole()) != user.getRole()
+				|| now.isAlsointerviewing() != user.isAlsointerviewing()) {
 			log.info("User {} signed out: the account was deactivated or its role changed", user.getUserid());
 			new SecurityContextLogoutHandler().logout(request, response, authentication);
 			response.sendRedirect(request.getContextPath() + "/login?ended");

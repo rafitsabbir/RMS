@@ -111,7 +111,8 @@
 						<svg class="rms-icon" aria-hidden="true"><use href="${icons}#trash"/></svg>Deleted Candidates</a>
 				</li>
 				</c:if>
-				<c:if test="${role eq 'INTERVIEWER'}">
+				<%-- The Interviewer role, or a staff role that also interviews (F3) --%>
+				<c:if test="${role eq 'INTERVIEWER' or user.alsointerviewing}">
 				<li class="rms-nav-heading">Interviews</li>
 				<li class="nav-item">
 					<a class="nav-link${active eq 'evaluations' ? ' active' : ''}" href="${base}myevaluations"${active eq 'evaluations' ? ' aria-current="page"' : ''}>

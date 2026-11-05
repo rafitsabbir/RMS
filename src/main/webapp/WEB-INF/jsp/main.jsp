@@ -168,8 +168,9 @@
 	</div>
 	</c:if>
 
-	<c:if test="${role eq 'INTERVIEWER'}">
-	<div class="row g-3">
+	<%-- The Interviewer role, or a staff role that also interviews (F3) --%>
+	<c:if test="${role eq 'INTERVIEWER' or userinfo.alsointerviewing}">
+	<div class="row g-3${role eq 'INTERVIEWER' ? '' : ' mt-1'}">
 		<div class="col-sm-6 col-xl-4">
 			<div class="card rms-card rms-tile">
 				<div class="card-body">

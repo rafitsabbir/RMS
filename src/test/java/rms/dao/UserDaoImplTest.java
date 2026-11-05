@@ -162,6 +162,33 @@ class UserDaoImplTest extends MySqlContainerSupport {
 	}
 
 	@Test
+	void aStaffUserCanAlsoInterviewAndAnInterviewerFlagIsStoredAsZero() {
+		UserInfo hr = user("ignored", "HR");
+		hr.setUserid("U3");
+		hr.setAlsointerviewer(1);
+
+		dao.updateUser(hr);
+
+		UserInfo read = dao.findUserById("U3");
+		assertThat(read.getAlsointerviewer()).isEqualTo(1);
+		assertThat(read.isAlsointerviewing()).isTrue();
+		assertThat(read.isInterviewer()).isTrue();
+		assertThat(read.getRolesummary()).isEqualTo("HR and Interviewer");
+		// The role itself and the legacy flag are unchanged
+		assertThat(read.getRole()).isEqualTo("HR");
+		assertThat(jdbcTemplate.queryForObject("select isinterviewer from admin where userid='U3'", String.class))
+				.isEqualTo("Y");
+
+		// Several roles (F3) only for staff: on the Interviewer role the flag is stored as 0
+		hr.setRole("INTERVIEWER");
+		dao.updateUser(hr);
+		assertThat(dao.findUserById("U3").getAlsointerviewer()).isZero();
+		// Everyone else starts at 0
+		assertThat(jdbcTemplate.queryForObject("select count(*) from admin where alsointerviewer<>0", Integer.class))
+				.isZero();
+	}
+
+	@Test
 	void deactivateAndReactivateKeepTheRowsAndHistory() {
 		dao.setActive("U2", false);
 

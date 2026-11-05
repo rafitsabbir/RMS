@@ -17,7 +17,8 @@ public class DashboardDaoImpl implements DashboardDao {
 	// The same conditions as AssignmentDaoImpl: an interviewer is active while their account is active and has the
 	// Interviewer role (role, or the isinterviewer fallback of rms.model.Role.of)
 	private String activeinterviewer = "exists (select 1 from admin a where a.userid=ci.interviewerid and a.isactive=1 "
-			+ "and (upper(trim(a.role))='INTERVIEWER' or (a.role is null and upper(a.isinterviewer)='Y')))";
+			+ "and (upper(trim(a.role))='INTERVIEWER' or (a.role is null and upper(a.isinterviewer)='Y') "
+			+ "or (a.alsointerviewer=1 and upper(trim(a.role)) in ('SUPER_ADMIN', 'HR', 'HIRING_MANAGER'))))";
 	// Not Selected or Rejected (rms.model.DecisionStatus.locks): On hold, no decision and unknown texts stay open
 	private String undecided = "(c.candidatestatus is null or upper(trim(c.candidatestatus)) not in ('S','R'))";
 	private String bystage = "select upper(trim(stage)) as code, count(*) as total from candidate "

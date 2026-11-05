@@ -1,7 +1,7 @@
 # Flow: Users, Roles and Passwords
 
 Purpose: Traces the four roles, the Users and Roles screen, Change password and the login lock.
-Last updated: 2026-10-02 (Phase 3: interviewer pages and the assigned-candidate checks; a deactivated interviewer's assignments stay, flagged). 2026-10-02 (Phase 2: the access rules for jobs, the candidate profile and documents). 2026-10-02 (Phase 1 of the roles plan: roles, Users and Roles, Change password, bcrypt for new passwords, inactive users, login lock; migrations 002 and 003)
+Last updated: 2026-11-05 (F3: staff who also interview). 2026-10-02 (Phase 3: interviewer pages and the assigned-candidate checks; a deactivated interviewer's assignments stay, flagged). 2026-10-02 (Phase 2: the access rules for jobs, the candidate profile and documents). 2026-10-02 (Phase 1 of the roles plan: roles, Users and Roles, Change password, bcrypt for new passwords, inactive users, login lock; migrations 002 and 003)
 Read this when: you're changing who can open what, managing users, or working on passwords and the login lock. The login itself is in [login.md](login.md).
 
 Evidence: `rms/model/Role.java`, `rms/config/SecurityConfig.java`, `rms/config/AccountCheckFilter.java`, `rms/config/LoginThrottle.java`, `rms/controller/UserController.java`, `rms/controller/AccountController.java`, `rms/service/UserServiceImpl.java`, `rms/dao/UserDaoImpl.java`, `rms/dao/LoginDaoImpl.java`, `WEB-INF/jsp/viewuser.jsp`, `createuser.jsp`, `changepassword.jsp`, `WEB-INF/tags/layout.tag`. Tests: `SecurityConfigTest` (access matrix), `UserControllerTest`, `AccountControllerTest`, `UserServiceImplTest`, `UserDaoImplTest` (needs Docker), `LoginThrottleTest`, `RoleTest`.
@@ -17,7 +17,12 @@ Evidence: `rms/model/Role.java`, `rms/config/SecurityConfig.java`, `rms/config/A
 - **Every logged-in user**, with or without a role, can open Home and Change password.
 - **Where the role comes from** (`Role.of`, read in `LoginDaoImpl.UserMapper` and `UserDaoImpl.UserMapper`): `admin.role`; when that is NULL, the legacy `admin.isinterviewer` (`N` → Super Admin, `Y` → Interviewer). Anything else, including an unknown `role` text, is **no role**: the user sees only Home and Change password (fail closed, G16).
 - **Why `isinterviewer` is still written:** so a rollback to a WAR from before the roles keeps working. HR and Hiring Manager are written as `Y`, not NULL, because the released WAR's `main.jsp` calls `getIsinterviewer().equalsIgnoreCase(…)` and fails with HTTP 500 on NULL (`git show d535f1c:src/main/webapp/WEB-INF/jsp/main.jsp`, line 43). With `Y` they get the old interviewer menu and no admin pages (that WAR's `AuthInterceptor` admits only `N`).
-- **One role per user.** A hiring manager who also interviews needs two accounts for now.
+- **Several roles (F3, 2026-11-05):** a Super Admin, HR user or Hiring Manager can **also interview**: the "Also interviews" box on the user form sets `admin.alsointerviewer` (migration 010).
+  - At sign-in they get `ROLE_INTERVIEWER` besides their role (`RmsUserDetails`), so the Interviewer pages (My Evaluations, My Schedule, the evaluation form) open for them; nothing else changes in `SecurityConfig`.
+  - They appear in the Assign list and count as active interviewers in the SQL that checks "active Interviewer" (`AssignmentDaoImpl`, `MarksDaoImpl`, `DashboardDaoImpl`).
+  - The menu and the home page show the Interviews block too (`layout.tag`, `main.jsp`: `user.alsointerviewing`). As staff they still see every candidate and the staff view of the profile.
+  - The box means nothing on the Interviewer role (stored as 0). A user can't change their own flag, like their own role. Changing it signs the user out at their next click (`AccountCheckFilter`), like a role change.
+  - The users list shows the role as e.g. "Hiring Manager and Interviewer"; the activity log's USER_ADDED / USER_CHANGED detail adds ", also interviewer".
 
 ## Access rules (`SecurityConfig.appFilterChain`)
 - `/login`, `/welcome`: public. `/`, `/home`, `/changepassword`, `/savepassword`: any logged-in user.

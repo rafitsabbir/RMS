@@ -95,6 +95,21 @@
 					</c:otherwise>
 					</c:choose>
 				</div>
+				<%-- Several roles (F3): a Super Admin, HR user or Hiring Manager who also interviews. Unticked posts nothing,
+					so the flag stays 0; one's own flag can't be changed, like one's own role --%>
+				<div class="form-check mb-3">
+					<c:choose>
+					<c:when test="${self}">
+					<input type="hidden" name="alsointerviewer" value="${userinfo.alsointerviewer}">
+					<input class="form-check-input" type="checkbox" id="alsointerviewer" disabled${userinfo.alsointerviewer eq 1 ? ' checked' : ''}>
+					</c:when>
+					<c:otherwise>
+					<input class="form-check-input" type="checkbox" name="alsointerviewer" value="1" id="alsointerviewer"${userinfo.alsointerviewer eq 1 ? ' checked' : ''} aria-describedby="alsointerviewer-help">
+					</c:otherwise>
+					</c:choose>
+					<label class="form-check-label" for="alsointerviewer">Also interviews</label>
+					<div id="alsointerviewer-help" class="form-text">For a Super Admin, HR user or Hiring Manager who also evaluates candidates: they get My Evaluations and My Schedule, and can be assigned as an interviewer. Ignored for the Interviewer role.</div>
+				</div>
 				<c:if test="${not update}">
 				<div class="row g-3 mb-4">
 					<div class="col-sm-6">

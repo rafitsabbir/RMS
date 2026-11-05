@@ -986,6 +986,38 @@ class SecurityConfigTest {
 	}
 
 	@Test
+	void aHiringManagerWhoAlsoInterviewsGetsTheInterviewerPagesButStillNoHrPage() throws Exception {
+		UserInfo both = profile("U7", Role.HIRING_MANAGER);
+		both.setAlsointerviewer(1);
+		when(logindao.getUserInfo("U7")).thenReturn(both);
+		RequestPostProcessor user = user(new RmsUserDetails(new LoginInfo("U7", "someone", "test-only"), both));
+
+		// Several roles (F3): ROLE_HIRING_MANAGER and ROLE_INTERVIEWER
+		mockMvc.perform(get("/myevaluations").with(user)).andExpect(status().isOk());
+		mockMvc.perform(get("/myschedule").with(user)).andExpect(status().isOk());
+		mockMvc.perform(get("/viewcandidatelist").with(user)).andExpect(status().isOk());
+		mockMvc.perform(get("/createcandidate").with(user)).andExpect(status().isForbidden());
+		mockMvc.perform(get("/viewuserlist").with(user)).andExpect(status().isForbidden());
+		// The flag means nothing without a staff role: an Interviewer has the same pages as before
+		UserInfo interviewer = profile("U8", Role.INTERVIEWER);
+		interviewer.setAlsointerviewer(1);
+		assertThat(new RmsUserDetails(new LoginInfo("U8", "x", "y"), interviewer).getAuthorities())
+				.extracting(Object::toString).containsExactly("ROLE_INTERVIEWER");
+	}
+
+	@Test
+	void startingOrStoppingToInterviewSignsTheUserOut() throws Exception {
+		MockHttpSession session = loggedInSession();
+		UserInfo interviewing = profile(SUPER_ADMIN_ID, Role.SUPER_ADMIN);
+		interviewing.setAlsointerviewer(1);
+		when(logindao.getUserInfo(SUPER_ADMIN_ID)).thenReturn(interviewing);
+
+		mockMvc.perform(get("/home").session(session)).andExpect(redirectedUrl("/login?ended"));
+
+		assertThat(session.isInvalid()).isTrue();
+	}
+
+	@Test
 	void removedAdminRowSignsTheUserOut() throws Exception {
 		MockHttpSession session = loggedInSession();
 		when(logindao.getUserInfo(SUPER_ADMIN_ID)).thenReturn(null);

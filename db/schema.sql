@@ -27,6 +27,8 @@
 --     db/migrations/008-candidate-stage.sql before a WAR with them. activity_log comes from 007.
 --   * marks.interviewround (at the END of marks) and interview_schedule.interviewround are NEW (2026-11-05,
 --     interview rounds, F2): production needs db/migrations/009-interview-rounds.sql before a WAR with them.
+--   * admin.alsointerviewer is NEW (2026-11-05, several roles per user, F3): production needs
+--     db/migrations/010-also-interviewer.sql before a WAR with it.
 --   * Types, lengths, keys and NULL rules: guessed. No unique index on names,
 --     which keeps the current duplicate behaviour (G33).
 -- Used only by the Testcontainers DAO tests (src/test/java/rms/dao).
@@ -50,6 +52,7 @@ CREATE TABLE admin (
 	designation VARCHAR(100),
 	isinterviewer CHAR(1),
 	role VARCHAR(20),
+	alsointerviewer TINYINT NOT NULL DEFAULT 0,
 	PRIMARY KEY (userid)
 );
 

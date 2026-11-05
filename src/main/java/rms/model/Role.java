@@ -21,6 +21,11 @@ public enum Role {
 	}
 
 	/** The name shown on the pages. */
+	/** Super Admin, HR or Hiring Manager: a role that can also interview (F3, admin.alsointerviewer). */
+	public boolean isStaff() {
+		return this != INTERVIEWER;
+	}
+
 	public String getLabel() {
 		return label;
 	}
