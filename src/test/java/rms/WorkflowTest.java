@@ -385,6 +385,30 @@ class WorkflowTest {
 
 	@Test
 	@Order(10)
+	void hrImportsCandidatesFromCsv() throws IOException {
+		// Bulk import (F4): one ready line, one possible duplicate of the seed's Carla (same e-mail), one with a problem
+		Path file = Files.createTempFile("rms-import", ".csv");
+		Files.writeString(file, "First name,Last name,Position,Language,E-mail,Source,Applied date\r\n"
+				+ "Ina,Import,software engineer,java,ina@example.test,Job board,2026-10-01\r\n"
+				+ "Carla,Again,SOFTWARE ENGINEER,JAVA,carla@example.test,,\r\n"
+				+ "Ugo,Unknown,Astronaut,JAVA,,,\r\n");
+		Page hr = pages.get("HR");
+		hr.navigate(base + "/viewcandidatelist");
+		hr.click("a[href$='importcandidates']");
+		hr.setInputFiles("#file", file);
+		submit(hr, "form#importfile button[type=submit]");
+		assertThat(text(hr, "#importsummary")).contains("1 ready", "1 possible duplicates", "1 with a problem");
+		assertThat(text(hr, "#importtable")).contains("Possible duplicate of C1 Carla Candidate", "Position \"Astronaut\" isn't in RMS");
+
+		submit(hr, "form#confirmimport button[type=submit]");
+		assertThat(path(hr)).isEqualTo("/viewcandidatelist");
+		assertThat(text(hr)).contains("1 candidate imported; 2 lines skipped.");
+		assertThat(text(hr, "#candidatetable")).contains("Ina").doesNotContain("Ugo");
+		Files.delete(file);
+	}
+
+	@Test
+	@Order(11)
 	void noConsoleErrors() {
 		errors.forEach((page, list) -> assertThat(list).as("console errors").isEmpty());
 	}

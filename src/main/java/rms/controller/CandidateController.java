@@ -1,11 +1,9 @@
 package rms.controller;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 import jakarta.servlet.http.HttpSession;
 
@@ -36,8 +34,8 @@ import rms.model.JobInfo;
 import rms.model.LanguageInfo;
 import rms.model.PositionInfo;
 import rms.service.ActivityService;
-import rms.service.EnglishText;
 import rms.service.AssignmentService;
+import rms.service.CandidateRules;
 import rms.service.CandidateService;
 import rms.service.DocumentService;
 import rms.service.JobService;
@@ -80,11 +78,8 @@ public class CandidateController {
 	@Autowired
 	StageService stageservice;
 
-	static final int MAX_EMAIL = 150;
-	static final int MAX_PHONE = 30;
-	/** Something@something.something, no spaces: a typing check, not a proof the address works. */
-	private static final Pattern EMAIL = Pattern.compile("[^@\\s]+@[^@\\s]+\\.[^@\\s]+");
-	private static final Pattern PHONE = Pattern.compile("[0-9+()./ -]{3,30}");
+	static final int MAX_EMAIL = CandidateRules.MAX_EMAIL;
+	static final int MAX_PHONE = CandidateRules.MAX_PHONE;
 
 	/** Only the form's fields bind: not candidatestatus, the document counts or the joined names. */
 	@InitBinder("candidateinfo")
@@ -277,84 +272,10 @@ public class CandidateController {
 	}
 
 	/** The first problem with the entered values, or null. stored is the saved candidate when editing. */
+	/** The shared candidate checks (CandidateRules, also used by the CSV import), with the form's binding errors. */
 	private String check(CandidateInfo candidateinfo, CandidateInfo stored, BindingResult binding) {
-		if (candidateinfo.getFirstname().isEmpty()) {
-			return "Please enter the first name.";
-		}
-		if (candidateinfo.getLastname().isEmpty()) {
-			return "Please enter the last name.";
-		}
-		if (!EnglishText.isEnglish(candidateinfo.getFirstname()) || !EnglishText.isEnglish(candidateinfo.getLastname())) {
-			return "Names can use English letters only. " + EnglishText.PROBLEM;
-		}
-		String email = candidateinfo.getEmail();
-		if (!email.isEmpty() && (email.length() > MAX_EMAIL || !EMAIL.matcher(email).matches())) {
-			return "Please enter a valid e-mail address, or leave it empty.";
-		}
-		String phone = candidateinfo.getPhone();
-		if (!phone.isEmpty() && !PHONE.matcher(phone).matches()) {
-			return "Please enter a valid phone number (digits, spaces and + ( ) - . /), or leave it empty.";
-		}
-		String jobProblem = checkJob(candidateinfo, stored, binding);
-		if (jobProblem != null) {
-			return jobProblem;
-		}
-		// An active position, or the one the candidate already has (it may have been deleted since). With a job,
-		// checkJob has set the job's position
-		int positionkey = candidateinfo.getPositionkey();
-		if (candidateinfo.getJobkey() <= 0 && (positionkey <= 0 || (positionservice.findPositionById(positionkey) == null
-				&& (stored == null || stored.getPositionkey() != positionkey)))) {
-			return "Please choose a position.";
-		}
-		int languagekey = candidateinfo.getLanguagekey();
-		if (languagekey <= 0 || (languageservice.findLanguageById(languagekey) == null
-				&& (stored == null || stored.getLanguagekey() != languagekey))) {
-			return "Please choose a language.";
-		}
-		// A known source, or the one the candidate already has
-		String source = candidateinfo.getSource();
-		if (!source.isEmpty() && CandidateSource.parse(source) == null
-				&& (stored == null || !source.equals(stored.getSource()))) {
-			return "Please choose where the candidate came from, or leave it empty.";
-		}
-		if (binding.hasFieldErrors("applieddate")) {
-			return "Please enter the applied date as a date, or leave it empty.";
-		}
-		LocalDate applied = candidateinfo.getApplieddate();
-		if (applied != null && applied.isAfter(LocalDate.now())) {
-			return "The applied date can't be in the future.";
-		}
-		return null;
-	}
-
-	/**
-	 * A job is optional. When there is one it must be open, unless the candidate already has it (it may have been
-	 * closed or deleted since), and it sets the candidate's position (decision M): the job's, or for a deleted
-	 * job the position the candidate already has.
-	 */
-	private String checkJob(CandidateInfo candidateinfo, CandidateInfo stored, BindingResult binding) {
-		if (binding.hasFieldErrors("jobkey")) {
-			return "Please choose a job, or none.";
-		}
-		int jobkey = candidateinfo.getJobkey();
-		if (jobkey <= 0) {
-			candidateinfo.setJobkey(0);
-			return null;
-		}
-		boolean kept = stored != null && stored.getJobkey() == jobkey;
-		JobInfo job = jobservice.findJobById(jobkey);
-		if (job == null) {
-			if (!kept) {
-				return "Please choose an open job, or none.";
-			}
-			candidateinfo.setPositionkey(stored.getPositionkey());
-			return null;
-		}
-		if (!job.isOpen() && !kept) {
-			return "That job is closed. Please choose an open job, or none.";
-		}
-		candidateinfo.setPositionkey(job.getPositionkey());
-		return null;
+		return new CandidateRules(positionservice, languageservice, jobservice).check(candidateinfo, stored,
+				binding.hasFieldErrors("jobkey"), binding.hasFieldErrors("applieddate"));
 	}
 
 	/**

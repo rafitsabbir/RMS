@@ -1,7 +1,7 @@
 # RMS: What's New
 
 Purpose: the release notes for the people who use RMS: what is new and what changes for them when the new version (`dev`) goes live. Plain language; the technical details are in [release-dev.md](release-dev.md).
-Last updated: 2026-11-05 (staff who also interview). 2026-11-05 (interview rounds). 2026-11-05 (e-mails to staff). 2026-11-05 (passwords all encrypted at the release, HTTPS). 2026-10-20 (written for release-tracker item 3)
+Last updated: 2026-11-05 (import from CSV). 2026-11-05 (staff who also interview). 2026-11-05 (interview rounds). 2026-11-05 (e-mails to staff). 2026-11-05 (passwords all encrypted at the release, HTTPS). 2026-10-20 (written for release-tracker item 3)
 Read this when: you announce the release to users, or a user asks what changed.
 
 The new RMS replaces the version from 2020. Your data stays: candidates, scores, positions and languages are all kept. Below: what changes for everyone, then what is new for each role.
@@ -49,6 +49,7 @@ The four roles: On the first day, the old administrators are **Super Admins** an
     - On hold or Rejected moves Offer or Hired back to Interview.
     - Scheduling an interview moves Applied or Screening to Interview.
   - A Rejected candidate's pipeline is closed until the decision changes.
+- **Import from Excel (new):** Candidates → **Import**: download the template, fill one candidate per line in Excel, save as CSV and upload it. RMS shows every line first (ready, possible duplicate, or what is wrong) and adds nothing until you press Import. Lines with a problem are skipped; possible duplicates only if you tick the box. Up to 500 candidates per file.
 - **Possible duplicates (new):** adding a candidate whose e-mail, phone number or full name is already in RMS shows the existing candidate first. Choose **Check again** after correcting, or **Save anyway** if it is someone else.
 - **Filters (new):** on Candidates, filter by job, stage, status, source, applied dates, "No CV yet" or "Not evaluated yet".
   - Bookmark a filtered list.
