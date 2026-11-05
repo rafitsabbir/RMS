@@ -10,7 +10,7 @@ This replaces nothing: [release-phase1.md](release-phase1.md) still describes th
 
 ## What ships
 Compared with the 2020 code, `dev` adds (details: [upgrade-status.md](upgrade-status.md), [gaps.md](gaps.md)):
-- **Stack:** Java 21, Spring 7.0.9 on Jakarta EE 11 and **Tomcat 11** (Servlet 6.1), Spring Security 7, Connector/J 9.7.0, Logback 1.5. The WAR no longer runs on Tomcat 9 or Java 8.
+- **Stack:** Java 21, Spring 7.0.10 on Jakarta EE 11 and **Tomcat 11** (Servlet 6.1), Spring Security 7, Connector/J 9.7.0, Logback 1.6. The WAR no longer runs on Tomcat 9 or Java 8.
 - **Database:** **MySQL 9.7 LTS** (owner decision 2026-10-19). Connector/J 9.7 needs MySQL 8.0 or later, so a 5.7 server must be upgraded first ([mysql-upgrade.md](mysql-upgrade.md)).
 - **Schema changes:** migrations `001`, `002`, `004`, `005`, `006`, `007` and `008` in `db/migrations/` (new columns and seven new tables). `003` (hashing the stored passwords) is separate and optional (below).
 - **Features added on `dev` on 2026-10-20:** hiring stages (migration 008), interview calendar files, a possible-duplicate warning, filters on the Candidates list, and a hiring report. All included in the second rehearsal below.
