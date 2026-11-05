@@ -12,6 +12,10 @@ public class HiringReport {
 	private List<HiringGroup> bystage = List.of();
 	/** Interviewers with evaluations still to do (label = name, total = the count), most first. */
 	private List<HiringGroup> pendingbyinterviewer = List.of();
+	/** Interviewer workload (F9): every active interviewer, interviews per week from this week on, evaluations to do. */
+	private List<WorkloadRow> workload = List.of();
+	/** The weeks' headings, e.g. "Week of 2 Nov" (Monday). */
+	private List<String> weeklabels = List.of();
 	private DecisionTime toselected = new DecisionTime();
 	private DecisionTime torejected = new DecisionTime();
 
@@ -69,5 +73,21 @@ public class HiringReport {
 
 	public void setTorejected(DecisionTime torejected) {
 		this.torejected = torejected;
+	}
+
+	public List<WorkloadRow> getWorkload() {
+		return workload;
+	}
+
+	public void setWorkload(List<WorkloadRow> workload) {
+		this.workload = workload;
+	}
+
+	public List<String> getWeeklabels() {
+		return weeklabels;
+	}
+
+	public void setWeeklabels(List<String> weeklabels) {
+		this.weeklabels = weeklabels;
 	}
 }

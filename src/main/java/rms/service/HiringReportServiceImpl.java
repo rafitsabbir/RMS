@@ -1,8 +1,14 @@
 package rms.service;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +24,7 @@ import rms.model.HiringGroup;
 import rms.model.HiringReport;
 import rms.model.HiringStage;
 import rms.model.JobInfo;
+import rms.model.WorkloadRow;
 
 /**
  * The hiring report: the active candidates counted per stage, per job and per source, how long Selected and Rejected took
@@ -29,6 +36,9 @@ public class HiringReportServiceImpl implements HiringReportService {
 
 	static final String NO_JOB = "No job";
 	static final String NO_SOURCE = "Not recorded";
+	/** Weeks in the workload table, this week first. */
+	static final int WORKLOAD_WEEKS = 4;
+	private static final DateTimeFormatter WEEK = DateTimeFormatter.ofPattern("d MMM", Locale.ENGLISH);
 
 	CandidateDao candidatedao;
 	JobDao jobdao;
@@ -99,7 +109,58 @@ public class HiringReportServiceImpl implements HiringReportService {
 		report.setBysource(withCandidates(bysource.values(), nosource));
 		report.setBystage(new ArrayList<HiringGroup>(bystage.values()));
 		report.setPendingbyinterviewer(dashboarddao.countPendingEvaluationsByInterviewer());
+		workload(report, today());
 		return report;
+	}
+
+	/** The server's date; a method so tests can fix it. */
+	LocalDate today() {
+		return LocalDate.now();
+	}
+
+	/**
+	 * Interviewer workload (F9): every active interviewer, with their interviews (scheduled or done, not cancelled)
+	 * per week, Monday to Sunday, from this week on, and their evaluations still to do. An interviewer who is no
+	 * longer active but still has evaluations to do is listed too.
+	 */
+	void workload(HiringReport report, LocalDate today) {
+		LocalDate monday = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+		List<String> labels = new ArrayList<String>();
+		for (int week = 0; week < WORKLOAD_WEEKS; week++) {
+			LocalDate start = monday.plusWeeks(week);
+			labels.add((week == 0 ? "This week, " : "") + start.format(WEEK));
+		}
+		Map<String, WorkloadRow> rows = new LinkedHashMap<String, WorkloadRow>();
+		for (Map.Entry<String, String> interviewer : dashboarddao.getActiveInterviewers().entrySet()) {
+			rows.put(interviewer.getKey(), new WorkloadRow(interviewer.getKey(), interviewer.getValue(), WORKLOAD_WEEKS));
+		}
+		for (HiringGroup pending : report.getPendingbyinterviewer()) {
+			String id = idOf(pending.getLabel());
+			rows.computeIfAbsent(id, key -> new WorkloadRow(key, pending.getLabel(), WORKLOAD_WEEKS))
+					.setPending(pending.getTotal());
+		}
+		for (Map.Entry<String, Map<LocalDate, Integer>> byday : dashboarddao
+				.countInterviewsByDay(monday, monday.plusWeeks(WORKLOAD_WEEKS)).entrySet()) {
+			WorkloadRow row = rows.get(byday.getKey());
+			if (row == null) {
+				// Not an active interviewer any more: their interviews are on the schedule, not their workload
+				continue;
+			}
+			for (Map.Entry<LocalDate, Integer> day : byday.getValue().entrySet()) {
+				int week = (int) (ChronoUnit.DAYS.between(monday, day.getKey()) / 7);
+				for (int i = 0; i < day.getValue(); i++) {
+					row.addInterview(week);
+				}
+			}
+		}
+		report.setWeeklabels(labels);
+		report.setWorkload(new ArrayList<WorkloadRow>(rows.values()));
+	}
+
+	/** The user ID in a "Name (U2)" label. */
+	private static String idOf(String label) {
+		int open = label.lastIndexOf('(');
+		return open < 0 || !label.endsWith(")") ? label : label.substring(open + 1, label.length() - 1);
 	}
 
 	/** The rows that have candidates, and the last row if it has any: an empty job or source isn't listed. */

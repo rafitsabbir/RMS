@@ -3,6 +3,9 @@ package rms.dao;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.groups.Tuple.tuple;
 
+import java.time.LocalDate;
+import java.util.Map;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -151,5 +154,24 @@ class DashboardDaoImplTest extends MySqlContainerSupport {
 		jdbcTemplate.update("update candidate set stage=' interview' where candidateid='C1'");
 		jdbcTemplate.update("update candidate set stage=null where candidateid='C2'");
 		assertThat(dao.countCandidatesByStage()).containsOnly(java.util.Map.entry("INTERVIEW", 1), java.util.Map.entry("", 1));
+	}
+
+	@Test
+	void theWorkloadReadsActiveInterviewersAndTheirInterviewsPerDay() {
+		// F9: the seed's Interviewer is U2; an HR user counts once they also interview
+		assertThat(dao.getActiveInterviewers()).containsKey("U2").doesNotContainKey("U3");
+		assertThat(dao.getActiveInterviewers().get("U2")).isEqualTo("Ivan Interviewer (U2)");
+		jdbcTemplate.update("update admin set alsointerviewer=1 where userid='U3'");
+		assertThat(dao.getActiveInterviewers()).containsKeys("U2", "U3");
+
+		// Seed: U2 on 2099-01-15 (scheduled); U5's 2099-01-16 interview is cancelled
+		Map<String, Map<LocalDate, Integer>> counts = dao.countInterviewsByDay(LocalDate.of(2099, 1, 12),
+				LocalDate.of(2099, 1, 19));
+		assertThat(counts).containsOnlyKeys("U2");
+		assertThat(counts.get("U2")).containsExactly(Map.entry(LocalDate.of(2099, 1, 15), 1));
+		// The end is exclusive, and a deleted candidate's interviews don't count
+		assertThat(dao.countInterviewsByDay(LocalDate.of(2099, 1, 12), LocalDate.of(2099, 1, 15))).isEmpty();
+		jdbcTemplate.update("update candidate set isactive=0 where candidateid='C1'");
+		assertThat(dao.countInterviewsByDay(LocalDate.of(2099, 1, 12), LocalDate.of(2099, 1, 19))).isEmpty();
 	}
 }

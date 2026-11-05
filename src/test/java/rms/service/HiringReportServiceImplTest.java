@@ -5,7 +5,9 @@ import static org.assertj.core.groups.Tuple.tuple;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -134,5 +136,34 @@ class HiringReportServiceImplTest {
 		candidate.setCvcount(cvs);
 		candidate.setEvaluationcount(evaluations);
 		return candidate;
+	}
+
+	@Test
+	void theWorkloadCountsInterviewsPerWeekFromThisMonday() {
+		// F9, on Wednesday 2026-11-04: this week starts Monday 2026-11-02
+		Map<String, String> interviewers = new LinkedHashMap<>();
+		interviewers.put("U2", "Ivan Interviewer (U2)");
+		interviewers.put("U7", "Petra Panel (U7)");
+		when(dashboarddao.getActiveInterviewers()).thenReturn(interviewers);
+		LocalDate monday = LocalDate.of(2026, 11, 2);
+		when(dashboarddao.countInterviewsByDay(monday, monday.plusWeeks(4))).thenReturn(Map.of(
+				"U2", Map.of(monday.plusDays(1), 2, monday.plusDays(6), 1, monday.plusDays(8), 1),
+				// No longer an active interviewer: not on the workload
+				"U9", Map.of(monday, 5)));
+		HiringReport report = new HiringReport();
+		HiringGroup pending = new HiringGroup("Ivan Interviewer (U2)");
+		pending.setTotal(3);
+		report.setPendingbyinterviewer(List.of(pending));
+
+		service.workload(report, LocalDate.of(2026, 11, 4));
+
+		assertThat(report.getWeeklabels()).containsExactly("This week, 2 Nov", "9 Nov", "16 Nov", "23 Nov");
+		assertThat(report.getWorkload()).extracting(r -> r.getLabel(), r -> r.getWeeks(), r -> r.getPending(),
+				r -> r.getInterviews()).containsExactly(
+						tuple("Ivan Interviewer (U2)", List.of(3, 1, 0, 0), 3, 4),
+						tuple("Petra Panel (U7)", List.of(0, 0, 0, 0), 0, 0));
+		// A Monday is its own week's first day
+		service.workload(report, monday);
+		assertThat(report.getWeeklabels().get(0)).isEqualTo("This week, 2 Nov");
 	}
 }
