@@ -1,7 +1,7 @@
 # Release Tracker: `dev` to production
 
-Purpose: the ordered list of what is left before and after releasing `dev` (feature freeze from 2026-10-20), with who does each item and its state. Work goes one item at a time, top to bottom.
-Last updated: 2026-11-05 (items 6 and 8 done: the owner's decisions; `RMS_SECURE_COOKIE` and migration 003 in the runbook). 2026-11-05 (recommended next steps added: items 6–8 made explicit, item 9 runs migration 003, items 11–16 after go-live in order). 2026-11-05 (item 4 done). 2026-10-20 (items 1–3 done). 2026-10-20 (list created; feature freeze)
+Purpose: the ordered list of what is left before and after releasing `dev`, with who does each item and its state. Work goes one item at a time, top to bottom. The feature freeze of 2026-10-20 was lifted by the owner on 2026-11-05: the features below (F1–F11) are built now, before the release.
+Last updated: 2026-11-05 (freeze lifted: features F1–F11 built before the release, in the order below). 2026-11-05 (items 6 and 8 done: the owner's decisions; `RMS_SECURE_COOKIE` and migration 003 in the runbook). 2026-11-05 (recommended next steps added: items 6–8 made explicit, item 9 runs migration 003, items 11–16 after go-live in order). 2026-11-05 (item 4 done). 2026-10-20 (items 1–3 done). 2026-10-20 (list created; feature freeze)
 Read this when: you ask "what's next?" for the release, or finish an item and mark it done.
 
 **Deadline:** before 2027-03-31 (end of Tomcat 9 support). **Runbook:** [release-dev.md](release-dev.md). **Background:** [upgrade-status.md](upgrade-status.md).
@@ -18,13 +18,28 @@ States: **Done** · **In progress** · **Pending** · **Waiting** (blocked on an
 | 6 | Decide: migration 003 (hash the old plain-text passwords, G13: recommended, the biggest security gain), Tomcat 11 or container, JDK, HTTPS (recommended: passwords and sessions otherwise cross the network unencrypted), the release date; confirm the stage rules ([open-questions.md](open-questions.md) #32) | Owner | **Done** 2026-11-05 | Migration 003: yes, at the release. Tomcat 11 on a server (not the container). The company's standard JDK 21. HTTPS: yes. Release window February–March 2027 (exact date to fix). Stage rules and migration 008's starting stages: keep as built ([open-questions.md](open-questions.md) #17, #25, #32) |
 | 7 | With item 5's output: replace the inferred `db/schema.sql` with the real structure and rerun the DAO tests ([gaps.md](gaps.md) G22), finalise migration 005, code G28 (length check) and G33 (unique index on Position and Language names), plan the MySQL upgrade steps | Claude | Waiting on 5 | |
 | 8 | Settings that follow item 6: the Secure flag on the session cookie behind HTTPS; the migration 003 steps in the runbook | Claude | **Done** 2026-11-05 | `RMS_SECURE_COOKIE=true` makes the session cookie always Secure (`WebInitializer`, `WebInitializerTest`, [config.md](config.md)); `deploy/tomcat/rms.xml` has a commented `RemoteIpValve` for HTTPS ended at a proxy; [release-dev.md](release-dev.md): decisions recorded, migration 003 as ops step 4b, HTTPS in step 6, HTTPS checks after deploy |
-| 9 | The release itself, following [release-dev.md](release-dev.md) on Tomcat 11, with HTTPS and migration 003 (step 4b), in February–March 2027 | Ops | Waiting on 5 and 7 | |
+| 9 | The release itself, following [release-dev.md](release-dev.md) on Tomcat 11, with HTTPS and migration 003 (step 4b), in February–March 2027 | Ops | Waiting on 5, 7, the features F1–F11 and a new rehearsal | |
 | 10 | Acceptance by the domain user on production (item 2's checks) and sign-off | Domain user | Waiting on 9 | |
-| 11 | E-mail notifications (interviewer assigned, interview booked or moved, decision recorded). Needs the owner's choice of mail server and of who is e-mailed (staff only, or candidates too) | Owner, then Claude | After 10 | |
-| 12 | Interview rounds (e.g. first, technical, final), each with its own evaluations, on top of the existing stages and schedule | Owner, then Claude | After 10 | |
-| 13 | Several roles per user (today one person who is a Hiring Manager and an Interviewer needs two accounts) | Owner, then Claude | After 10 | Worth it if that is common |
-| 14 | Bulk import of candidates from CSV or Excel | Owner, then Claude | After 10 | Worth it if candidates arrive in batches |
-| 15 | Sign-in through the company's identity provider (single sign-on with Spring Security's OAuth2 support), so RMS keeps no passwords | Owner, then Claude | After 10 | Only if the company has one |
-| 16 | Operations: a regular database backup, and `/health` in the monitoring | Ops | After 9 | |
+| 11–16 | Moved to the feature list below (F1–F5, F12) on 2026-11-05 | — | — | |
 
-Items 11–16 are in the recommended order; the owner may reorder them. Until the release, no new features (feature freeze); Dependabot's weekly patch updates go in as they pass CI.
+## Features before the release (owner decision 2026-11-05)
+Built one at a time, each in its own pull request into `dev` with tests and docs. Every new migration joins the release (runbook step 4), so the release is rehearsed again after the last feature (item 1 again).
+
+Decisions: e-mails go to staff only, never to candidates; sign-in with a company account (F12) is skipped until the company names an identity provider; data retention is a setting that is off by default, and nothing is deleted without a Super Admin's confirmation.
+
+| # | Feature | State | Result / evidence |
+|---|---|---|---|
+| F1 | E-mail notifications to staff: interviewer assigned; interview scheduled, moved or cancelled (with the calendar file); evaluation submitted (to HR). Sent only when a mail server is configured | Pending | |
+| F2 | Interview rounds (e.g. first, technical, final), each with its own evaluations | Pending | |
+| F3 | Several roles per user (e.g. Hiring Manager and Interviewer with one account) | Pending | |
+| F4 | Bulk import of candidates from CSV, with a preview, per-row errors and the duplicate check | Pending | |
+| F5 | Backups (database and documents together, with a restore test) and `/health` in monitoring: ops documentation | Pending | |
+| F6 | Pipeline per job: candidates per stage for each job, and when it was filled | Pending | |
+| F7 | Candidate search across names, e-mail, phone and ID | Pending | |
+| F8 | Offer tracking: offer date, salary band, start date, accepted or declined | Pending | |
+| F9 | Interviewer workload: interviews and open evaluations per interviewer per week | Pending | |
+| F10 | Home-page reminders: overdue evaluations, candidates too long in one stage | Pending | |
+| F11 | Data retention: a configurable period (off by default); a Super Admin sees who is due and confirms the clean-up of personal data and documents | Pending | |
+| F12 | Sign-in with a company account (single sign-on) | Skipped | Until the company names an identity provider |
+
+Dependabot's weekly updates go in as they pass CI.
