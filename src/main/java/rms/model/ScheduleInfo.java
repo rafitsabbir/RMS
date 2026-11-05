@@ -29,6 +29,8 @@ public class ScheduleInfo {
 	private LocalDateTime startat = null;
 	private String location = null;
 	private String status = SCHEDULED;
+	/** The round's code (InterviewRound), or null for none (F2). */
+	private String interviewround = null;
 	/** When the row was last changed (updatedat, else createdat): the calendar invite's SEQUENCE. */
 	private LocalDateTime changedat = null;
 
@@ -36,7 +38,7 @@ public class ScheduleInfo {
 	@Override
 	public String toString() {
 		return "ScheduleInfo [schedulekey=" + schedulekey + ", candidateid=" + candidateid + ", interviewerid="
-				+ interviewerid + ", startat=" + startat + ", status=" + status + "]";
+				+ interviewerid + ", startat=" + startat + ", status=" + status + ", interviewround=" + interviewround + "]";
 	}
 
 	public boolean isScheduled() {
@@ -49,6 +51,20 @@ public class ScheduleInfo {
 
 	public boolean isCancelled() {
 		return CANCELLED.equals(status);
+	}
+
+	/** The round's code (InterviewRound), or null for none (F2). */
+	public String getInterviewround() {
+		return interviewround;
+	}
+
+	public void setInterviewround(String interviewround) {
+		this.interviewround = interviewround;
+	}
+
+	/** The round's label, or "No round". */
+	public String getRoundlabel() {
+		return InterviewRound.label(interviewround);
 	}
 
 	/** The date and time as shown on the pages, e.g. "2026-10-05 14:30"; empty without one. */

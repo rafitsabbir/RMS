@@ -40,6 +40,7 @@
 					<tr>
 						<th>When</th>
 						<th>Candidate</th>
+						<th>Round</th>
 						<th>Interviewer</th>
 						<th>Location</th>
 						<th>Status</th>
@@ -55,6 +56,7 @@
 							<a href="<c:out value='${profileURL}'/>"><c:out value="${item.candidatename}"/></a>
 							<span class="text-body-secondary small"><c:out value="${item.candidateid}"/></span>
 						</td>
+						<td class="text-nowrap"><c:out value="${item.roundlabel}"/></td>
 						<td class="rms-name"><c:out value="${empty item.interviewername ? item.interviewerid : item.interviewername}"/></td>
 						<td><c:out value="${item.location}"/></td>
 						<td><rms:schedulestatus value="${item.status}" icons="${icons}"/></td>

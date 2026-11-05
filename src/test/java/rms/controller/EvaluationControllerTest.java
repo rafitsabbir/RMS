@@ -1,6 +1,7 @@
 package rms.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -29,6 +30,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -38,6 +40,8 @@ import rms.model.CandidateInfo;
 import rms.model.Criterion;
 import rms.model.DecisionInfo;
 import rms.model.MarksInfo;
+import rms.model.RoundTab;
+import rms.model.ScheduleInfo;
 import rms.model.Role;
 import rms.model.UserInfo;
 import rms.service.AssignmentService;
@@ -46,6 +50,7 @@ import rms.service.DecisionService;
 import rms.service.DocumentService;
 import rms.service.MarksService;
 import rms.service.Outcome;
+import rms.service.ScheduleService;
 
 /** My Evaluations, the evaluation form, a candidate's evaluations and the decision (Phase 3). */
 @ExtendWith(MockitoExtension.class)
@@ -65,6 +70,9 @@ class EvaluationControllerTest {
 
 	@Mock
 	DocumentService documentservice;
+
+	@Mock
+	ScheduleService scheduleservice;
 
 	@InjectMocks
 	EvaluationController controller;
@@ -111,13 +119,13 @@ class EvaluationControllerTest {
 	void evaluateIsReadOnlyWhenDecidedOrUnassigned() throws Exception {
 		MarksInfo mine = new MarksInfo();
 		when(assignmentservice.isAssigned("C2", "U2")).thenReturn(true);
-		when(marksservice.findEvaluation("C2", "U2")).thenReturn(mine);
+		when(marksservice.findEvaluation("C2", "U2", null)).thenReturn(mine);
 		mockMvc.perform(get("/evaluate").param("candidateid", "C2").session(interviewer))
 				.andExpect(model().attribute("editable", false))
 				.andExpect(model().attribute("marksinfo", mine));
 
 		when(assignmentservice.isAssigned("C1", "U2")).thenReturn(false);
-		when(marksservice.findEvaluation("C1", "U2")).thenReturn(mine);
+		when(marksservice.findEvaluation("C1", "U2", null)).thenReturn(mine);
 		mockMvc.perform(get("/evaluate").param("candidateid", "C1").session(interviewer))
 				.andExpect(model().attribute("editable", false))
 				.andExpect(model().attribute("assigned", false))
@@ -157,6 +165,64 @@ class EvaluationControllerTest {
 	}
 
 	@Test
+	void withoutARoundTheFormOpensAtTheLatestInterviewsRound() throws Exception {
+		when(assignmentservice.isAssigned("C1", "U2")).thenReturn(true);
+		when(scheduleservice.getScheduleOf("U2")).thenReturn(List.of(interview("C1", "FIRST", ScheduleInfo.DONE),
+				interview("C1", "TECHNICAL", ScheduleInfo.SCHEDULED), interview("C1", "FINAL", ScheduleInfo.CANCELLED),
+				interview("C2", "FINAL", ScheduleInfo.SCHEDULED)));
+		MarksInfo first = new MarksInfo();
+		first.setInterviewerid("U2");
+		first.setInterviewround("FIRST");
+		when(marksservice.getEvaluations("C1")).thenReturn(List.of(first));
+
+		MvcResult result = mockMvc.perform(get("/evaluate").param("candidateid", "C1").session(interviewer))
+				.andExpect(status().isOk()).andReturn();
+
+		// The cancelled Final interview and the other candidate's don't count
+		verify(marksservice).findEvaluation("C1", "U2", "TECHNICAL");
+		MarksInfo shown = (MarksInfo) result.getModelAndView().getModel().get("marksinfo");
+		assertThat(shown.getInterviewround()).isEqualTo("TECHNICAL");
+		@SuppressWarnings("unchecked")
+		List<RoundTab> tabs = (List<RoundTab>) result.getModelAndView().getModel().get("roundtabs");
+		// No "No round" tab: nothing without a round is shown or evaluated
+		assertThat(tabs).extracting(RoundTab::getCode, RoundTab::isEvaluated, RoundTab::isCurrent).containsExactly(
+				tuple("FIRST", true, false), tuple("TECHNICAL", false, true), tuple("FINAL", false, false));
+	}
+
+	@Test
+	void aRoundCanBeChosenAndAnOlderEvaluationWithoutOneStaysReachable() throws Exception {
+		when(assignmentservice.isAssigned("C1", "U2")).thenReturn(true);
+		MarksInfo older = new MarksInfo();
+		older.setInterviewerid("U2");
+		when(marksservice.getEvaluations("C1")).thenReturn(List.of(older));
+
+		MvcResult result = mockMvc.perform(get("/evaluate").param("candidateid", "C1").param("round", "final")
+				.session(interviewer)).andExpect(status().isOk()).andReturn();
+
+		verify(marksservice).findEvaluation("C1", "U2", "FINAL");
+		@SuppressWarnings("unchecked")
+		List<RoundTab> tabs = (List<RoundTab>) result.getModelAndView().getModel().get("roundtabs");
+		assertThat(tabs).extracting(RoundTab::getCode).containsExactly("", "FIRST", "TECHNICAL", "FINAL");
+		// round= (empty) is "no round"
+		mockMvc.perform(get("/evaluate").param("candidateid", "C1").param("round", "").session(interviewer));
+		verify(marksservice).findEvaluation("C1", "U2", null);
+	}
+
+	@Test
+	void saveBindsTheRound() throws Exception {
+		when(assignmentservice.isAssigned("C1", "U2")).thenReturn(true);
+		when(marksservice.saveEvaluation(any(MarksInfo.class), eq("U2"))).thenReturn(Outcome.ok("Evaluation saved."));
+
+		mockMvc.perform(evaluation("C1", "7").param("interviewround", "technical"))
+				.andExpect(redirectedUrl("/myevaluations"));
+
+		verify(marksservice).findEvaluation("C1", "U2", "TECHNICAL");
+		ArgumentCaptor<MarksInfo> captor = ArgumentCaptor.forClass(MarksInfo.class);
+		verify(marksservice).saveEvaluation(captor.capture(), eq("U2"));
+		assertThat(captor.getValue().getInterviewround()).isEqualTo("TECHNICAL");
+	}
+
+	@Test
 	void saveRefusalsShowTheFormAgain() throws Exception {
 		when(assignmentservice.isAssigned("C1", "U2")).thenReturn(true);
 		when(marksservice.saveEvaluation(any(MarksInfo.class), eq("U2")))
@@ -181,13 +247,13 @@ class EvaluationControllerTest {
 				.andExpect(model().attribute("errorMessage",
 						"This candidate has been selected, so the evaluations can't be changed."));
 		// Unassigned with an evaluation
-		when(marksservice.findEvaluation("C1", "U2")).thenReturn(new MarksInfo());
+		when(marksservice.findEvaluation("C1", "U2", null)).thenReturn(new MarksInfo());
 		mockMvc.perform(evaluation("C1", "7"))
 				.andExpect(model().attribute("editable", false))
 				.andExpect(model().attribute("errorMessage",
 						"You are no longer assigned to this candidate, so your evaluation can't be changed."));
 		// Never assigned
-		when(marksservice.findEvaluation("C1", "U2")).thenReturn(null);
+		when(marksservice.findEvaluation("C1", "U2", null)).thenReturn(null);
 		mockMvc.perform(evaluation("C1", "7")).andExpect(status().isForbidden());
 
 		verify(marksservice, never()).saveEvaluation(any(MarksInfo.class), anyString());
@@ -246,6 +312,14 @@ class EvaluationControllerTest {
 		mockMvc.perform(decision("C1", "S", "r", "30/09/2026"))
 				.andExpect(model().attribute("errorMessage", "Please enter the date of the decision as a date."));
 		mockMvc.perform(decision("C9", "S", "r", "2026-09-30")).andExpect(status().isNotFound());
+	}
+
+	private static ScheduleInfo interview(String candidateid, String round, String status) {
+		ScheduleInfo schedule = new ScheduleInfo();
+		schedule.setCandidateid(candidateid);
+		schedule.setInterviewround(round);
+		schedule.setStatus(status);
+		return schedule;
 	}
 
 	private MockHttpServletRequestBuilder evaluation(String candidateid, String score) {

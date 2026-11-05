@@ -18,5 +18,6 @@ public interface MarksService {
 
 	public List<MarksInfo> getEvaluations(String candidateid);
 
-	public MarksInfo findEvaluation(String candidateid, String interviewerid);
+	/** The interviewer's evaluation of the candidate in the round (a code, or null for none), or null. */
+	public MarksInfo findEvaluation(String candidateid, String interviewerid, String interviewround);
 }

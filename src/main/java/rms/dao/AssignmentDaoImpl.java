@@ -44,7 +44,10 @@ public class AssignmentDaoImpl implements AssignmentDao {
 			+ "(select max(ci.assignedat) from candidate_interviewer ci where ci.candidateid=c.candidateid "
 			+ "and ci.interviewerid=:interviewerid and ci.isactive=1) as assignedat, "
 			+ "(select count(*) from marks m where m.candidateid=c.candidateid and m.interviewerid=:interviewerid "
-			+ "and m.isactive=1) as evaluated from candidate c left join position p on p.positionkey=c.positionkey "
+			+ "and m.isactive=1) as evaluated, (select group_concat(distinct coalesce(m.interviewround, '') "
+			+ "order by m.interviewround separator ',') from marks m where m.candidateid=c.candidateid "
+			+ "and m.interviewerid=:interviewerid and m.isactive=1) as evaluatedrounds "
+			+ "from candidate c left join position p on p.positionkey=c.positionkey "
 			+ "where c.isactive=1 and (exists (select 1 from candidate_interviewer ci where ci.candidateid=c.candidateid "
 			+ "and ci.interviewerid=:interviewerid and ci.isactive=1) or exists (select 1 from marks m "
 			+ "where m.candidateid=c.candidateid and m.interviewerid=:interviewerid and m.isactive=1)) "
@@ -88,6 +91,7 @@ public class AssignmentDaoImpl implements AssignmentDao {
 			// No active assignment: evaluated earlier, unassigned since
 			assignment.setAssigned(assignedat != null);
 			assignment.setEvaluated(rs.getInt("evaluated") > 0);
+			assignment.setEvaluatedrounds(rs.getString("evaluatedrounds"));
 			return assignment;
 		}
 	}

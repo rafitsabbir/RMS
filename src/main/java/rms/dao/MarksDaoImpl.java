@@ -38,7 +38,7 @@ public class MarksDaoImpl implements MarksDao {
 			+ "m.techknowledge, m.leadership, m.decision, m.probsolving, m.stress, m.education, m.comskill, "
 			+ "m.attitude, m.personality, m.comments, m.workexpcomment, m.techknowledgecomment, m.leadershipcomment, "
 			+ "m.decisioncomment, m.probsolvingcomment, m.stresscomment, m.educationcomment, m.comskillcomment, "
-			+ "m.attitudecomment, m.personalitycomment, m.createdat, m.updatedat, "
+			+ "m.attitudecomment, m.personalitycomment, m.createdat, m.updatedat, m.interviewround, "
 			+ "(select min(concat_ws(' ', a.firstname, a.lastname)) from admin a where a.userid=m.interviewerid) "
 			+ "as interviewername, coalesce((select max(case when a.isactive=1 and (upper(trim(a.role))='INTERVIEWER' "
 			+ "or (a.role is null and upper(a.isinterviewer)='Y')) then 1 else 0 end) from admin a "
@@ -47,9 +47,10 @@ public class MarksDaoImpl implements MarksDao {
 			+ "and ci.interviewerid=m.interviewerid and ci.isactive=1) as assigned from marks m";
 	private String evaluationsbycandidate = selectmarks
 			+ " where m.candidateid=:candidateid and m.isactive=1 order by m.markkey";
-	// The oldest, if older data has several for one interviewer and candidate
+	// One per interviewer, candidate and round (F2; <=> also matches "no round"): the oldest, if older data has several
 	private String findevaluation = selectmarks + " where m.candidateid=:candidateid "
-			+ "and m.interviewerid=:interviewerid and m.isactive=1 order by m.markkey limit 1";
+			+ "and m.interviewerid=:interviewerid and m.interviewround <=> :interviewround and m.isactive=1 "
+			+ "order by m.markkey limit 1";
 	// Every active candidate (deleted ones are hidden, decision N), with or without evaluations; the averages of
 	// their active evaluations, NULL without any
 	private String results = "select c.candidateid, c.firstname, c.lastname, c.candidatestatus, p.positionname, "
@@ -72,15 +73,15 @@ public class MarksDaoImpl implements MarksDao {
 	private String isassigned = "select count(*) from candidate_interviewer where candidateid=:candidateid "
 			+ "and interviewerid=:interviewerid and isactive=1 lock in share mode";
 	private String existingevaluation = "select min(markkey) from marks where candidateid=:candidateid "
-			+ "and interviewerid=:interviewerid and isactive=1";
+			+ "and interviewerid=:interviewerid and interviewround <=> :interviewround and isactive=1";
 	private String insertmarks = "insert into marks (isactive, interviewerid, candidateid, workexp, techknowledge, "
 			+ "leadership, decision, probsolving, stress, education, comskill, attitude, personality, comments, "
 			+ "workexpcomment, techknowledgecomment, leadershipcomment, decisioncomment, probsolvingcomment, "
 			+ "stresscomment, educationcomment, comskillcomment, attitudecomment, personalitycomment, createdat, "
-			+ "updatedat) values (1, :interviewerid, :candidateid, :workexp, :techknowledge, :leadership, :decision, "
+			+ "updatedat, interviewround) values (1, :interviewerid, :candidateid, :workexp, :techknowledge, :leadership, :decision, "
 			+ ":probsolving, :stress, :education, :comskill, :attitude, :personality, :comments, :workexpcomment, "
 			+ ":techknowledgecomment, :leadershipcomment, :decisioncomment, :probsolvingcomment, :stresscomment, "
-			+ ":educationcomment, :comskillcomment, :attitudecomment, :personalitycomment, now(), now())";
+			+ ":educationcomment, :comskillcomment, :attitudecomment, :personalitycomment, now(), now(), :interviewround)";
 	private String updatemarks = "update marks set workexp=:workexp, techknowledge=:techknowledge, "
 			+ "leadership=:leadership, decision=:decision, probsolving=:probsolving, stress=:stress, "
 			+ "education=:education, comskill=:comskill, attitude=:attitude, personality=:personality, "
@@ -125,6 +126,7 @@ public class MarksDaoImpl implements MarksDao {
 			marks.setComments(rs.getString("comments"));
 			marks.setCreatedat(rs.getObject("createdat", LocalDateTime.class));
 			marks.setUpdatedat(rs.getObject("updatedat", LocalDateTime.class));
+			marks.setInterviewround(rs.getString("interviewround"));
 			marks.setInterviewername(rs.getString("interviewername"));
 			marks.setIntervieweractive(rs.getInt("intervieweractive") == 1);
 			marks.setAssigned(rs.getInt("assigned") > 0);
@@ -165,21 +167,23 @@ public class MarksDaoImpl implements MarksDao {
 	}
 
 	@Override
-	public MarksInfo findEvaluation(String candidateid, String interviewerid) {
+	public MarksInfo findEvaluation(String candidateid, String interviewerid, String interviewround) {
 		Map<String, Object> paramMap = new HashMap<String, Object>();
 		paramMap.put("candidateid", candidateid);
 		paramMap.put("interviewerid", interviewerid);
+		paramMap.put("interviewround", interviewround);
 		List<MarksInfo> list = namedParameterJdbcTemplate.query(findevaluation, paramMap, new MarksMapper());
 		return list.isEmpty() ? null : list.get(0);
 	}
 
 	@Override
-	// One evaluation per interviewer and candidate: the existing one is updated, otherwise one is inserted, in a
+	// One evaluation per interviewer, candidate and round (F2): the existing one is updated, otherwise one is inserted, in a
 	// transaction behind a lock on the candidate's row. synchronized too, for one Tomcat if candidate isn't InnoDB
 	public synchronized int saveMarks(MarksInfo marksinfo) {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("candidateid", marksinfo.getCandidateid());
 		params.addValue("interviewerid", marksinfo.getInterviewerid());
+		params.addValue("interviewround", marksinfo.getInterviewround());
 		for (Criterion criterion : Criterion.values()) {
 			params.addValue(criterion.getField(), marksinfo.getScore(criterion));
 			params.addValue(criterion.getCommentfield(), marksinfo.getComment(criterion));

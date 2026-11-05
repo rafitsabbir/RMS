@@ -39,14 +39,31 @@
 	</div>
 	</c:if>
 
+	<%-- Interview rounds (F2): one evaluation per round; the tick marks a round already evaluated --%>
+	<nav class="mb-3" aria-label="Interview rounds">
+		<ul class="nav nav-pills gap-1">
+		<c:forEach items="${roundtabs}" var="tab">
+			<c:url value="/evaluate" var="tabURL"><c:param name="candidateid" value="${candidate.candidateid}"/><c:param name="round" value="${tab.code}"/></c:url>
+			<li class="nav-item">
+				<a class="nav-link${tab.current ? ' active' : ''} d-inline-flex align-items-center gap-1" href="<c:out value='${tabURL}'/>"${tab.current ? ' aria-current="page"' : ''}>
+					<c:if test="${tab.evaluated}"><svg class="rms-icon" aria-label="evaluated"><use href="${icons}#check-circle-fill"/></svg></c:if>
+					<c:out value="${tab.label}"/>
+				</a>
+			</li>
+		</c:forEach>
+		</ul>
+	</nav>
+
 	<div class="row g-3">
 		<div class="col-xl-8">
 			<div class="card rms-card">
 				<div class="card-body p-4">
+					<h2 class="h5 mb-3"><c:out value="${marksinfo.roundlabel}"/></h2>
 					<c:choose>
 					<c:when test="${editable}">
 					<form:form id="evaluation" modelAttribute="marksinfo" method="POST" action="${saveURL}">
 						<form:hidden path="candidateid"/>
+						<form:hidden path="interviewround"/>
 						<p class="text-body-secondary">Score each criterion from 1 (poor) to 10 (excellent). Comments are optional.</p>
 						<c:forEach items="${criteria}" var="criterion">
 						<div class="row g-2 mb-3 align-items-start">

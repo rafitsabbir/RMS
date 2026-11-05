@@ -92,9 +92,9 @@ class MarksDaoImplTest extends MySqlContainerSupport {
 
 	@Test
 	void findReturnsTheOldestActiveEvaluationOrNull() {
-		assertThat(dao.findEvaluation("C1", "U2").getMarkkey()).isEqualTo(1);
-		assertThat(dao.findEvaluation("C2", "U5")).isNull();
-		assertThat(dao.findEvaluation("C1", "U3")).isNull();
+		assertThat(dao.findEvaluation("C1", "U2", null).getMarkkey()).isEqualTo(1);
+		assertThat(dao.findEvaluation("C2", "U5", null)).isNull();
+		assertThat(dao.findEvaluation("C1", "U3", null)).isNull();
 	}
 
 	@Test
@@ -150,6 +150,26 @@ class MarksDaoImplTest extends MySqlContainerSupport {
 
 		assertThat(jdbcTemplate.queryForObject("select workexp from marks where markkey=1", Integer.class))
 				.isEqualTo(8);
+	}
+
+	@Test
+	void eachRoundHasItsOwnEvaluation() {
+		jdbcTemplate.update("update candidate set candidatestatus=null where candidateid='C1'");
+		MarksInfo technical = evaluation("C1", "U2", 5);
+		technical.setInterviewround("TECHNICAL");
+
+		// The seed's evaluation 1 has no round; a Technical one is a new row, not an update of it (F2)
+		int key = dao.saveMarks(technical);
+		assertThat(key).isEqualTo(5);
+		assertThat(dao.saveMarks(technical)).isEqualTo(5);
+		assertThat(jdbcTemplate.queryForObject("select workexp from marks where markkey=1", Integer.class)).isEqualTo(8);
+		assertThat(dao.findEvaluation("C1", "U2", "TECHNICAL").getMarkkey()).isEqualTo(5);
+		assertThat(dao.findEvaluation("C1", "U2", "TECHNICAL").getInterviewround()).isEqualTo("TECHNICAL");
+		assertThat(dao.findEvaluation("C1", "U2", null).getMarkkey()).isEqualTo(1);
+		assertThat(dao.findEvaluation("C1", "U2", "FINAL")).isNull();
+		// Both count in the averages and both list
+		assertThat(dao.getEvaluations("C1")).extracting(MarksInfo::getMarkkey, MarksInfo::getInterviewround)
+				.containsExactly(tuple(1, null), tuple(3, null), tuple(5, "TECHNICAL"));
 	}
 
 	private static MarksInfo evaluation(String candidateid, String interviewerid, int score) {

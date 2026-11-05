@@ -25,6 +25,8 @@
 --     db/migrations/006-interview-schedule.sql before a WAR with it.
 --   * candidate.stage and the table candidate_stage are NEW (2026-10-20, hiring stages): production needs
 --     db/migrations/008-candidate-stage.sql before a WAR with them. activity_log comes from 007.
+--   * marks.interviewround (at the END of marks) and interview_schedule.interviewround are NEW (2026-11-05,
+--     interview rounds, F2): production needs db/migrations/009-interview-rounds.sql before a WAR with them.
 --   * Types, lengths, keys and NULL rules: guessed. No unique index on names,
 --     which keeps the current duplicate behaviour (G33).
 -- Used only by the Testcontainers DAO tests (src/test/java/rms/dao).
@@ -114,6 +116,7 @@ CREATE TABLE marks (
 	personalitycomment VARCHAR(255),
 	createdat DATETIME,
 	updatedat DATETIME,
+	interviewround VARCHAR(12),
 	UNIQUE KEY marks_markkey (markkey),
 	KEY marks_candidate (candidateid, interviewerid)
 );
@@ -217,6 +220,7 @@ CREATE TABLE interview_schedule (
 	updatedby VARCHAR(50),
 	updatedat DATETIME,
 	isactive TINYINT NOT NULL DEFAULT 1,
+	interviewround VARCHAR(12),
 	PRIMARY KEY (schedulekey),
 	KEY interview_schedule_candidate (candidateid, isactive),
 	KEY interview_schedule_interviewer (interviewerid, isactive, startat)

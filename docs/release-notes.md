@@ -1,7 +1,7 @@
 # RMS: What's New
 
 Purpose: the release notes for the people who use RMS: what is new and what changes for them when the new version (`dev`) goes live. Plain language; the technical details are in [release-dev.md](release-dev.md).
-Last updated: 2026-11-05 (e-mails to staff). 2026-11-05 (passwords all encrypted at the release, HTTPS). 2026-10-20 (written for release-tracker item 3)
+Last updated: 2026-11-05 (interview rounds). 2026-11-05 (e-mails to staff). 2026-11-05 (passwords all encrypted at the release, HTTPS). 2026-10-20 (written for release-tracker item 3)
 Read this when: you announce the release to users, or a user asks what changed.
 
 The new RMS replaces the version from 2020. Your data stays: candidates, scores, positions and languages are all kept. Below: what changes for everyone, then what is new for each role.
@@ -39,6 +39,7 @@ There are four roles. On the first day, the old administrators are **Super Admin
 - **Interview schedule:**
   - Schedule interviews with an assigned interviewer, at a time that hasn't passed.
   - The same interviewer can't be booked twice for the same minute.
+- **Interview rounds (new):** give an interview a round (First, Technical or Final interview). Interviewers evaluate each round separately, and the candidate's evaluations page shows the averages per round; Candidate Status still averages them all. Older interviews and evaluations show "No round".
 - **Hiring stages (new):** every candidate moves through Applied → Screening → Interview → Offer → Hired, or Withdrawn.
   - Move a candidate on their profile's **Pipeline** card, with an optional note.
   - RMS keeps the stage in step with the decision:
@@ -61,7 +62,7 @@ There are four roles. On the first day, the old administrators are **Super Admin
 - **Note for spreadsheet users:** the candidates CSV now has a **Stage** column before Status. A spreadsheet that reads the columns by position needs adjusting.
 
 ## New for Interviewers
-- **My Evaluations:** your assigned candidates. Score each on the 10 criteria with comments, and change it until a final decision is made.
+- **My Evaluations:** your assigned candidates. Score each on the 10 criteria with comments, and change it until a final decision is made. With interview rounds, the form has a tab per round and opens at the round of your interview: evaluate each round on its own tab.
 - **My Schedule:** your interviews.
   - **Calendar (new)** downloads the interview as a file for Outlook, Google Calendar or Apple Calendar.
   - Download it again after a change, so your calendar updates the event.

@@ -50,6 +50,7 @@ public final class CalendarInvite {
 			line(out, "LOCATION:" + text(schedule.getLocation()));
 		}
 		line(out, "DESCRIPTION:" + text("Interviewer: " + interviewer + "\nCandidate: " + candidate
+				+ (schedule.getInterviewround() == null ? "" : "\nRound: " + schedule.getRoundlabel())
 				+ "\nFrom RMS (Recruitment Management System). The time is the RMS server's local time."));
 		line(out, "STATUS:" + (schedule.isCancelled() ? "CANCELLED" : "CONFIRMED"));
 		line(out, "END:VEVENT");

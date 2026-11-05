@@ -129,7 +129,7 @@ class NotificationServiceImplTest {
 		user("U6", "HR", "inactive@example.test", 0);
 		user("U1", "SUPER_ADMIN", "admin@example.test", 1);
 
-		service.evaluationSaved("C3", "U2");
+		service.evaluationSaved("C3", "U2", null);
 
 		MimeMessage mail = sent().get(0);
 		assertThat(sent()).hasSize(1);
@@ -143,7 +143,7 @@ class NotificationServiceImplTest {
 		user("U1", "SUPER_ADMIN", "admin@example.test", 1);
 		user("U7", "HR", null, 1);
 
-		service.evaluationSaved("C3", "U2");
+		service.evaluationSaved("C3", "U2", null);
 
 		assertThat(to(sent().get(0))).containsExactly("admin@example.test");
 	}
@@ -175,7 +175,7 @@ class NotificationServiceImplTest {
 
 		off.interviewerAssigned("C3", "U2");
 		off.interviewScheduled(12);
-		off.evaluationSaved("C3", "U2");
+		off.evaluationSaved("C3", "U2", null);
 
 		verifyNoInteractions(userdao, scheduledao, candidatedao);
 		off.destroy();

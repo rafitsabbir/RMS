@@ -209,7 +209,8 @@ class WorkflowTest {
 		String next = LocalDate.now().plusYears(1) + "T10:00";
 		schedule(hr, next, "Room 2");
 		assertThat(path(hr)).isEqualTo("/viewschedulelist");
-		assertThat(text(hr, "#scheduletable")).contains("Room 2");
+		// Interview rounds (F2): the schedule shows the round
+		assertThat(text(hr, "#scheduletable")).contains("Room 2", "Technical interview");
 
 		// The same interviewer at the same minute again
 		schedule(hr, next, "Room 3");
@@ -237,6 +238,8 @@ class WorkflowTest {
 		assertThat(Files.readAllBytes(download.path())).isEqualTo(Files.readAllBytes(cv));
 
 		iv.navigate(base + "/evaluate?candidateid=C3");
+		// The form opens at the round of the interviewer's interview (F2)
+		assertThat(text(iv, "nav[aria-label='Interview rounds'] .nav-link.active")).isEqualTo("Technical interview");
 		Map<String, String> scores = new LinkedHashMap<>();
 		scores.put("workexp", "8");
 		scores.put("techknowledge", "9");
@@ -252,6 +255,15 @@ class WorkflowTest {
 		iv.fill("#comments", "Clear thinker; strong Java.");
 		submit(iv, "form#evaluation button[type=submit]");
 		assertThat(path(iv)).startsWith("/myevaluations");
+		assertThat(text(iv)).contains("Technical interview");
+
+		// A second round is a second evaluation, not a change of the first: 6 on every criterion, 60 in all
+		iv.navigate(base + "/evaluate?candidateid=C3&round=FIRST");
+		assertThat(text(iv, "nav[aria-label='Interview rounds'] .nav-link.active")).isEqualTo("First interview");
+		scores.keySet().forEach(field -> iv.selectOption("#" + field, "6"));
+		submit(iv, "form#evaluation button[type=submit]");
+		assertThat(path(iv)).startsWith("/myevaluations");
+		assertThat(text(iv)).contains("First interview, Technical interview");
 	}
 
 	@Test
@@ -259,14 +271,17 @@ class WorkflowTest {
 	void theHiringManagerReadsButCannotDecide() {
 		Page hm = signIn("HM");
 		hm.navigate(base + "/adminviewmarks");
-		// 82 = the sum of the ten scores (each out of 10)
+		// 71 = the average of the two rounds' totals, 82 and 60 (the sum of the per-criterion averages)
 		assertThat(hm.locator("#markstable tbody tr", new Page.LocatorOptions().setHasText("Newcomer")).innerText())
-				.containsPattern("\\b82\\b");
+				.containsPattern("\\b71\\b");
 		hm.navigate(base + "/viewcandidate?candidateid=C3");
 		assertThat(text(hm, "#pipeline-state")).isEqualTo("Now at Interview");
 		assertThat(hm.locator("form#movestage").count()).isZero();
 		hm.navigate(base + "/viewevaluations?candidateid=C3");
 		assertThat(text(hm)).contains("Clear thinker");
+		// Averages per round, under the overall average
+		assertThat(text(hm, "#evaluationtable")).contains("Average of 2", "First interview: average of 1",
+				"Technical interview: average of 1");
 		assertThat(hm.locator("form#savedecision").count()).isZero();
 
 		// With a valid CSRF token, so the 403 comes from the role rule, not from the CSRF filter
@@ -393,6 +408,7 @@ class WorkflowTest {
 		hr.selectOption("#interviewerid", "U2");
 		hr.fill("#startat", startAt);
 		hr.fill("#location", location);
+		hr.selectOption("#interviewround", "TECHNICAL");
 		submit(hr, "form#schedule button[type=submit]");
 	}
 

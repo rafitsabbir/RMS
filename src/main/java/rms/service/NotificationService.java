@@ -30,7 +30,7 @@ public interface NotificationService {
 	default void interviewCancelled(int schedulekey) {
 	}
 
-	/** An interviewer saved an evaluation: HR is told (no scores or comments in the mail). */
-	default void evaluationSaved(String candidateid, String interviewerid) {
+	/** An interviewer saved an evaluation (in a round, or null): HR is told (no scores or comments in the mail). */
+	default void evaluationSaved(String candidateid, String interviewerid, String interviewround) {
 	}
 }
