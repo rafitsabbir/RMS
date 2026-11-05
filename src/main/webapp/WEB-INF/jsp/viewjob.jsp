@@ -43,7 +43,7 @@
 						<td class="rms-name"><c:out value="${empty job.positionname ? ('Position ' += job.positionkey) : job.positionname}"/></td>
 						<td>${job.vacancies}</td>
 						<%-- The pipeline (F6): candidates linked to the job per stage, each opening the list filtered to them --%>
-						<td class="rms-pipeline">
+						<td>
 							<c:set var="anycandidate" value="false"/>
 							<c:forEach items="${stages}" var="stage">
 							<c:set var="count" value="${job.stagecounts[stage.name]}"/>
