@@ -41,6 +41,7 @@ import rms.model.DocumentInfo;
 import rms.model.DocumentType;
 import rms.model.HiringStage;
 import rms.model.JobInfo;
+import rms.model.OfferInfo;
 import rms.model.Role;
 import rms.model.LanguageInfo;
 import rms.model.PositionInfo;
@@ -51,6 +52,7 @@ import rms.service.CandidateService;
 import rms.service.DocumentService;
 import rms.service.JobService;
 import rms.service.LanguageService;
+import rms.service.OfferService;
 import rms.service.PositionService;
 import rms.service.StageService;
 
@@ -78,6 +80,9 @@ class CandidateControllerTest {
 
 	@Mock
 	StageService stageservice;
+
+	@Mock
+	OfferService offerservice;
 
 	MockHttpSession staff = EvaluationControllerTest.session("U1", Role.SUPER_ADMIN);
 
@@ -751,7 +756,40 @@ class CandidateControllerTest {
 		mockMvc.perform(get("/viewcandidate").session(EvaluationControllerTest.session("U2", Role.INTERVIEWER))
 				.param("candidateid", "C1"))
 				.andExpect(model().attribute("pipeline", HiringStage.PIPELINE))
-				.andExpect(model().attributeDoesNotExist("stages", "stagelist"));
+				.andExpect(model().attributeDoesNotExist("stages", "stagelist", "offers", "offerinfo"));
 		verify(stageservice, never()).getStages(any());
+		verify(offerservice, never()).getOffers(any());
+	}
+
+	@Test
+	void hrGetsANewOfferFormOnceSelectedOrThePendingOfferToChange() throws Exception {
+		CandidateInfo open = candidate("C1", 1, 1);
+		when(candidateservice.findCandidateById("C1")).thenReturn(open);
+		when(offerservice.getOffers("C1")).thenReturn(List.of());
+
+		// Not Selected: the offers show (none here), no form
+		mockMvc.perform(get("/viewcandidate").session(staff).param("candidateid", "C1"))
+				.andExpect(model().attribute("offers", List.of()))
+				.andExpect(model().attributeDoesNotExist("offerinfo"));
+
+		open.setCandidatestatus("S");
+		OfferInfo fresh = (OfferInfo) mockMvc.perform(get("/viewcandidate").session(staff).param("candidateid", "C1"))
+				.andReturn().getModelAndView().getModel().get("offerinfo");
+		assertThat(fresh.getOfferkey()).isZero();
+		assertThat(fresh.getOfferdate()).isEqualTo(LocalDate.now());
+
+		OfferInfo pending = new OfferInfo();
+		pending.setOfferkey(4);
+		OfferInfo declined = new OfferInfo();
+		declined.setStatus("DECLINED");
+		when(offerservice.getOffers("C1")).thenReturn(List.of(pending, declined));
+		mockMvc.perform(get("/viewcandidate").session(staff).param("candidateid", "C1"))
+				.andExpect(model().attribute("offerinfo", pending));
+
+		// A Hiring Manager reads the offers, without a form
+		mockMvc.perform(get("/viewcandidate").session(EvaluationControllerTest.session("U4", Role.HIRING_MANAGER))
+				.param("candidateid", "C1"))
+				.andExpect(model().attribute("offers", List.of(pending, declined)))
+				.andExpect(model().attributeDoesNotExist("offerinfo"));
 	}
 }

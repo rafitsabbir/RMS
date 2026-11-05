@@ -1,5 +1,6 @@
 package rms.controller;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
@@ -32,6 +33,8 @@ import rms.model.DocumentType;
 import rms.model.HiringStage;
 import rms.model.JobInfo;
 import rms.model.LanguageInfo;
+import rms.model.OfferInfo;
+import rms.model.OfferStatus;
 import rms.model.PositionInfo;
 import rms.service.ActivityService;
 import rms.service.AssignmentService;
@@ -40,6 +43,7 @@ import rms.service.CandidateService;
 import rms.service.DocumentService;
 import rms.service.JobService;
 import rms.service.LanguageService;
+import rms.service.OfferService;
 import rms.service.PositionService;
 import rms.service.StageService;
 
@@ -77,6 +81,9 @@ public class CandidateController {
 
 	@Autowired
 	StageService stageservice;
+
+	@Autowired
+	OfferService offerservice;
 
 	static final int MAX_EMAIL = CandidateRules.MAX_EMAIL;
 	static final int MAX_PHONE = CandidateRules.MAX_PHONE;
@@ -239,6 +246,24 @@ public class CandidateController {
 			mv.addObject("stages", stageservice.getStages(candidateinfo.getCandidateid()));
 			if (CurrentUser.canEdit(session)) {
 				mv.addObject("stagelist", HiringStage.values());
+			}
+		}
+		if (staff) {
+			// Offers (F8): staff read them (the salary band only Super Admin and HR, in the JSP); Super Admin and HR
+			// get the form for the pending offer, or a new one once the candidate is Selected
+			List<OfferInfo> offers = offerservice.getOffers(candidateinfo.getCandidateid());
+			mv.addObject("offers", offers);
+			if (CurrentUser.canEdit(session)) {
+				OfferInfo form = offers.stream().filter(OfferInfo::isPending).findFirst().orElse(null);
+				if (form == null && DecisionStatus.parse(candidateinfo.getCandidatestatus()) == DecisionStatus.S) {
+					form = new OfferInfo();
+					form.setCandidateid(candidateinfo.getCandidateid());
+					form.setOfferdate(LocalDate.now());
+				}
+				if (form != null) {
+					mv.addObject("offerinfo", form);
+					mv.addObject("offerstatuses", OfferStatus.values());
+				}
 			}
 		}
 		if (staff) {

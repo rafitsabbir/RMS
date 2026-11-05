@@ -146,6 +146,62 @@
 		</div>
 	</div>
 
+	<%-- Offers (F8): staff read them, the salary band only Super Admin and HR (canedit); the form for the pending offer,
+		or a new one once the candidate is Selected --%>
+	<c:if test="${not empty offers or not empty offerinfo}">
+	<spring:url value="/saveoffer" var="offerURL" />
+	<div class="card rms-card mb-3" id="offer">
+		<div class="card-body">
+			<h2 class="h5 mb-3">Offer</h2>
+			<c:if test="${not empty offers}">
+			<ul class="list-unstyled mb-3" id="offerlist">
+			<c:forEach items="${offers}" var="o">
+				<li class="mb-2">
+					<span class="badge rounded-pill ${o.status eq 'ACCEPTED' ? 'text-bg-success' : (o.status eq 'PENDING' ? 'text-bg-warning' : 'text-bg-secondary')}"><c:out value="${o.statuslabel}"/></span>
+					Offered <c:out value="${o.offerdate}"/><c:if test="${canedit and not empty o.salaryband}"> &middot; <c:out value="${o.salaryband}"/></c:if><c:if test="${not empty o.startdate}"> &middot; start <c:out value="${o.startdate}"/></c:if><c:if test="${not empty o.respondeddate}"> &middot; answered <c:out value="${o.respondeddate}"/></c:if>
+					<span class="text-body-secondary small"> &middot; by <c:out value="${empty o.createdbyname ? o.createdby : o.createdbyname}"/></span>
+					<c:if test="${not empty o.note}"><div class="small text-body-secondary"><c:out value="${o.note}"/></div></c:if>
+				</li>
+			</c:forEach>
+			</ul>
+			</c:if>
+			<c:if test="${not empty offerinfo}">
+			<h3 class="h6">${offerinfo.offerkey > 0 ? 'Update the offer waiting for an answer' : 'Record an offer'}</h3>
+			<form:form id="saveoffer" modelAttribute="offerinfo" method="post" action="${offerURL}" cssClass="row g-2 align-items-end">
+				<form:hidden path="offerkey"/>
+				<form:hidden path="candidateid"/>
+				<div class="col-sm-6 col-lg-3">
+					<label for="offerdate" class="form-label">Offer date</label>
+					<form:input path="offerdate" type="date" cssClass="form-control" id="offerdate"/>
+				</div>
+				<div class="col-sm-6 col-lg-3">
+					<label for="salaryband" class="form-label">Salary band <span class="text-body-secondary">(optional)</span></label>
+					<form:input path="salaryband" cssClass="form-control" id="salaryband" maxlength="100" autocomplete="off"/>
+				</div>
+				<div class="col-sm-6 col-lg-3">
+					<label for="startdate" class="form-label">Start date <span class="text-body-secondary">(optional)</span></label>
+					<form:input path="startdate" type="date" cssClass="form-control" id="startdate"/>
+				</div>
+				<div class="col-sm-6 col-lg-3">
+					<label for="offerstatus" class="form-label">Status</label>
+					<form:select path="status" cssClass="form-select" id="offerstatus">
+						<form:options items="${offerstatuses}" itemValue="name" itemLabel="label"/>
+					</form:select>
+				</div>
+				<div class="col-lg-9">
+					<label for="offernote" class="form-label">Note <span class="text-body-secondary">(optional)</span></label>
+					<form:input path="note" cssClass="form-control" id="offernote" maxlength="500" autocomplete="off"/>
+				</div>
+				<div class="col-lg-3">
+					<button type="submit" class="btn btn-primary w-100">Save offer</button>
+				</div>
+				<p class="form-text mb-0 col-12">Accepted moves a candidate at Offer to Hired. An answered offer stays as history; record a new one if the offer changes.</p>
+			</form:form>
+			</c:if>
+		</div>
+	</div>
+	</c:if>
+
 	<div class="row g-3">
 		<div class="col-xl-4">
 			<div class="card rms-card h-100">

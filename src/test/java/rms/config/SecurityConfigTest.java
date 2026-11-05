@@ -85,6 +85,7 @@ import rms.controller.JobController;
 import rms.controller.LanguageController;
 import rms.controller.LoginController;
 import rms.controller.MarksController;
+import rms.controller.OfferController;
 import rms.controller.PositionController;
 import rms.controller.ReportController;
 import rms.controller.ScheduleController;
@@ -110,6 +111,7 @@ import rms.service.JobService;
 import rms.service.LanguageService;
 import rms.service.LoginServiceImpl;
 import rms.service.MarksService;
+import rms.service.OfferService;
 import rms.service.PositionService;
 import rms.service.ActivityService;
 import rms.service.ScheduleService;
@@ -216,6 +218,11 @@ class SecurityConfigTest {
 		}
 
 		@Bean
+		OfferController offercontroller() {
+			return new OfferController();
+		}
+
+		@Bean
 		InternalResourceViewResolver viewResolver() {
 			return new WebConfig().viewResolver();
 		}
@@ -287,6 +294,9 @@ class SecurityConfigTest {
 
 	@MockitoBean
 	CandidateImportService importservice;
+
+	@MockitoBean
+	OfferService offerservice;
 
 	@MockitoBean
 	StageService stageservice;
@@ -361,6 +371,7 @@ class SecurityConfigTest {
 				new Page(multipart("/previewimport").file(new MockMultipartFile("file", "c.csv", "text/csv",
 						"First name,Last name\n".getBytes())).with(csrf()), HR_AND_UP),
 				new Page(post("/confirmimport").with(csrf()), HR_AND_UP),
+				new Page(post("/saveoffer").with(csrf()).param("candidateid", "C1"), HR_AND_UP),
 				new Page(get("/viewevaluations").param("candidateid", "C1"), STAFF),
 				new Page(post("/assigninterviewer").with(csrf()).param("candidateid", "C1"), HR_AND_UP),
 				new Page(post("/unassigninterviewer").with(csrf()).param("candidateid", "C1"), HR_AND_UP),

@@ -29,6 +29,8 @@
 --     interview rounds, F2): production needs db/migrations/009-interview-rounds.sql before a WAR with them.
 --   * admin.alsointerviewer is NEW (2026-11-05, several roles per user, F3): production needs
 --     db/migrations/010-also-interviewer.sql before a WAR with it.
+--   * The table candidate_offer is NEW (2026-11-05, offer tracking, F8): production needs
+--     db/migrations/011-candidate-offer.sql before a WAR with it.
 --   * Types, lengths, keys and NULL rules: guessed. No unique index on names,
 --     which keeps the current duplicate behaviour (G33).
 -- Used only by the Testcontainers DAO tests (src/test/java/rms/dao).
@@ -244,4 +246,23 @@ CREATE TABLE activity_log (
 	KEY activity_log_action (action, activitykey),
 	KEY activity_log_entity (entitytype, entityid),
 	KEY activity_log_user (userid, activitykey)
+) ENGINE=InnoDB;
+
+-- Offers (migration 011, F8): several per candidate over time, at most one PENDING (rms.service.OfferServiceImpl).
+CREATE TABLE candidate_offer (
+	offerkey INT NOT NULL AUTO_INCREMENT,
+	candidateid VARCHAR(50) NOT NULL,
+	offerdate DATE NOT NULL,
+	salaryband VARCHAR(100) NULL,
+	startdate DATE NULL,
+	status VARCHAR(10) NOT NULL,
+	respondeddate DATE NULL,
+	note VARCHAR(500) NULL,
+	createdby VARCHAR(50) NOT NULL,
+	createdat DATETIME NOT NULL,
+	updatedby VARCHAR(50) NULL,
+	updatedat DATETIME NULL,
+	isactive TINYINT NOT NULL DEFAULT 1,
+	PRIMARY KEY (offerkey),
+	KEY candidate_offer_candidate (candidateid, isactive, offerkey)
 ) ENGINE=InnoDB;

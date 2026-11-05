@@ -102,7 +102,7 @@ public class SecurityConfig {
 			"/deletejob/*", "/createschedule", "/updateschedule/*", "/saveschedule", "/cancelschedule/*",
 			"/viewpositionlist", "/createposition", "/updateposition/*", "/saveposition",
 			"/deleteposition/*", "/viewlanguagelist", "/createlanguage", "/updatelanguage/*", "/savelanguage",
-			"/deletelanguage/*", "/importcandidates", "/candidatetemplate", "/previewimport", "/confirmimport" };
+			"/deletelanguage/*", "/importcandidates", "/candidatetemplate", "/previewimport", "/confirmimport", "/saveoffer" };
 
 	/**
 	 * Pages may load only their own files and the jsDelivr CDN (Bootstrap, DataTables, jQuery; with SRI), and no JSP
