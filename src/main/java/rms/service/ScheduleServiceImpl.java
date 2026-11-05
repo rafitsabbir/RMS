@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import rms.dao.AssignmentDao;
 import rms.dao.ScheduleDao;
 import rms.model.AssignmentInfo;
+import rms.model.InterviewRound;
 import rms.model.ScheduleInfo;
 
 /** Interview schedule (Phase 4). Logs carry only keys, never names or locations. */
@@ -94,6 +95,12 @@ public class ScheduleServiceImpl implements ScheduleService {
 			return Outcome.refused("The location can use English only. " + EnglishText.PROBLEM);
 		}
 		scheduleinfo.setLocation(location.isEmpty() ? null : location);
+		// The round (F2) is optional; a posted text that isn't one of the rounds is refused, not read as "no round"
+		String round = scheduleinfo.getInterviewround();
+		if (round != null && !round.isBlank() && InterviewRound.parse(round) == null) {
+			return Outcome.refused("Please choose a round from the list.");
+		}
+		scheduleinfo.setInterviewround(InterviewRound.code(round));
 		// A new interview is always SCHEDULED; a change may mark it DONE. Cancelling has its own action
 		if (!update) {
 			scheduleinfo.setStatus(ScheduleInfo.SCHEDULED);
@@ -134,8 +141,9 @@ public class ScheduleServiceImpl implements ScheduleService {
 			activityservice.record(userid, "INTERVIEW_CHANGED", "INTERVIEW", String.valueOf(scheduleinfo.getSchedulekey()),
 					"candidate " + scheduleinfo.getCandidateid() + ", status " + scheduleinfo.getStatus());
 			log.info("Interview {} changed by {}", scheduleinfo.getSchedulekey(), userid);
-			// Only what the interviewer needs to know: a new interviewer, time or place (marking it Done is not)
-			if (!unchanged || timeChanged || !Objects.equals(scheduleinfo.getLocation(), stored.getLocation())) {
+			// Only what the interviewer needs to know: a new interviewer, time, place or round (marking it Done is not)
+			if (!unchanged || timeChanged || !Objects.equals(scheduleinfo.getLocation(), stored.getLocation())
+					|| !Objects.equals(scheduleinfo.getInterviewround(), stored.getInterviewround())) {
 				notificationservice.interviewChanged(scheduleinfo.getSchedulekey(), stored.getInterviewerid());
 			}
 			return Outcome.ok("Interview updated.");

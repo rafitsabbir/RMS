@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import rms.dao.MarksDao;
 import rms.model.Criterion;
+import rms.model.InterviewRound;
 import rms.model.MarksInfo;
 import rms.model.ResultInfo;
 
@@ -73,14 +74,21 @@ public class MarksServiceImpl implements MarksService {
 			marksinfo.setComment(criterion, comment);
 		}
 		marksinfo.setInterviewerid(interviewerid);
+		// The round (F2) is optional; a posted text that isn't one of the rounds is refused, not read as "no round"
+		String round = marksinfo.getInterviewround();
+		if (round != null && !round.isBlank() && InterviewRound.parse(round) == null) {
+			return Outcome.refused("Please choose a round from the list.");
+		}
+		marksinfo.setInterviewround(InterviewRound.code(round));
 
 		int markkey = marksdao.saveMarks(marksinfo);
 		if (markkey == 0) {
 			return Outcome.refused(NOT_SAVED);
 		}
-		activityservice.record(interviewerid, "MARKED", "CANDIDATE", marksinfo.getCandidateid(), "total " + marksinfo.getTotal());
+		activityservice.record(interviewerid, "MARKED", "CANDIDATE", marksinfo.getCandidateid(), "total "
+				+ marksinfo.getTotal() + (marksinfo.getInterviewround() == null ? "" : ", round " + marksinfo.getInterviewround()));
 		log.info("Evaluation {} of candidate {} saved by {}", markkey, marksinfo.getCandidateid(), interviewerid);
-		notificationservice.evaluationSaved(marksinfo.getCandidateid(), interviewerid);
+		notificationservice.evaluationSaved(marksinfo.getCandidateid(), interviewerid, marksinfo.getInterviewround());
 		return Outcome.ok("Evaluation saved.");
 	}
 
@@ -95,8 +103,8 @@ public class MarksServiceImpl implements MarksService {
 	}
 
 	@Override
-	public MarksInfo findEvaluation(String candidateid, String interviewerid) {
-		return marksdao.findEvaluation(candidateid, interviewerid);
+	public MarksInfo findEvaluation(String candidateid, String interviewerid, String interviewround) {
+		return marksdao.findEvaluation(candidateid, interviewerid, InterviewRound.code(interviewround));
 	}
 
 	private static String blankToNull(String value) {

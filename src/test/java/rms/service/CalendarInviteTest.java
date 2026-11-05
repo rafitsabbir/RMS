@@ -80,6 +80,14 @@ class CalendarInviteTest {
 	}
 
 	@Test
+	void theRoundIsInTheDescriptionWhenThereIsOne() {
+		assertThat(ics(interview())).doesNotContain("Round:");
+		ScheduleInfo technical = interview();
+		technical.setInterviewround("TECHNICAL");
+		assertThat(ics(technical).replace("\r\n ", "")).contains("\\nRound: Technical interview\\n");
+	}
+
+	@Test
 	void theFileNameHoldsIdsAndTheDateOnly() {
 		assertThat(CalendarInvite.fileName(interview())).isEqualTo("interview-C3-2030-06-01.ics");
 	}

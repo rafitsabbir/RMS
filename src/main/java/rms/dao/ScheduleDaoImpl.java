@@ -26,7 +26,7 @@ public class ScheduleDaoImpl implements ScheduleDao {
 	private String visible = "s.isactive=1 and exists (select 1 from candidate c where c.candidateid=s.candidateid "
 			+ "and c.isactive=1)";
 	private String selectschedule = "select s.schedulekey, s.candidateid, s.interviewerid, s.startat, s.location, "
-			+ "s.status, coalesce(s.updatedat, s.createdat) as changedat, "
+			+ "s.status, s.interviewround, coalesce(s.updatedat, s.createdat) as changedat, "
 			+ "(select min(concat_ws(' ', c.firstname, c.lastname)) from candidate c "
 			+ "where c.candidateid=s.candidateid) as candidatename, (select min(concat_ws(' ', a.firstname, "
 			+ "a.lastname)) from admin a where a.userid=s.interviewerid) as interviewername from interview_schedule s "
@@ -44,10 +44,10 @@ public class ScheduleDaoImpl implements ScheduleDao {
 	private String conflict = "select count(*) from interview_schedule where isactive=1 and status='SCHEDULED' "
 			+ "and interviewerid=:interviewerid and startat=:startat and schedulekey<>:schedulekey";
 	private String addschedule = "insert into interview_schedule (candidateid, interviewerid, startat, location, "
-			+ "status, createdby, createdat, isactive) values (:candidateid, :interviewerid, :startat, :location, "
-			+ "'SCHEDULED', :userid, now(), 1)";
+			+ "interviewround, status, createdby, createdat, isactive) values (:candidateid, :interviewerid, :startat, "
+			+ ":location, :interviewround, 'SCHEDULED', :userid, now(), 1)";
 	private String updateschedule = "update interview_schedule set interviewerid=:interviewerid, startat=:startat, "
-			+ "location=:location, status=:status, updatedby=:userid, updatedat=now() "
+			+ "location=:location, interviewround=:interviewround, status=:status, updatedby=:userid, updatedat=now() "
 			+ "where schedulekey=:schedulekey and isactive=1 and status<>'CANCELLED'";
 	private String cancelschedule = "update interview_schedule set status='CANCELLED', updatedby=:userid, "
 			+ "updatedat=now() where schedulekey=:schedulekey and isactive=1 and status='SCHEDULED'";
@@ -72,6 +72,7 @@ public class ScheduleDaoImpl implements ScheduleDao {
 			schedule.setStartat(rs.getObject("startat", LocalDateTime.class));
 			schedule.setLocation(rs.getString("location"));
 			schedule.setStatus(rs.getString("status"));
+			schedule.setInterviewround(rs.getString("interviewround"));
 			schedule.setChangedat(rs.getObject("changedat", LocalDateTime.class));
 			return schedule;
 		}
@@ -137,6 +138,7 @@ public class ScheduleDaoImpl implements ScheduleDao {
 		paramMap.put("interviewerid", scheduleinfo.getInterviewerid());
 		paramMap.put("startat", scheduleinfo.getStartat());
 		paramMap.put("location", scheduleinfo.getLocation());
+		paramMap.put("interviewround", scheduleinfo.getInterviewround());
 		paramMap.put("userid", userid);
 		// The key goes into the staff e-mail and its calendar file (NotificationService, F1)
 		KeyHolder keys = new GeneratedKeyHolder();
@@ -153,6 +155,7 @@ public class ScheduleDaoImpl implements ScheduleDao {
 		paramMap.put("interviewerid", scheduleinfo.getInterviewerid());
 		paramMap.put("startat", scheduleinfo.getStartat());
 		paramMap.put("location", scheduleinfo.getLocation());
+		paramMap.put("interviewround", scheduleinfo.getInterviewround());
 		paramMap.put("status", scheduleinfo.getStatus());
 		paramMap.put("userid", userid);
 		return namedParameterJdbcTemplate.update(updateschedule, paramMap) > 0;

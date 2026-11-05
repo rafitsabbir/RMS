@@ -205,12 +205,18 @@ class ReportControllerTest {
 		interview.setInterviewername("Ivan Interviewer");
 		interview.setStartat(LocalDateTime.of(2099, 1, 15, 10, 0));
 		interview.setLocation("Room 1");
-		when(scheduleservice.getAllSchedule()).thenReturn(List.of(interview));
+		ScheduleInfo round = new ScheduleInfo();
+		round.setCandidateid("C2");
+		round.setStartat(LocalDateTime.of(2099, 1, 16, 9, 0));
+		round.setInterviewround("TECHNICAL");
+		when(scheduleservice.getAllSchedule()).thenReturn(List.of(interview, round));
 
 		String csv = body("/exportschedule");
 
-		assertThat(csv).contains("When (server time),Candidate ID", "2099-01-15 10:00,C1,Carla Candidate,U2,"
-				+ "Ivan Interviewer,Room 1,SCHEDULED");
+		// Round (F2) is the last column, empty without one
+		assertThat(csv).contains("When (server time),Candidate ID", "Location,Status,Round",
+				"2099-01-15 10:00,C1,Carla Candidate,U2,Ivan Interviewer,Room 1,SCHEDULED,\r\n",
+				"2099-01-16 09:00,C2,,,,,SCHEDULED,Technical interview");
 		verify(activityservice).record("U3", "REPORT_DOWNLOADED", "REPORT", "INTERVIEW_SCHEDULE", null);
 	}
 

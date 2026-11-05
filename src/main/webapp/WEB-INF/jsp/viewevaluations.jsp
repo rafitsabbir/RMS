@@ -68,7 +68,7 @@
 							<c:out value="${empty evaluation.interviewername ? evaluation.interviewerid : evaluation.interviewername}"/>
 							<c:if test="${not evaluation.intervieweractive}"><span class="badge rounded-pill text-bg-warning ms-1">interviewer inactive</span></c:if>
 							<c:if test="${not evaluation.assigned}"><span class="badge rounded-pill text-bg-secondary ms-1">unassigned</span></c:if>
-							<div class="small text-body-secondary"><c:out value="${evaluation.updatedlabel}"/></div>
+							<div class="small text-body-secondary"><c:out value="${evaluation.roundlabel}"/> &middot; <c:out value="${evaluation.updatedlabel}"/></div>
 						</td>
 						<c:forEach items="${evaluation.scores}" var="score">
 						<td>${score}</td>
@@ -83,13 +83,22 @@
 						</c:forEach>
 						<td>${summary.total}</td>
 					</tr>
+				<c:forEach items="${roundsummaries}" var="entry">
+					<tr class="table-light">
+						<td><c:out value="${entry.key}"/>: average of ${entry.value.evaluations}</td>
+						<c:forEach items="${entry.value.roundedaverages}" var="average">
+						<td>${average}</td>
+						</c:forEach>
+						<td>${entry.value.total}</td>
+					</tr>
+				</c:forEach>
 				</tbody>
 			</table>
 			</div>
 			<h3 class="h6 mt-3">Comments</h3>
 			<c:forEach items="${evaluations}" var="evaluation">
 			<div class="mb-3">
-				<div class="fw-semibold"><c:out value="${empty evaluation.interviewername ? evaluation.interviewerid : evaluation.interviewername}"/></div>
+				<div class="fw-semibold"><c:out value="${empty evaluation.interviewername ? evaluation.interviewerid : evaluation.interviewername}"/> <span class="fw-normal text-body-secondary small">&middot; <c:out value="${evaluation.roundlabel}"/></span></div>
 				<c:if test="${not empty evaluation.comments}"><p class="mb-1"><c:out value="${evaluation.comments}"/></p></c:if>
 				<ul class="small mb-0">
 				<c:forEach items="${criteria}" var="criterion" varStatus="row">

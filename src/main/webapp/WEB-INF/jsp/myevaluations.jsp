@@ -47,7 +47,8 @@
 						</td>
 						<td>
 							<c:choose>
-								<c:when test="${item.evaluated}"><span class="badge rounded-pill text-bg-success">Submitted</span></c:when>
+								<c:when test="${item.evaluated}"><span class="badge rounded-pill text-bg-success">Submitted</span>
+									<c:if test="${not empty item.evaluatedroundlabels}"><div class="small text-body-secondary"><c:out value="${item.evaluatedroundlabels}"/></div></c:if></c:when>
 								<c:otherwise><span class="badge rounded-pill text-bg-warning">To do</span></c:otherwise>
 							</c:choose>
 						</td>

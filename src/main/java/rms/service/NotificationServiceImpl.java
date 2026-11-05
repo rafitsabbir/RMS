@@ -25,6 +25,7 @@ import rms.dao.CandidateDao;
 import rms.dao.ScheduleDao;
 import rms.dao.UserDao;
 import rms.model.CandidateInfo;
+import rms.model.InterviewRound;
 import rms.model.Role;
 import rms.model.ScheduleInfo;
 import rms.model.UserInfo;
@@ -133,7 +134,7 @@ public class NotificationServiceImpl implements NotificationService, DisposableB
 	}
 
 	@Override
-	public void evaluationSaved(String candidateid, String interviewerid) {
+	public void evaluationSaved(String candidateid, String interviewerid, String interviewround) {
 		submit("EVALUATION_SAVED", candidateid, () -> {
 			List<UserInfo> hr = hrRecipients();
 			if (hr.isEmpty()) {
@@ -145,7 +146,10 @@ public class NotificationServiceImpl implements NotificationService, DisposableB
 			String candidate = candidateLabel(candidateid);
 			for (UserInfo user : hr) {
 				send(user, "evaluation of " + candidate,
-						greeting(user) + by + " saved an evaluation of " + candidate + ".\n"
+						greeting(user) + by + " saved an evaluation of " + candidate
+								+ (InterviewRound.parse(interviewround) == null ? ""
+										: " (" + InterviewRound.label(interviewround) + ")")
+								+ ".\n"
 								+ "The averages are under Candidate Status." + link("/adminviewmarks"),
 						null);
 			}
@@ -165,6 +169,7 @@ public class NotificationServiceImpl implements NotificationService, DisposableB
 			send(interviewer, subject.toLowerCase() + " with " + candidateLabel(schedule),
 					greeting(interviewer) + intro + "\n\n"
 							+ "Candidate: " + candidateLabel(schedule) + "\n"
+							+ (schedule.getInterviewround() == null ? "" : "Round: " + schedule.getRoundlabel() + "\n")
 							+ "When: " + schedule.getStartlabel() + " (one hour)\n"
 							+ "Where: " + location + "\n"
 							+ "Status: " + schedule.getStatus() + "\n\n"

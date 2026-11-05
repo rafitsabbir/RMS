@@ -100,6 +100,14 @@ class AssignmentDaoImplTest extends MySqlContainerSupport {
 		AssignmentInfo first = dao.getMyCandidates("U2").get(0);
 		assertThat(first.getCandidatefirstname()).isEqualTo("Carla");
 		assertThat(first.isLocked()).isTrue();
+		// The rounds evaluated (F2): the seed's evaluation has none
+		assertThat(first.getEvaluatedrounds()).isEmpty();
+		assertThat(first.getEvaluatedroundlabels()).isEmpty();
+		jdbcTemplate.update("insert into marks (isactive, interviewerid, candidateid, workexp, techknowledge, leadership, "
+				+ "decision, probsolving, stress, education, comskill, attitude, personality, interviewround) values "
+				+ "(1, 'U2', 'C1', 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 'FINAL'), (1, 'U2', 'C1', 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 'FIRST')");
+		first = dao.getMyCandidates("U2").get(0);
+		assertThat(first.getEvaluatedroundlabels()).isEqualTo("First interview, Final interview");
 
 		// Unassigned but evaluated: still listed, as no longer assigned
 		jdbcTemplate.update("update candidate_interviewer set isactive=0 where assignmentkey=3");

@@ -29,6 +29,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import rms.model.AssignmentInfo;
 import rms.model.CandidateInfo;
+import rms.model.InterviewRound;
 import rms.model.ScheduleInfo;
 import rms.service.CalendarInvite;
 import rms.service.CandidateService;
@@ -55,7 +56,8 @@ public class ScheduleController {
 	/** Only the form's fields bind; the candidate of an existing interview comes from the stored row. */
 	@InitBinder("scheduleinfo")
 	void bindFormFieldsOnly(WebDataBinder binder) {
-		binder.setAllowedFields("schedulekey", "candidateid", "interviewerid", "startat", "location", "status");
+		binder.setAllowedFields("schedulekey", "candidateid", "interviewerid", "startat", "location", "status",
+				"interviewround");
 	}
 
 	@RequestMapping(value = "/viewschedulelist", method = RequestMethod.GET)
@@ -188,6 +190,7 @@ public class ScheduleController {
 			interviewers.add(former);
 		}
 		mv.addObject("interviewerlist", interviewers);
+		mv.addObject("rounds", InterviewRound.values());
 		if (errorMessage != null) {
 			mv.addObject("errorMessage", errorMessage);
 		}

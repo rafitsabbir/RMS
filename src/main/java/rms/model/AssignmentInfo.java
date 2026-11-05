@@ -2,6 +2,9 @@ package rms.model;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * An interviewer's assignment to a candidate (candidate_interviewer, Phase 3), with names and flags read through
@@ -25,6 +28,8 @@ public class AssignmentInfo {
 	/** Whether the assignment is active (always true on the profile; false on My Evaluations once unassigned). */
 	private boolean assigned = true;
 	private boolean evaluated = false;
+	/** The rounds evaluated, as codes separated by commas ("" for no round), on My Evaluations (F2). */
+	private String evaluatedrounds = null;
 	private LocalDateTime assignedat = null;
 
 	public String getStatuslabel() {
@@ -34,6 +39,29 @@ public class AssignmentInfo {
 	/** Selected or Rejected: the evaluation can't be changed. */
 	public boolean isLocked() {
 		return DecisionStatus.locks(candidatestatus);
+	}
+
+	public String getEvaluatedrounds() {
+		return evaluatedrounds;
+	}
+
+	public void setEvaluatedrounds(String evaluatedrounds) {
+		this.evaluatedrounds = evaluatedrounds;
+	}
+
+	/** The rounds evaluated as labels, e.g. "First interview, Technical interview"; empty when only "no round". */
+	public String getEvaluatedroundlabels() {
+		if (evaluatedrounds == null) {
+			return "";
+		}
+		List<String> codes = Arrays.asList(evaluatedrounds.split(","));
+		List<String> labels = new ArrayList<String>();
+		for (InterviewRound round : InterviewRound.values()) {
+			if (codes.contains(round.name())) {
+				labels.add(round.getLabel());
+			}
+		}
+		return String.join(", ", labels);
 	}
 
 	public String getAssignedlabel() {

@@ -170,10 +170,12 @@ public class ReportController {
 	@RequestMapping(value = "/exportschedule", method = RequestMethod.GET)
 	public ResponseEntity<byte[]> schedule(HttpSession session) {
 		CsvWriter csv = new CsvWriter().row("When (server time)", "Candidate ID", "Candidate", "Interviewer ID",
-				"Interviewer", "Location", "Status");
+				"Interviewer", "Location", "Status", "Round");
+		// Round (F2) last, so a spreadsheet that reads the earlier columns by position keeps working
 		for (ScheduleInfo s : scheduleservice.getAllSchedule()) {
 			csv.row(s.getStartlabel(), s.getCandidateid(), s.getCandidatename(), s.getInterviewerid(),
-					s.getInterviewername(), s.getLocation(), s.getStatus());
+					s.getInterviewername(), s.getLocation(), s.getStatus(),
+					s.getInterviewround() == null ? "" : s.getRoundlabel());
 		}
 		return download(csv, "interview-schedule", "INTERVIEW_SCHEDULE", null, session);
 	}

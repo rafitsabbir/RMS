@@ -127,8 +127,20 @@ class ScheduleDaoImplTest extends MySqlContainerSupport {
 		// A status on the object is ignored: a new interview is SCHEDULED
 		info.setStatus(ScheduleInfo.DONE);
 
+		info.setInterviewround("TECHNICAL");
 		// The new key goes into the staff e-mail (F1)
 		assertThat(dao.addSchedule(info, "U3")).isEqualTo(4);
+		// The round (F2) is stored and read back; the seed's interviews have none
+		assertThat(dao.findScheduleById(4).getInterviewround()).isEqualTo("TECHNICAL");
+		assertThat(dao.findScheduleById(1).getInterviewround()).isNull();
+		info.setSchedulekey(4);
+		info.setStatus(ScheduleInfo.SCHEDULED);
+		info.setInterviewround("FINAL");
+		assertThat(dao.updateSchedule(info, "U3")).isTrue();
+		assertThat(dao.findScheduleById(4).getInterviewround()).isEqualTo("FINAL");
+		info.setInterviewround("TECHNICAL");
+		assertThat(dao.updateSchedule(info, "U3")).isTrue();
+		jdbcTemplate.update("update interview_schedule set updatedby=null, updatedat=null where schedulekey=4");
 
 		Map<String, Object> row = jdbcTemplate.queryForMap("select * from interview_schedule where schedulekey=4");
 		assertThat(row.get("candidateid")).isEqualTo("C2");

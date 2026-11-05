@@ -122,6 +122,38 @@ class NotificationTriggersTest {
 	}
 
 	@Test
+	void aNewRoundIsAChangeTheInterviewerHearsOfAndAnUnknownRoundIsRefused() {
+		when(scheduledao.findScheduleById(7)).thenReturn(interview(7, "U2"));
+		when(scheduledao.updateSchedule(any(ScheduleInfo.class), anyString())).thenReturn(true);
+		ScheduleInfo technical = interview(7, "U2");
+		technical.setInterviewround("technical");
+
+		assertThat(schedule.save(technical, "U3").done()).isTrue();
+		assertThat(technical.getInterviewround()).isEqualTo("TECHNICAL");
+		verify(notifications).interviewChanged(7, "U2");
+
+		ScheduleInfo unknown = interview(0, "U2");
+		unknown.setInterviewround("LUNCH");
+		assertThat(schedule.save(unknown, "U3").message()).isEqualTo("Please choose a round from the list.");
+	}
+
+	@Test
+	void anEvaluationKeepsItsRoundAndAnUnknownOneIsRefused() {
+		when(marksdao.saveMarks(any(MarksInfo.class))).thenReturn(9);
+		MarksInfo first = EvaluationServicesTest.scored(7);
+		first.setInterviewround(" first ");
+
+		assertThat(marks.saveEvaluation(first, "U2").done()).isTrue();
+		assertThat(first.getInterviewround()).isEqualTo("FIRST");
+		verify(notifications).evaluationSaved("C1", "U2", "FIRST");
+		verify(activityservice).record("U2", "MARKED", "CANDIDATE", "C1", "total 70, round FIRST");
+
+		MarksInfo unknown = EvaluationServicesTest.scored(7);
+		unknown.setInterviewround("LUNCH");
+		assertThat(marks.saveEvaluation(unknown, "U2").message()).isEqualTo("Please choose a round from the list.");
+	}
+
+	@Test
 	void aCancelledInterviewNotifiesOnlyWhenItWasCancelled() {
 		when(scheduledao.cancelSchedule(5, "U3")).thenReturn(true);
 		when(scheduledao.cancelSchedule(6, "U3")).thenReturn(false);
@@ -167,7 +199,7 @@ class NotificationTriggersTest {
 		assertThat(marks.saveEvaluation(EvaluationServicesTest.scored(7), "U2").done()).isTrue();
 		assertThat(marks.saveEvaluation(EvaluationServicesTest.scored(7), "U2").done()).isFalse();
 
-		verify(notifications).evaluationSaved("C1", "U2");
+		verify(notifications).evaluationSaved("C1", "U2", null);
 		verify(notifications, never()).interviewScheduled(anyInt());
 	}
 

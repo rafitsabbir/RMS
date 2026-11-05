@@ -23,6 +23,8 @@ public class MarksInfo {
 	/** Whether the interviewer is still assigned to the candidate. */
 	private boolean assigned = false;
 	private String candidateid = null;
+	/** The round's code (InterviewRound), or null for none (F2). */
+	private String interviewround = null;
 	private int workexp = 0;
 	private int techknowledge = 0;
 	private int leadership = 0;
@@ -48,6 +50,20 @@ public class MarksInfo {
 	private LocalDateTime updatedat = null;
 
 	/** The scores in Criterion order. */
+
+	/** The round's code (InterviewRound), or null for none (F2). */
+	public String getInterviewround() {
+		return interviewround;
+	}
+
+	public void setInterviewround(String interviewround) {
+		this.interviewround = interviewround;
+	}
+
+	/** The round's label, or "No round". */
+	public String getRoundlabel() {
+		return InterviewRound.label(interviewround);
+	}
 	public List<Integer> getScores() {
 		List<Integer> scores = new ArrayList<Integer>();
 		for (Criterion criterion : Criterion.values()) {

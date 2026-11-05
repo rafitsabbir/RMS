@@ -20,6 +20,9 @@ public interface MarksDao {
 	/** A candidate's active evaluations, oldest first. */
 	public List<MarksInfo> getEvaluations(String candidateid);
 
-	/** The interviewer's active evaluation of the candidate (the oldest, if there are several), or null. */
-	public MarksInfo findEvaluation(String candidateid, String interviewerid);
+	/**
+	 * The interviewer's active evaluation of the candidate in the round (a code, or null for "no round"; the oldest,
+	 * if there are several), or null.
+	 */
+	public MarksInfo findEvaluation(String candidateid, String interviewerid, String interviewround);
 }

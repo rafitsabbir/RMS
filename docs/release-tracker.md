@@ -30,7 +30,7 @@ Decisions: e-mails go to staff only, never to candidates; sign-in with a company
 | # | Feature | State | Result / evidence |
 |---|---|---|---|
 | F1 | E-mail notifications to staff: interviewer assigned; interview scheduled, moved or cancelled (with the calendar file); evaluation submitted (to HR). Sent only when a mail server is configured | **Done** 2026-11-05 | `NotificationServiceImpl` (background thread; never breaks the action), `MailSettings` (`RMS_MAIL_*`, `RMS_APP_URL`); a real SMTP delivery tested with Mailpit (`MailDeliveryTest`); marking an interview Done sends nothing ([business-flows/reports-activity.md](business-flows/reports-activity.md), [config.md](config.md)) |
-| F2 | Interview rounds (e.g. first, technical, final), each with its own evaluations | Pending | |
+| F2 | Interview rounds (e.g. first, technical, final), each with its own evaluations | **Done** 2026-11-05 | Rounds on interviews and evaluations (migration 009), one evaluation per interviewer, candidate and round, a tab per round on the form, averages per round ([business-flows/evaluation.md](business-flows/evaluation.md)); the browser workflow test covers two rounds. The list of rounds is open question #33 |
 | F3 | Several roles per user (e.g. Hiring Manager and Interviewer with one account) | Pending | |
 | F4 | Bulk import of candidates from CSV, with a preview, per-row errors and the duplicate check | Pending | |
 | F5 | Backups (database and documents together, with a restore test) and `/health` in monitoring: ops documentation | Pending | |

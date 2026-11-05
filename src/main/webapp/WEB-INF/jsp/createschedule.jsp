@@ -63,6 +63,13 @@
 					<div class="form-text">No active interviewer is assigned to this candidate. Assign one on the candidate's profile first.</div>
 					</c:if>
 				</div>
+				<div class="mb-3">
+					<label for="interviewround" class="form-label">Round <span class="text-body-secondary">(optional)</span></label>
+					<form:select path="interviewround" cssClass="form-select" id="interviewround">
+						<form:option value="" label="No round"/>
+						<form:options items="${rounds}" itemValue="name" itemLabel="label"/>
+					</form:select>
+				</div>
 				<div class="row g-3 mb-3">
 					<div class="col-sm-6">
 						<label for="startat" class="form-label">Date and time</label>

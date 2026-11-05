@@ -21,6 +21,7 @@
 					<tr>
 						<th>When</th>
 						<th>Candidate</th>
+						<th>Round</th>
 						<th>Location</th>
 						<th>Status</th>
 						<th class="rms-col-actions text-end" data-orderable="false" data-searchable="false">Calendar</th>
@@ -34,6 +35,7 @@
 							<c:out value="${item.candidatename}"/>
 							<span class="text-body-secondary small"><c:out value="${item.candidateid}"/></span>
 						</td>
+						<td class="text-nowrap"><c:out value="${item.roundlabel}"/></td>
 						<td><c:out value="${item.location}"/></td>
 						<td><rms:schedulestatus value="${item.status}" icons="${icons}"/></td>
 						<td class="text-end text-nowrap">
