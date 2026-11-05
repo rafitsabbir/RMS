@@ -48,4 +48,9 @@ public class JobServiceImpl implements JobService {
 		jobdao.deleteJob(jobkey);
 	}
 
+
+	@Override
+	public List<JobInfo> getJobsWithPipeline() {
+		return jobdao.getJobsWithPipeline();
+	}
 }

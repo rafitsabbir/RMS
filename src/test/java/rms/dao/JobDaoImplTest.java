@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.groups.Tuple.tuple;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -96,5 +97,44 @@ class JobDaoImplTest extends MySqlContainerSupport {
 		job.setClosingdate(closingdate);
 		job.setStatus(status);
 		return job;
+	}
+
+	@Test
+	void thePipelineCountsEachJobsCandidatesPerStage() {
+		// C2 (Rejected at Interview) joins job 1; job 2 has nobody
+		jdbcTemplate.update("update candidate set jobkey=1 where candidateid='C2'");
+
+		List<JobInfo> jobs = dao.getJobsWithPipeline();
+
+		JobInfo first = jobs.stream().filter(j -> j.getJobkey() == 1).findFirst().orElseThrow();
+		assertThat(first.getStagecounts()).containsEntry("OFFER", 1).containsEntry("INTERVIEW", 1)
+				.containsEntry("APPLIED", 0).containsEntry("HIRED", 0).hasSize(6);
+		assertThat(first.getRejectedcount()).isEqualTo(1);
+		assertThat(first.isFilled()).isFalse();
+		JobInfo second = jobs.stream().filter(j -> j.getJobkey() == 2).findFirst().orElseThrow();
+		assertThat(second.getStagecounts().values()).containsOnly(0);
+		// The deleted job 3 isn't listed
+		assertThat(jobs).extracting(JobInfo::getJobkey).doesNotContain(3);
+	}
+
+	@Test
+	void aJobIsFilledWhenItsVacanciesAreHiredAndDatedByTheLastHire() {
+		jdbcTemplate.update("update candidate set stage='HIRED' where candidateid='C1'");
+		jdbcTemplate.update("insert into candidate_stage (candidateid, fromstage, tostage, changedby, changedat) "
+				+ "values ('C1', 'OFFER', 'HIRED', 'U3', '2026-10-01 09:00:00')");
+		// A NULL stage reads as Applied
+		jdbcTemplate.update("update candidate set jobkey=1, stage=null where candidateid='C2'");
+
+		JobInfo job = dao.getJobsWithPipeline().stream().filter(j -> j.getJobkey() == 1).findFirst().orElseThrow();
+		assertThat(job.getHiredcount()).isEqualTo(1);
+		assertThat(job.getStagecounts()).containsEntry("APPLIED", 1);
+		// Job 1 has 2 vacancies: not filled with one hire
+		assertThat(job.isFilled()).isFalse();
+		assertThat(job.getFilledat()).isNull();
+
+		jdbcTemplate.update("update job set vacancies=1 where jobkey=1");
+		job = dao.getJobsWithPipeline().stream().filter(j -> j.getJobkey() == 1).findFirst().orElseThrow();
+		assertThat(job.isFilled()).isTrue();
+		assertThat(job.getFilledat()).isEqualTo(LocalDate.of(2026, 10, 1));
 	}
 }

@@ -409,6 +409,20 @@ class WorkflowTest {
 
 	@Test
 	@Order(11)
+	void hrSeesThePipelinePerJob() {
+		// F6: the seed's job 1 has Carla at Offer (Selected); a badge opens the list filtered to the job and stage
+		Page hr = pages.get("HR");
+		hr.navigate(base + "/viewjoblist");
+		Locator job = hr.locator("#jobtable tbody tr").first();
+		assertThat(job.innerText()).contains("Offer 1", "0 of 2 hired");
+		job.locator("a.badge", new Locator.LocatorOptions().setHasText("Offer")).click();
+		hr.waitForURL("**/viewcandidatelist**");
+		assertThat(path(hr)).startsWith("/viewcandidatelist").contains("jobkey=1", "stage=OFFER");
+		assertThat(text(hr, "#candidatetable")).contains("Carla");
+	}
+
+	@Test
+	@Order(12)
 	void noConsoleErrors() {
 		errors.forEach((page, list) -> assertThat(list).as("console errors").isEmpty());
 	}

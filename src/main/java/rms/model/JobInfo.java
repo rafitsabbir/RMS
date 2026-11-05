@@ -1,6 +1,7 @@
 package rms.model;
 
 import java.time.LocalDate;
+import java.util.Map;
 
 import org.springframework.format.annotation.DateTimeFormat;
 
@@ -17,7 +18,52 @@ public class JobInfo {
 	@DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
 	private LocalDate closingdate = null;
 	private String status = OPEN;
+	/** The pipeline (F6, the Jobs page only): active candidates linked to the job per stage name, all stages present. */
+	private Map<String, Integer> stagecounts = null;
+	/** Active candidates linked to the job with the decision Rejected (they also count in their stage). */
+	private int rejectedcount = 0;
+	/** When the last candidate now Hired was moved to Hired, or null. */
+	private LocalDate lasthiredat = null;
 
+
+	public Map<String, Integer> getStagecounts() {
+		return stagecounts;
+	}
+
+	public void setStagecounts(Map<String, Integer> stagecounts) {
+		this.stagecounts = stagecounts;
+	}
+
+	public int getRejectedcount() {
+		return rejectedcount;
+	}
+
+	public void setRejectedcount(int rejectedcount) {
+		this.rejectedcount = rejectedcount;
+	}
+
+	public LocalDate getLasthiredat() {
+		return lasthiredat;
+	}
+
+	public void setLasthiredat(LocalDate lasthiredat) {
+		this.lasthiredat = lasthiredat;
+	}
+
+	/** Candidates now Hired. */
+	public int getHiredcount() {
+		return stagecounts == null ? 0 : stagecounts.getOrDefault(HiringStage.HIRED.name(), 0);
+	}
+
+	/** Filled: as many candidates Hired as the job has vacancies (F6). */
+	public boolean isFilled() {
+		return vacancies > 0 && getHiredcount() >= vacancies;
+	}
+
+	/** When it was filled: the date the last of its hires was moved to Hired; null while it isn't filled. */
+	public LocalDate getFilledat() {
+		return isFilled() ? lasthiredat : null;
+	}
 	@Override
 	public String toString() {
 		return "JobInfo [jobkey=" + jobkey + ", positionkey=" + positionkey + ", vacancies=" + vacancies

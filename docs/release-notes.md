@@ -33,7 +33,7 @@ The four roles: On the first day, the old administrators are **Super Admins** an
   - IDs (C1, C2, …) are given automatically.
   - Deleting a candidate keeps their scores.
 - **Documents:** upload a CV and other documents (PDF, JPG or PNG, up to 5 MB) on the candidate's profile. The list shows who still has no CV.
-- **Jobs:** open and closed job openings, linked to a position.
+- **Jobs:** open and closed job openings, linked to a position. The Jobs page shows each job's pipeline (new): how many candidates are at each stage, how many were rejected, and when the job was filled; click a number to see those candidates.
 - **Interviewers and evaluations:**
   - Assign interviewers to a candidate.
   - Candidate Status shows the average of each of the 10 criteria.

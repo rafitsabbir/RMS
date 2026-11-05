@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.ModelAndView;
 
+import rms.model.HiringStage;
 import rms.model.JobInfo;
 import rms.model.PositionInfo;
 import rms.service.ActivityService;
@@ -52,7 +53,8 @@ public class JobController {
 	@RequestMapping(value = "/viewjoblist", method = RequestMethod.GET)
 	public ModelAndView viewJob() {
 		ModelAndView mv = new ModelAndView("viewjob");
-		mv.addObject("joblist", jobservice.getAllJob());
+		mv.addObject("joblist", jobservice.getJobsWithPipeline());
+		mv.addObject("stages", HiringStage.values());
 		return mv;
 	}
 
