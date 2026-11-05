@@ -167,9 +167,8 @@ The application has no properties files and no profiles. All environment-specifi
 ## 10. Release status
 |Branch|Contents|Runtime|State|
 |---|---|---|---|
-|dev|Everything below plus the hardening batch (error pages, /health, database timeouts, Dependabot), MySQL 9.7 and the October features (hiring stages, calendar files, duplicate warning, filters, hiring report). Feature freeze since 20 October 2026|Spring 7, Tomcat 11, JDK 21, MySQL 9.7|Tested in CI on every change (590 tests, the container image with the smoke test and the browser workflow); the release rehearsed end to end; not released|
-|master|The state of 3 October 2026 (roles plan Phases 1-4, reports, activity log); 30 commits behind dev|Spring 7, Tomcat 11, JDK 21|Not deployed; to be updated from dev at the release|
-|release/phase1|Security upgrades on Java 8 (in master's history)|Spring 5.3.39, Tomcat 9, JDK 8|Tested and rehearsed; not released (skipped if dev is released directly)|
+|dev and master|The same commit since 5 November 2026: everything below plus the hardening batch (error pages, /health, database timeouts, Dependabot), MySQL 9.7 and the October features (hiring stages, calendar files, duplicate warning, filters, hiring report). Feature freeze since 20 October 2026|Spring 7, Tomcat 11, JDK 21, MySQL 9.7|Tested in CI on every change (590 tests, the container image with the smoke test and the browser workflow); the release rehearsed end to end; not released|
+|release/phase1|Security upgrades on Java 8 (in master's history)|Spring 5.3.39, Tomcat 9, JDK 8|Tested and rehearsed; not released; kept frozen as a fallback (skipped if dev is released directly)|
 
 **Deadline:** Tomcat 9 support ends on 31 March 2027. Production should move to the dev line (Tomcat 11) before then.
 
