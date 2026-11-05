@@ -11,7 +11,7 @@
   
   	<properties>
 		<spring.version>7.0.10</spring.version>
-		<!-- 7.0.7 is built against Spring 7.0.9 (spring-security-core's pom) -->
+		<!-- 7.1.2 is built against Spring 7.0.10 (spring-security-core's pom) -->
 		<spring-security.version>7.1.2</spring-security.version>
 		<servletapi.version>6.1.0</servletapi.version>
 		<jstl.api.version>3.0.2</jstl.api.version>
