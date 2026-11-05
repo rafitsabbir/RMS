@@ -35,7 +35,7 @@ The user-facing version, for announcing the release: [release-notes.md](release-
 2. **Database checks** on production, read-only, in one run: [`db/checks/pre-release-checks.sql`](../db/checks/README.md) (send its output to the developers). It covers the DDL against `db/schema.sql` (#19), and the checks of #27 (who becomes Super Admin, password column, keys, storage engine), #28 (documents and jobs), **#29 (`SHOW CREATE TABLE marks`; migration 005 is a draft until this is done)** and #30 (time zone). A difference found here stops the release until the migration is adjusted.
 3. **Migration 003** (hash the stored plain-text passwords): **approved** 2026-11-05; it runs in ops step 4b. Answer its #25 checks first (they are in item 2's output).
 4. **Mail server** (optional, for the staff e-mails, F1): the SMTP host, port, sender address and, if needed, an account; RMS's address for the links (`RMS_APP_URL`). Without them RMS sends no e-mail ([config.md](config.md)). Check that every user has their work e-mail in Users and Roles.
-5. **Document storage:** a folder for `RMS_DOC_DIR` with its owner, rights, backup and size ([build-run.md](build-run.md), "Document storage").
+5. **Document storage:** a folder for `RMS_DOC_DIR` with its owner, rights, backup and size; the daily backup and the monitoring set up as [operations.md](operations.md) describes ([build-run.md](build-run.md), "Document storage").
 6. **Accounts:** the MySQL account the application uses (data rights on the RMS database only: SELECT, INSERT, UPDATE, DELETE) and an admin account for the server upgrade and the migrations (schema rights).
 7. **Sign-off:** a domain user for the checks after deploy.
 
