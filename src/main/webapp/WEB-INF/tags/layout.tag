@@ -137,6 +137,14 @@
 				aria-controls="rms-sidebar" aria-label="Open menu"><svg class="rms-icon" aria-hidden="true"><use href="${icons}#list"/></svg></button>
 			<a class="rms-topbar-brand d-lg-none" href="${base}home">
 				<img src="${base}resources/img/favicon.svg" width="28" height="28" alt="">RMS</a>
+			<%-- Candidate search (F7) for the roles that see the Candidates list --%>
+			<c:if test="${role eq 'SUPER_ADMIN' or role eq 'HR' or role eq 'HIRING_MANAGER'}">
+			<form class="rms-search d-none d-md-flex" role="search" method="get" action="${base}viewcandidatelist">
+				<label for="rms-search-q" class="visually-hidden">Search candidates</label>
+				<input type="search" name="q" id="rms-search-q" class="form-control form-control-sm" maxlength="100"
+					placeholder="Search candidates" autocomplete="off">
+			</form>
+			</c:if>
 			<div class="rms-user">
 				<span class="rms-avatar" aria-hidden="true"><c:out value="${fn:substring(user.firstname, 0, 1)}${fn:substring(user.lastname, 0, 1)}" /></span>
 				<span class="rms-user-text">

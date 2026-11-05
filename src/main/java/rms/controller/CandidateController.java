@@ -150,7 +150,8 @@ public class CandidateController {
 	/** The list's filters are GET parameters (bookmarkable); a date that isn't one is ignored with a message. */
 	@InitBinder("filter")
 	void bindFilterFieldsOnly(WebDataBinder binder) {
-		binder.setAllowedFields("jobkey", "stage", "status", "source", "appliedfrom", "appliedto", "nocv", "notevaluated");
+		binder.setAllowedFields("jobkey", "stage", "status", "source", "appliedfrom", "appliedto", "nocv", "notevaluated",
+				"q");
 	}
 
 	@RequestMapping(value = "/viewcandidatelist", method = RequestMethod.GET)

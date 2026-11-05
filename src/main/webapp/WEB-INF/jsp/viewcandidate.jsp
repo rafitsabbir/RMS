@@ -50,6 +50,12 @@
 		<div class="card-body">
 			<h2 id="filter-heading" class="h6 mb-3">Filter</h2>
 			<div class="row g-3 align-items-end">
+				<%-- Search (F7): part of the ID, name, e-mail or phone; every word must be found --%>
+				<div class="col-12">
+					<label for="f-q" class="form-label">Search</label>
+					<input type="search" name="q" id="f-q" class="form-control" maxlength="100" value="<c:out value='${filter.q}'/>"
+						placeholder="Name, e-mail, phone or ID" autocomplete="off">
+				</div>
 				<div class="col-sm-6 col-lg-4">
 					<label for="f-jobkey" class="form-label">Job</label>
 					<select name="jobkey" id="f-jobkey" class="form-select">

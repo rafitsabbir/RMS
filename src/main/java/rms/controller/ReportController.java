@@ -114,7 +114,8 @@ public class ReportController {
 	/** The Candidates list's filters, so its "Download CSV" exports what the list shows. */
 	@InitBinder("filter")
 	void bindFilterFieldsOnly(WebDataBinder binder) {
-		binder.setAllowedFields("jobkey", "stage", "status", "source", "appliedfrom", "appliedto", "nocv", "notevaluated");
+		binder.setAllowedFields("jobkey", "stage", "status", "source", "appliedfrom", "appliedto", "nocv", "notevaluated",
+				"q");
 	}
 
 	/** Every active candidate, or with the list's filters only those that pass (a date that isn't one is ignored). */

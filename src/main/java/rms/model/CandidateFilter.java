@@ -1,6 +1,7 @@
 package rms.model;
 
 import java.time.LocalDate;
+import java.util.Locale;
 
 import org.springframework.format.annotation.DateTimeFormat;
 
@@ -31,11 +32,13 @@ public class CandidateFilter {
 	private LocalDate appliedto = null;
 	private boolean nocv = false;
 	private boolean notevaluated = false;
+	/** Search text (F7): a part of the ID, first and last name, e-mail or phone, any case; empty for any. */
+	private String q = null;
 
 	/** Whether any filter is set. */
 	public boolean isActive() {
 		return jobkey != 0 || !blank(stage) || !blank(status) || !blank(source) || appliedfrom != null
-				|| appliedto != null || nocv || notevaluated;
+				|| appliedto != null || nocv || notevaluated || !blank(q);
 	}
 
 	/** Whether the candidate passes every filter that is set. With an applied-date range, no date doesn't pass. */
@@ -68,7 +71,33 @@ public class CandidateFilter {
 		if (nocv && candidate.isHascv()) {
 			return false;
 		}
-		return !notevaluated || candidate.getEvaluationcount() == 0;
+		if (notevaluated && candidate.getEvaluationcount() != 0) {
+			return false;
+		}
+		return blank(q) || found(candidate);
+	}
+
+	/**
+	 * The search (F7): every word of q is found in the candidate's ID, "first last" name, e-mail or phone, any case.
+	 * Phone numbers also match by their digits only, so "555 0100" finds "+1 (555) 0100".
+	 */
+	private boolean found(CandidateInfo candidate) {
+		String text = String.join(" ", value(candidate.getCandidateid()), value(candidate.getFirstname()),
+				value(candidate.getLastname()), value(candidate.getEmail()), value(candidate.getPhone()))
+				.toLowerCase(Locale.ROOT);
+		String phonedigits = value(candidate.getPhone()).replaceAll("[^0-9]", "");
+		for (String word : q.trim().toLowerCase(Locale.ROOT).split("\\s+")) {
+			String worddigits = word.replaceAll("[^0-9]", "");
+			boolean phonelike = worddigits.length() >= 3 && worddigits.length() == word.replaceAll("[()+./-]", "").length();
+			if (!text.contains(word) && !(phonelike && phonedigits.contains(worddigits))) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	private static String value(String text) {
+		return text == null ? "" : text;
 	}
 
 	private static boolean blank(String value) {
@@ -137,5 +166,13 @@ public class CandidateFilter {
 
 	public void setNotevaluated(boolean notevaluated) {
 		this.notevaluated = notevaluated;
+	}
+
+	public String getQ() {
+		return q;
+	}
+
+	public void setQ(String q) {
+		this.q = q;
 	}
 }

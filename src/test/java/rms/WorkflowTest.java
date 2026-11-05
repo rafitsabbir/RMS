@@ -423,6 +423,20 @@ class WorkflowTest {
 
 	@Test
 	@Order(12)
+	void theTopBarSearchFindsACandidate() {
+		// F7: from any page, the search box opens the Candidates list with the matches
+		Page hm = pages.get("HM");
+		hm.navigate(base + "/home");
+		hm.fill("#rms-search-q", "carla");
+		hm.press("#rms-search-q", "Enter");
+		hm.waitForURL("**/viewcandidatelist?q=carla");
+		assertThat(text(hm, "#candidatetable")).contains("Carla").doesNotContain("Cody");
+		assertThat(hm.inputValue("#f-q")).isEqualTo("carla");
+		assertThat(text(hm)).contains("Showing 1 of");
+	}
+
+	@Test
+	@Order(13)
 	void noConsoleErrors() {
 		errors.forEach((page, list) -> assertThat(list).as("console errors").isEmpty());
 	}
