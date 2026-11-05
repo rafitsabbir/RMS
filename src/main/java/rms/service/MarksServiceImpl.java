@@ -26,6 +26,13 @@ public class MarksServiceImpl implements MarksService {
 
 	ActivityService activityservice;
 
+	NotificationService notificationservice = NotificationService.NONE;
+
+	@Autowired
+	public void setNotificationService(NotificationService notificationservice) {
+		this.notificationservice = notificationservice;
+	}
+
 	@Autowired
 	public void setActivityService(ActivityService activityservice) {
 		this.activityservice = activityservice;
@@ -73,6 +80,7 @@ public class MarksServiceImpl implements MarksService {
 		}
 		activityservice.record(interviewerid, "MARKED", "CANDIDATE", marksinfo.getCandidateid(), "total " + marksinfo.getTotal());
 		log.info("Evaluation {} of candidate {} saved by {}", markkey, marksinfo.getCandidateid(), interviewerid);
+		notificationservice.evaluationSaved(marksinfo.getCandidateid(), interviewerid);
 		return Outcome.ok("Evaluation saved.");
 	}
 

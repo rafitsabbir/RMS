@@ -29,8 +29,8 @@ public interface ScheduleDao {
 	/** Whether the interviewer has another SCHEDULED interview at exactly this start time (excludekey: 0 for a new one). */
 	public boolean hasConflict(String interviewerid, LocalDateTime startat, int excludekey);
 
-	/** Adds a SCHEDULED interview. */
-	public void addSchedule(ScheduleInfo scheduleinfo, String userid);
+	/** Adds a SCHEDULED interview and returns its key. */
+	public int addSchedule(ScheduleInfo scheduleinfo, String userid);
 
 	/** Changes interviewer, time, location and status (SCHEDULED or DONE) unless it is cancelled; false then. */
 	public boolean updateSchedule(ScheduleInfo scheduleinfo, String userid);

@@ -1,7 +1,7 @@
 # Flow: Reports, Activity Log and English-only Text
 
 Purpose: Traces the CSV reports, the activity log (who marked, selected, rejected and so on) and the English-only rule for entered text.
-Last updated: 2026-10-20 (hiring report and `/exporthiring`; filtered candidate CSV; duplicate note on candidate changes). 2026-10-03 (second round: sign-ins, documents, jobs and master data logged; Deleted Candidates page; new:  owner request after roles plan Phase 4; migration 007, DB-verified NO; G34 closed by decision)
+Last updated: 2026-11-05 (F1: e-mail notifications to staff). 2026-10-20 (hiring report and `/exporthiring`; filtered candidate CSV; duplicate note on candidate changes). 2026-10-03 (second round: sign-ins, documents, jobs and master data logged; Deleted Candidates page; new:  owner request after roles plan Phase 4; migration 007, DB-verified NO; G34 closed by decision)
 Read this when: you're working on a report or CSV download, the Activity Log page, `activity_log`, or any check that refuses non-English text.
 
 Evidence: `rms/controller/ReportController.java`, `ActivityController.java`; `rms/service/ActivityServiceImpl.java`, `CsvWriter.java`, `EnglishText.java`; `rms/dao/ActivityDaoImpl.java`; `rms/model/ActivityInfo.java`; `WEB-INF/jsp/reports.jsp`, `viewactivity.jsp`; `db/migrations/007-activity-log.sql`; `rms/config/SecurityConfig.java`.
@@ -91,6 +91,14 @@ The message says what to change: "… can use English letters only. Please use E
 `ScheduleServiceImpl.save` refuses a SCHEDULED interview whose time has already passed when it is new or its time changes: "Please choose a time that hasn't passed yet." A change that keeps the stored time, and an interview marked Done, are not checked, so a past interview can still get a location or be marked Done. Times stay the database server's wall-clock time.
 
 ## Not built (open)
-- E-mail notifications for interviews (a calendar file can be downloaded since 2026-10-20, [schedule.md](schedule.md)): the owner will decide later ([open-questions.md](../open-questions.md) #10).
+- **E-mail notifications to staff (F1, 2026-11-05; owner decision: staff only, never candidates):** `rms.service.NotificationServiceImpl`, called by the services after an action has worked:
+  - `AssignmentServiceImpl.assign` → the interviewer: "you are assigned to …", with a link to My Evaluations;
+  - `ScheduleServiceImpl.save` (new) → the interviewer: the interview's details and the calendar file (`CalendarInvite`, the same `.ics` as the download); `save` (changed) → the interviewer, the same with the new details; a previous interviewer, when it changed, is told it moved (no calendar file); `cancel` → the interviewer, with the calendar file that cancels the event;
+  - `MarksServiceImpl.saveEvaluation` → every active HR user with an address (the Super Admins when there is none): who evaluated whom, with a link to Candidate Status. No scores or comments in the mail.
+  - **Who gets nothing:** inactive users, users without a valid `admin.email`, and everyone when `RMS_MAIL_HOST` is unset (then RMS works as before and reads nothing).
+  - **Never in the way:** one background thread (`rms-mail`) sends in order; the request doesn't wait, and a mail failure is a WARN with the user key and the exception class only (no address, name or server). Timeouts: 10 s to connect, 20 s to read and write.
+  - **Settings** (environment, [config.md](../config.md)): `RMS_MAIL_HOST`, `RMS_MAIL_PORT` (587), `RMS_MAIL_USER`, `RMS_MAIL_PASSWORD`, `RMS_MAIL_FROM`, `RMS_MAIL_SECURITY` (`starttls` by default, `ssl`, `none`), `RMS_APP_URL` (for the links). Unusable settings switch e-mail off with one WARN at startup.
+  - **Not logged in the activity log:** the action itself is (ASSIGNED, INTERVIEW_*, MARKED); the mail adds nothing there.
+  - **Tests:** `NotificationServiceImplTest` (recipients, text, attachment, failures), `NotificationTriggersTest` (which action sends what; refusals send nothing), `MailSettingsTest`, `MailDeliveryTest` (a real SMTP server, Mailpit, in Docker).
 - A retention period for the activity log and for documents: the owner decides ([open-questions.md](../open-questions.md) #31).
 - Excel (`.xlsx`) and PDF output: only CSV.

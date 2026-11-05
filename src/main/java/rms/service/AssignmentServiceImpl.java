@@ -20,6 +20,13 @@ public class AssignmentServiceImpl implements AssignmentService {
 
 	ActivityService activityservice;
 
+	NotificationService notificationservice = NotificationService.NONE;
+
+	@Autowired
+	public void setNotificationService(NotificationService notificationservice) {
+		this.notificationservice = notificationservice;
+	}
+
 	@Autowired
 	public void setActivityService(ActivityService activityservice) {
 		this.activityservice = activityservice;
@@ -58,6 +65,7 @@ public class AssignmentServiceImpl implements AssignmentService {
 		}
 		activityservice.record(userid, "ASSIGNED", "CANDIDATE", candidateid, "interviewer " + interviewerid);
 		log.info("Interviewer {} assigned to candidate {} by {}", interviewerid, candidateid, userid);
+		notificationservice.interviewerAssigned(candidateid, interviewerid);
 		return Outcome.ok("Interviewer assigned.");
 	}
 

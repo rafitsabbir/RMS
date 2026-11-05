@@ -1,7 +1,7 @@
 # RMS: What's New
 
 Purpose: the release notes for the people who use RMS: what is new and what changes for them when the new version (`dev`) goes live. Plain language; the technical details are in [release-dev.md](release-dev.md).
-Last updated: 2026-11-05 (passwords all encrypted at the release, HTTPS). 2026-10-20 (written for release-tracker item 3)
+Last updated: 2026-11-05 (e-mails to staff). 2026-11-05 (passwords all encrypted at the release, HTTPS). 2026-10-20 (written for release-tracker item 3)
 Read this when: you announce the release to users, or a user asks what changed.
 
 The new RMS replaces the version from 2020. Your data stays: candidates, scores, positions and languages are all kept. Below: what changes for everyone, then what is new for each role.
@@ -67,8 +67,14 @@ There are four roles. On the first day, the old administrators are **Super Admin
   - Download it again after a change, so your calendar updates the event.
   - Nobody is e-mailed.
 
+## E-mails (new)
+RMS e-mails staff about their work, once the IT team has connected it to a mail server:
+- **Interviewers:** when you are assigned to a candidate; when an interview of yours is scheduled, changed or cancelled. The interview mails carry the calendar file, so one click updates your calendar.
+- **HR:** when an interviewer saves an evaluation. The mail says who evaluated whom; the scores stay in RMS.
+- **Candidates** are never e-mailed by RMS.
+- Make sure your profile has your work e-mail address (a Super Admin can set it under Users and Roles).
+
 ## Not in this release
-- **No e-mail notifications.** The owner will decide later.
 - **One role per account.** Someone who is both a Hiring Manager and an Interviewer needs two accounts for now.
 - **Times are the server's local time.** This includes the calendar files.
 

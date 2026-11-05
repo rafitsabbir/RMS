@@ -3,6 +3,7 @@ package rms.service;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Objects;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +24,13 @@ public class ScheduleServiceImpl implements ScheduleService {
 	AssignmentDao assignmentdao;
 
 	ActivityService activityservice;
+
+	NotificationService notificationservice = NotificationService.NONE;
+
+	@Autowired
+	public void setNotificationService(NotificationService notificationservice) {
+		this.notificationservice = notificationservice;
+	}
 
 	@Autowired
 	public void setActivityService(ActivityService activityservice) {
@@ -126,15 +134,22 @@ public class ScheduleServiceImpl implements ScheduleService {
 			activityservice.record(userid, "INTERVIEW_CHANGED", "INTERVIEW", String.valueOf(scheduleinfo.getSchedulekey()),
 					"candidate " + scheduleinfo.getCandidateid() + ", status " + scheduleinfo.getStatus());
 			log.info("Interview {} changed by {}", scheduleinfo.getSchedulekey(), userid);
+			// Only what the interviewer needs to know: a new interviewer, time or place (marking it Done is not)
+			if (!unchanged || timeChanged || !Objects.equals(scheduleinfo.getLocation(), stored.getLocation())) {
+				notificationservice.interviewChanged(scheduleinfo.getSchedulekey(), stored.getInterviewerid());
+			}
 			return Outcome.ok("Interview updated.");
 		}
-		scheduledao.addSchedule(scheduleinfo, userid);
+		int schedulekey = scheduledao.addSchedule(scheduleinfo, userid);
 		activityservice.record(userid, "INTERVIEW_SCHEDULED", "CANDIDATE", scheduleinfo.getCandidateid(),
 				"interviewer " + interviewerid);
 		log.info("Interview of candidate {} with interviewer {} scheduled by {}", scheduleinfo.getCandidateid(),
 				interviewerid, userid);
 		// Applied or Screening moves on to Interview (hiring stages, 2026-10-20)
 		stageservice.interviewScheduled(scheduleinfo.getCandidateid(), userid);
+		if (schedulekey > 0) {
+			notificationservice.interviewScheduled(schedulekey);
+		}
 		return Outcome.ok("Interview scheduled.");
 	}
 
@@ -145,6 +160,7 @@ public class ScheduleServiceImpl implements ScheduleService {
 		}
 		activityservice.record(userid, "INTERVIEW_CANCELLED", "INTERVIEW", String.valueOf(schedulekey), null);
 		log.info("Interview {} cancelled by {}", schedulekey, userid);
+		notificationservice.interviewCancelled(schedulekey);
 		return Outcome.ok("Interview cancelled.");
 	}
 }

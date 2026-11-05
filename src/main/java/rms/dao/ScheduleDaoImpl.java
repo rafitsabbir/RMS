@@ -10,7 +10,10 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 import rms.model.ScheduleInfo;
@@ -128,14 +131,19 @@ public class ScheduleDaoImpl implements ScheduleDao {
 	}
 
 	@Override
-	public void addSchedule(ScheduleInfo scheduleinfo, String userid) {
+	public int addSchedule(ScheduleInfo scheduleinfo, String userid) {
 		Map<String, Object> paramMap = new HashMap<String, Object>();
 		paramMap.put("candidateid", scheduleinfo.getCandidateid());
 		paramMap.put("interviewerid", scheduleinfo.getInterviewerid());
 		paramMap.put("startat", scheduleinfo.getStartat());
 		paramMap.put("location", scheduleinfo.getLocation());
 		paramMap.put("userid", userid);
-		namedParameterJdbcTemplate.update(addschedule, paramMap);
+		// The key goes into the staff e-mail and its calendar file (NotificationService, F1)
+		KeyHolder keys = new GeneratedKeyHolder();
+		namedParameterJdbcTemplate.update(addschedule, new MapSqlParameterSource(paramMap), keys,
+				new String[] {"schedulekey"});
+		Number key = keys.getKey();
+		return key == null ? 0 : key.intValue();
 	}
 
 	@Override
