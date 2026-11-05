@@ -24,7 +24,8 @@ public class AssignmentDaoImpl implements AssignmentDao {
 	private String assignmentsbycandidate = "select ci.assignmentkey, ci.candidateid, ci.interviewerid, "
 			+ "ci.assignedat, (select min(concat_ws(' ', a.firstname, a.lastname)) from admin a "
 			+ "where a.userid=ci.interviewerid) as interviewername, coalesce((select max(case when a.isactive=1 "
-			+ "and (upper(trim(a.role))='INTERVIEWER' or (a.role is null and upper(a.isinterviewer)='Y')) then 1 else 0 end) "
+			+ "and (upper(trim(a.role))='INTERVIEWER' or (a.role is null and upper(a.isinterviewer)='Y') "
+			+ "or (a.alsointerviewer=1 and upper(trim(a.role)) in ('SUPER_ADMIN', 'HR', 'HIRING_MANAGER'))) then 1 else 0 end) "
 			+ "from admin a where a.userid=ci.interviewerid), 0) as intervieweractive, (select count(*) from marks m "
 			+ "where m.candidateid=ci.candidateid and m.interviewerid=ci.interviewerid and m.isactive=1) as evaluated "
 			+ "from candidate_interviewer ci where ci.candidateid=:candidateid and ci.isactive=1 "
@@ -33,7 +34,8 @@ public class AssignmentDaoImpl implements AssignmentDao {
 			+ "and interviewerid=:interviewerid and isactive=1";
 	// Only Interviewer-role users (decision F), active, and not assigned already
 	private String assignable = "select a.userid, a.firstname, a.lastname from admin a where a.isactive=1 "
-			+ "and (upper(trim(a.role))='INTERVIEWER' or (a.role is null and upper(a.isinterviewer)='Y')) "
+			+ "and (upper(trim(a.role))='INTERVIEWER' or (a.role is null and upper(a.isinterviewer)='Y') "
+			+ "or (a.alsointerviewer=1 and upper(trim(a.role)) in ('SUPER_ADMIN', 'HR', 'HIRING_MANAGER'))) "
 			+ "and not exists (select 1 from candidate_interviewer ci where ci.candidateid=:candidateid "
 			+ "and ci.interviewerid=a.userid and ci.isactive=1) order by a.firstname, a.lastname, a.userid";
 	private String assign = "insert into candidate_interviewer (candidateid, interviewerid, assignedby, assignedat, "

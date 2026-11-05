@@ -1,7 +1,7 @@
 # RMS: What's New
 
 Purpose: the release notes for the people who use RMS: what is new and what changes for them when the new version (`dev`) goes live. Plain language; the technical details are in [release-dev.md](release-dev.md).
-Last updated: 2026-11-05 (interview rounds). 2026-11-05 (e-mails to staff). 2026-11-05 (passwords all encrypted at the release, HTTPS). 2026-10-20 (written for release-tracker item 3)
+Last updated: 2026-11-05 (staff who also interview). 2026-11-05 (interview rounds). 2026-11-05 (e-mails to staff). 2026-11-05 (passwords all encrypted at the release, HTTPS). 2026-10-20 (written for release-tracker item 3)
 Read this when: you announce the release to users, or a user asks what changed.
 
 The new RMS replaces the version from 2020. Your data stays: candidates, scores, positions and languages are all kept. Below: what changes for everyone, then what is new for each role.
@@ -16,7 +16,9 @@ The new RMS replaces the version from 2020. Your data stays: candidates, scores,
 - **Signed out when your account changes.** If a Super Admin changes your role or deactivates you, your next click goes back to the sign-in page.
 
 ## Roles
-There are four roles. On the first day, the old administrators are **Super Admins** and the old interviewers are **Interviewers**. A Super Admin then gives the **HR** and **Hiring Manager** roles under **Users and Roles**.
+There are four roles. A Super Admin, HR user or Hiring Manager can **also interview** (one account, new): a Super Admin ticks "Also interviews" under Users and Roles, and that person gets My Evaluations and My Schedule too and can be assigned to candidates.
+
+The four roles: On the first day, the old administrators are **Super Admins** and the old interviewers are **Interviewers**. A Super Admin then gives the **HR** and **Hiring Manager** roles under **Users and Roles**.
 
 | Role | Can |
 |---|---|
@@ -76,7 +78,6 @@ RMS e-mails staff about their work, once the IT team has connected it to a mail 
 - Make sure your profile has your work e-mail address (a Super Admin can set it under Users and Roles).
 
 ## Not in this release
-- **One role per account.** Someone who is both a Hiring Manager and an Interviewer needs two accounts for now.
 - **Times are the server's local time.** This includes the calendar files.
 
 ## Questions

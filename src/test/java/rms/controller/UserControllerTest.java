@@ -202,6 +202,33 @@ class UserControllerTest {
 	}
 
 	@Test
+	void aStaffUserCanBeMadeToAlsoInterviewButNotTheirOwnAccount() throws Exception {
+		when(userservice.findUserById("U3")).thenReturn(user("U3", "test.hr", Role.HR, 1));
+
+		mockMvc.perform(post("/saveuser").session(session).param("update", "true").param("userid", "U3")
+				.param("firstname", "Hana").param("lastname", "HR").param("role", "HR").param("alsointerviewer", "1"))
+				.andExpect(redirectedUrl("/viewuserlist"));
+
+		ArgumentCaptor<UserInfo> saved = ArgumentCaptor.forClass(UserInfo.class);
+		verify(userservice).updateUser(saved.capture());
+		assertThat(saved.getValue().getAlsointerviewer()).isEqualTo(1);
+		verify(activityservice).record("U1", "USER_CHANGED", "USER", "U3", "role HR, also interviewer");
+
+		// On the Interviewer role the box means nothing
+		when(userservice.findUserById("U2")).thenReturn(user("U2", "test.interviewer", Role.INTERVIEWER, 1));
+		mockMvc.perform(post("/saveuser").session(session).param("update", "true").param("userid", "U2")
+				.param("firstname", "Ivan").param("lastname", "I").param("role", "INTERVIEWER")
+				.param("alsointerviewer", "1")).andExpect(redirectedUrl("/viewuserlist"));
+		verify(userservice, org.mockito.Mockito.times(2)).updateUser(saved.capture());
+		assertThat(saved.getValue().getAlsointerviewer()).isZero();
+
+		// One's own: like one's own role
+		when(userservice.findUserById("U1")).thenReturn(user("U1", "test.admin", Role.SUPER_ADMIN, 1));
+		mockMvc.perform(editOwnProfile().param("role", "SUPER_ADMIN").param("alsointerviewer", "1"))
+				.andExpect(model().attribute("errorMessage", "You can't change your own role."));
+	}
+
+	@Test
 	void lastActiveSuperAdminCantBeDemoted() throws Exception {
 		when(userservice.findUserById("U7")).thenReturn(user("U7", "other.admin", Role.SUPER_ADMIN, 1));
 		when(userservice.countActiveSuperAdmins()).thenReturn(1);

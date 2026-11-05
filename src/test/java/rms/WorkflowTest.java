@@ -358,6 +358,33 @@ class WorkflowTest {
 
 	@Test
 	@Order(9)
+	void theHiringManagerAlsoInterviews() {
+		Page hm = pages.get("HM");
+		hm.navigate(base + "/home");
+		assertThat(hm.locator("a[href$='myevaluations']").count()).isZero();
+
+		// Several roles (F3): the Super Admin ticks "Also interviews" for the Hiring Manager
+		Page sa = pages.get("SA");
+		sa.navigate(base + "/updateuser?userid=U4");
+		sa.check("#alsointerviewer");
+		submit(sa, "form#user button[type=submit]");
+		assertThat(path(sa)).isEqualTo("/viewuserlist");
+		assertThat(text(sa, "#usertable")).contains("Hiring Manager and Interviewer");
+
+		// The change signs the Hiring Manager out; after signing in again the Interviewer pages are theirs too
+		hm.navigate(base + "/home");
+		assertThat(path(hm)).startsWith("/login");
+		Page again = signIn("HM");
+		assertThat(again.locator("nav a[href$='myevaluations']").count()).isEqualTo(1);
+		again.navigate(base + "/myevaluations");
+		assertThat(path(again)).isEqualTo("/myevaluations");
+		// Still no HR page
+		APIResponse create = again.context().request().get(base + "/createcandidate", RequestOptions.create().setMaxRedirects(0));
+		assertThat(create.status()).isEqualTo(403);
+	}
+
+	@Test
+	@Order(10)
 	void noConsoleErrors() {
 		errors.forEach((page, list) -> assertThat(list).as("console errors").isEmpty());
 	}

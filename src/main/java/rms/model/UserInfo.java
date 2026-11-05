@@ -20,6 +20,8 @@ public class UserInfo implements Serializable {
 	private String role = null;
 	/** users.mustchangepassword: 1 after a password reset, until the user sets their own */
 	private int mustchangepassword = 0;
+	/** 1: a staff user who also interviews (F3, admin.alsointerviewer, migration 010). */
+	private int alsointerviewer = 0;
 
 	public UserInfo(){
 
@@ -42,6 +44,31 @@ public class UserInfo implements Serializable {
 	}
 
 	/** The role's display name, or empty for none. */
+	public int getAlsointerviewer() {
+		return alsointerviewer;
+	}
+
+	public void setAlsointerviewer(int alsointerviewer) {
+		this.alsointerviewer = alsointerviewer;
+	}
+
+	/** A staff user (Super Admin, HR, Hiring Manager) who also interviews: the Interviewer pages are theirs too. */
+	public boolean isAlsointerviewing() {
+		Role parsed = Role.parse(role);
+		return alsointerviewer == 1 && parsed != null && parsed.isStaff();
+	}
+
+	/** Has the Interviewer pages: the Interviewer role, or a staff role that also interviews (F3). */
+	public boolean isInterviewer() {
+		return Role.parse(role) == Role.INTERVIEWER || isAlsointerviewing();
+	}
+
+	/** The role's label, plus "and Interviewer" for a staff user who also interviews. */
+	public String getRolesummary() {
+		String label = getRolelabel();
+		return isAlsointerviewing() ? label + " and Interviewer" : label;
+	}
+
 	public String getRolelabel() {
 		Role parsed = Role.parse(role);
 		return parsed == null ? "" : parsed.getLabel();

@@ -28,7 +28,7 @@ public class UserDaoImpl implements UserDao {
 	// a join, so two users rows for one userid (no known key, G22) don't list the user twice
 	private String selectuser = "select a.userid, (select min(u.username) from users u where u.userid=a.userid) "
 			+ "as username, a.isactive, a.firstname, a.lastname, a.email, a.phone, a.designation, a.isinterviewer, "
-			+ "a.role, (select max(u.mustchangepassword) from users u where u.userid=a.userid) as mustchangepassword "
+			+ "a.role, a.alsointerviewer, (select max(u.mustchangepassword) from users u where u.userid=a.userid) as mustchangepassword "
 			+ "from admin a";
 	// Shorter IDs first, so U2 comes before U10
 	private String allusers = selectuser + " order by length(a.userid), a.userid";
@@ -45,11 +45,13 @@ public class UserDaoImpl implements UserDao {
 	private String savelogin = "insert into users (userid, username, password, mustchangepassword) "
 			+ "values (:userid, :username, :password, 1)";
 	private String saveprofile = "insert into admin "
-			+ "(userid, username, isactive, firstname, lastname, email, phone, designation, isinterviewer, role) "
-			+ "values (:userid, :username, 1, :firstname, :lastname, :email, :phone, :designation, :isinterviewer, :role)";
+			+ "(userid, username, isactive, firstname, lastname, email, phone, designation, isinterviewer, role, "
+			+ "alsointerviewer) values (:userid, :username, 1, :firstname, :lastname, :email, :phone, :designation, "
+			+ ":isinterviewer, :role, :alsointerviewer)";
 	// isinterviewer follows the role, for a rollback to a WAR from before the roles (Role.getIsinterviewer)
 	private String updateuser = "update admin set firstname=:firstname, lastname=:lastname, email=:email, "
-			+ "phone=:phone, designation=:designation, isinterviewer=:isinterviewer, role=:role where userid=:userid";
+			+ "phone=:phone, designation=:designation, isinterviewer=:isinterviewer, role=:role, "
+			+ "alsointerviewer=:alsointerviewer where userid=:userid";
 	// Soft: the rows, and the user's evaluations and history, stay
 	private String setactive = "update admin set isactive=:isactive where userid=:userid";
 	private String setpassword = "update users set password=:password, mustchangepassword=:mustchangepassword "
@@ -92,6 +94,7 @@ public class UserDaoImpl implements UserDao {
 			Role role = Role.of(rs.getString("role"), userinfo.getIsinterviewer());
 			userinfo.setRole(role == null ? null : role.name());
 			userinfo.setMustchangepassword(rs.getInt("mustchangepassword"));
+			userinfo.setAlsointerviewer(rs.getInt("alsointerviewer"));
 			return userinfo;
 		}
 	}
@@ -192,6 +195,8 @@ public class UserDaoImpl implements UserDao {
 		paramMap.put("designation", userinfo.getDesignation());
 		paramMap.put("role", role == null ? null : role.name());
 		paramMap.put("isinterviewer", role == null ? null : role.getIsinterviewer());
+		// Only a staff role can also interview (F3); an Interviewer already does
+		paramMap.put("alsointerviewer", role != null && role.isStaff() && userinfo.getAlsointerviewer() == 1 ? 1 : 0);
 		return paramMap;
 	}
 

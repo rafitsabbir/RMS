@@ -15,7 +15,7 @@ import rms.model.UserInfo;
 /**
  * The logged-in user Spring Security keeps in the session: the users row plus the admin row (the profile).
  * The authority is the profile's role (Role: admin.role, or the isinterviewer fallback), e.g. ROLE_HR; no role
- * means no authority (G16). Enabled means admin.isactive = 1; SecurityConfig checks it after the password.
+ * means no authority (G16). A staff user who also interviews (admin.alsointerviewer, F3) gets ROLE_INTERVIEWER too. Enabled means admin.isactive = 1; SecurityConfig checks it after the password.
  * Spring Security erases the password after the login.
  */
 public class RmsUserDetails implements UserDetails, CredentialsContainer {
@@ -35,7 +35,15 @@ public class RmsUserDetails implements UserDetails, CredentialsContainer {
 		this.password = login.getPassword();
 		this.userinfo = userinfo;
 		Role role = roleOf(userinfo);
-		this.authorities = role == null ? List.of() : List.of(new SimpleGrantedAuthority(role.getAuthority()));
+		if (role == null) {
+			this.authorities = List.of();
+		} else if (userinfo.isAlsointerviewing()) {
+			// A staff user who also interviews (F3): the Interviewer pages as well
+			this.authorities = List.of(new SimpleGrantedAuthority(role.getAuthority()),
+					new SimpleGrantedAuthority(Role.INTERVIEWER.getAuthority()));
+		} else {
+			this.authorities = List.of(new SimpleGrantedAuthority(role.getAuthority()));
+		}
 	}
 
 	private static Role roleOf(UserInfo userinfo) {
@@ -53,6 +61,11 @@ public class RmsUserDetails implements UserDetails, CredentialsContainer {
 	/** The role this login was granted, or null. */
 	public Role getRole() {
 		return roleOf(userinfo);
+	}
+
+	/** Whether this login was granted the Interviewer pages besides a staff role (F3). */
+	public boolean isAlsointerviewing() {
+		return userinfo != null && userinfo.isAlsointerviewing();
 	}
 
 	@Override

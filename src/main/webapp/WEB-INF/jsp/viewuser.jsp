@@ -54,7 +54,7 @@
 						<td>
 						<c:choose>
 							<c:when test="${empty account.role}"><span class="text-body-secondary">No role</span></c:when>
-							<c:otherwise><c:out value="${account.rolelabel}"/></c:otherwise>
+							<c:otherwise><c:out value="${account.rolesummary}"/></c:otherwise>
 						</c:choose>
 						</td>
 						<td><c:out value="${account.designation}"/></td>

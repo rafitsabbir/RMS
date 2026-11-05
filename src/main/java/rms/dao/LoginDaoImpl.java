@@ -50,6 +50,7 @@ public class LoginDaoImpl implements LoginDao {
 			Role role = Role.of(rs.getString("role"), userinfo.getIsinterviewer());
 			userinfo.setRole(role == null ? null : role.name());
 			userinfo.setMustchangepassword(rs.getInt("mustchangepassword"));
+			userinfo.setAlsointerviewer(rs.getInt("alsointerviewer"));
 			return userinfo;
 		}
 	}

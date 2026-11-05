@@ -3,6 +3,7 @@ package rms.dao;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.groups.Tuple.tuple;
 
+import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -88,6 +89,24 @@ class AssignmentDaoImplTest extends MySqlContainerSupport {
 		assertThat(row.get("unassignedat")).isNotNull();
 		assertThat(jdbcTemplate.queryForObject("select count(*) from marks where candidateid='C1' and interviewerid='U2'",
 				Integer.class)).isEqualTo(1);
+	}
+
+	@Test
+	void aStaffUserWhoAlsoInterviewsCanBeAssigned() {
+		List<String> before = dao.getAssignableInterviewers("C1").stream().map(UserInfo::getUserid).toList();
+		assertThat(before).doesNotContain("U3");
+
+		jdbcTemplate.update("update admin set alsointerviewer=1 where userid='U3'");
+
+		assertThat(dao.getAssignableInterviewers("C1")).extracting(UserInfo::getUserid).contains("U3");
+		// Assigned, they count as an active interviewer on the profile
+		dao.assign("C1", "U3", "U1");
+		assertThat(dao.getAssignments("C1")).filteredOn(a -> "U3".equals(a.getInterviewerid()))
+				.extracting(AssignmentInfo::isIntervieweractive).containsExactly(true);
+		// Without the flag again: shown as an inactive interviewer, so HR can reassign
+		jdbcTemplate.update("update admin set alsointerviewer=0 where userid='U3'");
+		assertThat(dao.getAssignments("C1")).filteredOn(a -> "U3".equals(a.getInterviewerid()))
+				.extracting(AssignmentInfo::isIntervieweractive).containsExactly(false);
 	}
 
 	@Test
