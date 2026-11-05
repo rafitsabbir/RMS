@@ -1,7 +1,7 @@
 # Handbooks
 
 Purpose: Word documents for people outside the code: the business analyst, the IT team, and new developers.
-Last updated: 2026-10-03 (activity log round 2, past interview times, Deleted Candidates). 2026-10-03 (reports, activity log, English-only text, migration 007). 2026-10-03 (branch status after dev was merged into master: all three handbooks say so). 2026-10-03 (updated for the roles plan, Phase 4: interview schedule, dashboard, migration 006; the process diagram redrawn with every step built). 2026-10-02 (updated for the roles plan, Phase 3: assignment, evaluations, Candidate Status averages, decisions, migration 005; the process diagram redrawn; two list items lost in the Phase 2 update restored). 2026-10-02 (updated for the roles plan, Phase 2: jobs, candidate profile and documents, RMS_DOC_DIR, migration 004; the process diagram redrawn). 2026-10-02 (updated for the roles plan, Phase 1: four roles, Users and Roles, passwords, migration 002; sources moved into `src/`). 2026-10-02 (first versions, describing `dev` as of 2026-10-02)
+Last updated: 2026-11-05 (release-tracker item 4: all three refreshed for `dev` with the hardening batch, MySQL 9.7 and the October features; hiring stages added to the process diagram; `make-docx.py` added). 2026-10-03 (activity log round 2, past interview times, Deleted Candidates). 2026-10-03 (reports, activity log, English-only text, migration 007). 2026-10-03 (branch status after dev was merged into master: all three handbooks say so). 2026-10-03 (updated for the roles plan, Phase 4: interview schedule, dashboard, migration 006; the process diagram redrawn with every step built). 2026-10-02 (updated for the roles plan, Phase 3: assignment, evaluations, Candidate Status averages, decisions, migration 005; the process diagram redrawn; two list items lost in the Phase 2 update restored). 2026-10-02 (updated for the roles plan, Phase 2: jobs, candidate profile and documents, RMS_DOC_DIR, migration 004; the process diagram redrawn). 2026-10-02 (updated for the roles plan, Phase 1: four roles, Users and Roles, passwords, migration 002; sources moved into `src/`). 2026-10-02 (first versions, describing `dev` as of 2026-10-02)
 Read this when: you need to hand RMS documentation to a non-developer, or check whether these handbooks are out of date.
 
 | File | For | Covers |
@@ -20,6 +20,12 @@ The sources are in `src/`: one text file per handbook (`ba.txt`, `it.txt`, `dev.
 powershell -ExecutionPolicy Bypass -File src\make-docx.ps1 -Source src\ba.txt -Output "RMS Business Analyst Guide.docx" -ImageDir src\diagrams
 ```
 
-Use `it.txt` â†’ `RMS Technical Operations Guide.docx` and `dev.txt` â†’ `RMS Developer Handbook.docx` the same way. Word isn't needed.
+Use `it.txt` → `RMS Technical Operations Guide.docx` and `dev.txt` → `RMS Developer Handbook.docx` the same way. Word isn't needed.
 
-To redraw a diagram after editing its `.mmd`, run `src\diagrams\render.ps1`. It needs Microsoft Edge and loads Mermaid 11.4.1 from cdn.jsdelivr.net; it renders every `.mmd` in the folder and crops each PNG.
+On Linux or macOS (Python 3, standard library only; it reads the Word styles from `make-docx.ps1`, so both scripts produce the same documents):
+
+```sh
+python3 src/make-docx.py src/ba.txt "RMS Business Analyst Guide.docx" src/diagrams
+```
+
+To redraw a diagram after editing its `.mmd`, run `src\diagrams\render.ps1`. It needs Microsoft Edge and loads Mermaid 11.4.1 from cdn.jsdelivr.net; it renders every `.mmd` in the folder and crops each PNG. Without Edge, any headless Chromium with Mermaid 11.4.1 gives the same picture (the 2026-11-05 update was rendered that way).

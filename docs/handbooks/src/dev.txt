@@ -1,6 +1,6 @@
 # RMS Developer Handbook
 @ Recruitment Management System — code structure, request flow, security model, conventions, tests and recipes for common changes
-@ Branches master and dev as of 3 October 2026 (roles plan Phases 1-4; reports, activity log and English-only text on dev). Java 21, Spring 7, Tomcat 11, MySQL.
+@ The dev branch as of 5 November 2026 (roles plan Phases 1-4, reports, activity log, English-only text, the hardening batch and the October features: hiring stages, calendar files, duplicate warning, filters, hiring report). Java 21, Spring 7, Tomcat 11, MySQL 9.7.
 
 ## 1. First day
 1. Install **JDK 21** (for example Eclipse Temurin 21) and set JAVA_HOME. A JRE isn't enough. Maven comes with the repository (Maven Wrapper).
@@ -17,7 +17,7 @@
 |---|---|
 |pom.xml|Maven build, packaging war|
 |src/main/java/rms/config/|WebInitializer (bootstraps Spring), WebConfig (MVC, view resolver, JNDI DataSource, static resources), SecurityConfig (access rules, login, logout, CSRF, password check), AccountCheckFilter, LoginThrottle, SecurityInitializer (registers the security filter), PlainTextPasswordEncoder (legacy passwords)|
-|src/main/java/rms/controller/|Login, Account (Change password), User (Users and Roles), Position, Language, Candidate (with the profile), Job, Document (upload, download, delete, permanent delete), Assignment, Evaluation (My Evaluations, the evaluation form, the evaluation detail and the decision) and Marks (Candidate Status) controllers, Schedule (the interview schedule), Report (CSV downloads), Activity (the activity log page), LoginController.home (the dashboard), and CurrentUser (the session user's ID and role)|
+|src/main/java/rms/controller/|Login, Account (Change password), User (Users and Roles), Position, Language, Candidate (with the profile), Job, Document (upload, download, delete, permanent delete), Assignment, Evaluation (My Evaluations, the evaluation form, the evaluation detail and the decision) and Marks (Candidate Status) controllers, Schedule (the interview schedule and its .ics calendar files), Stage (moving a candidate through the hiring stages), Report (CSV downloads and the hiring report), Activity (the activity log page), Health (GET /health for monitoring, no login), LoginController.home (the dashboard), and CurrentUser (the session user's ID and role)|
 |src/main/java/rms/service/|*Service interfaces and *ServiceImpl classes (mostly pass-through; UserServiceImpl encodes passwords; DocumentServiceImpl checks and stores uploads), RmsUserDetails, PasswordRules, DocumentRules (file checks), Outcome (a checked action's result)|
 |src/main/java/rms/dao/|*Dao interfaces and *DaoImpl classes — all SQL lives here; DocumentFileStore, the files in RMS_DOC_DIR|
 |src/main/java/rms/model/|*Info beans: PositionInfo, LanguageInfo, CandidateInfo, JobInfo, DocumentInfo, MarksInfo, UserInfo, LoginInfo, ResultInfo, AssignmentInfo, DecisionInfo, ScheduleInfo, DashboardInfo, ActivityInfo; the enums Role, DocumentType, CandidateSource, DecisionStatus, Criterion; the record DocumentUpload|
@@ -31,7 +31,7 @@
 |db/migrations/|Numbered scripts for existing databases|
 |db/local/|Local database setup|
 |deploy/tomcat/rms.xml|Tomcat context template (placeholders only)|
-|.github/workflows/|CI build and OSV dependency scan|
+|.github/workflows/|CI: build and tests, the container image with the smoke and browser workflow tests, OSV dependency scan (Dependabot in .github/dependabot.yml)|
 |docs/|Project knowledge; start at docs/ROUTER.md|
 
 ## 3. A request's path
@@ -130,7 +130,7 @@ Messages are set in the controller (the form(info, "message") helper) and shown 
 - The SQL is MySQL-specific (concat(), UPDATE … ORDER BY … LIMIT, REGEXP).
 - marks: since Phase 3 MarksDaoImpl names every column and reads by name; older WARs still read m.* by position, so add marks columns only at the end. Migration 005 (a draft) needs the owner's SHOW CREATE TABLE marks first. Migration 006 adds interview_schedule: startat is a DATETIME with no time zone, compared with now(), so it is the database server's zone. Migration 007 adds activity_log (no foreign keys; RMS only inserts and selects): ActivityServiceImpl.record swallows a DataAccessException with one WARN, so a missing table never breaks the user's action.
 - The decision badge is `<rms:status value="…" icons="…"/>` (WEB-INF/tags/status.tag): S, R, H or Pending.
-- New tables are created ENGINE=InnoDB (transactions and the SELECT … FOR UPDATE lock in DocumentDaoImpl). Migrations so far: 001 candidate.isactive, 002 roles, 003 password hashing (a Java program, not run), 004 candidate documents and jobs.
+- New tables are created ENGINE=InnoDB (transactions and the SELECT … FOR UPDATE lock in DocumentDaoImpl). Migrations so far: 001 candidate.isactive, 002 roles, 003 password hashing (a Java program, not run), 004 candidate documents and jobs, 005 assignment, evaluation and decision (a draft), 006 interview schedule, 007 activity log, 008 hiring stages (candidate.stage and candidate_stage). Migration 008's stage rules live in StageService: a decision or a scheduled interview moves the stage in the same transaction, and a move checks the stage it was read at, so a stale form is refused.
 - Dates: LocalDate and LocalDateTime map to DATE and DATETIME through Connector/J (`rs.getObject(column, LocalDate.class)`); upload times use the database's now().
 
 ## 9. Tests
@@ -140,12 +140,13 @@ Messages are set in the controller (the form(info, "message") helper) and shown 
 |Security|rms/config/SecurityConfigTest|Nothing|@SpringJUnitWebConfig, @MockitoBean services, MockMvc with springSecurity(); POSTs need .with(csrf())|
 |Service|rms/service/*Test|Nothing|Mockito|
 |DAO|rms/dao/*DaoImplTest|Docker|Extend MySqlContainerSupport: a fresh schema.sql and test-seed.sql before each test. Skipped without Docker; RMS_REQUIRE_DOCKER=true turns that into a failure (CI sets it).|
-|Smoke|rms/SmokeTest|A deployed WAR|Set RMS_BASE_URL (and RMS_SMOKE_USER, RMS_SMOKE_PASSWORD with seed values)|
+|Smoke|rms/SmokeTest|A deployed WAR|Set RMS_BASE_URL (and RMS_SMOKE_USER, RMS_SMOKE_PASSWORD with seed values); RMS_SMOKE_SEEDED=false on a real database|
+|Browser workflow|rms/WorkflowTest|A fresh trial (deploy/docker-compose.yml) and Chrome|Playwright for Java; set RMS_BASE_URL and RMS_WORKFLOW_SEEDED=true. It writes data, so only against a throwaway trial|
 
 - These are **characterization tests**: they pin what the code does today. A test that pins a known defect carries a comment such as `// characterizes G10`.
 - Use only synthetic data: no real names, credentials or hostnames.
 - Mockito runs as a Java agent configured in pom.xml. When running tests from an IDE, add -javaagent:<path to the mockito-core jar> to the run configuration, or let Maven run them.
-- Current numbers on a machine without Docker: 502 tests, 356 pass, 146 skipped (130 DAO, 16 smoke). The activity log hooks are pinned in ActivityLoggingTest; add a case there for each new logged action.
+- Current numbers on a machine without Docker: 590 tests, 415 pass, 175 skipped (147 DAO, 19 smoke, 9 browser workflow); CI runs them all. The activity log hooks are pinned in ActivityLoggingTest; add a case there for each new logged action.
 
 ## 10. Pitfalls
 |Pitfall|What happens|What to do|
@@ -164,7 +165,9 @@ Messages are set in the controller (the form(info, "message") helper) and shown 
 ## 11. Git and CI
 - master is the default (production) branch; day-to-day work happens on dev. Release branches such as release/phase1 are frozen candidates.
 - Keep commits focused and the build green: run ./mvnw -B verify before pushing.
-- CI (.github/workflows/ci.yml) runs on pushes and pull requests to dev and master: a JDK 21 build, all tests with Docker (the DAO tests must run), and the WAR kept as an artifact.
+- CI (.github/workflows/ci.yml) runs on pushes and pull requests to dev and master: a JDK 21 build, all tests with Docker (the DAO tests must run), and the WAR kept as an artifact; a second job builds the container image, starts it with a throwaway MySQL and runs SmokeTest and WorkflowTest against it.
+- Dependabot opens weekly update pull requests into dev; merge them only with green CI.
+- Feature freeze since 20 October 2026: what is left before the release is in docs/release-tracker.md.
 - OSV-Scanner checks the dependencies; a pull request fails if it adds a known vulnerability. GitHub Actions are pinned by commit SHA.
 - Update the owning document in docs/ in the same change when behaviour or facts change.
 
