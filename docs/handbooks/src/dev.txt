@@ -146,7 +146,7 @@ Messages are set in the controller (the form(info, "message") helper) and shown 
 - These are **characterization tests**: they pin what the code does today. A test that pins a known defect carries a comment such as `// characterizes G10`.
 - Use only synthetic data: no real names, credentials or hostnames.
 - Mockito runs as a Java agent configured in pom.xml. When running tests from an IDE, add -javaagent:<path to the mockito-core jar> to the run configuration, or let Maven run them.
-- Current numbers on a machine without Docker: 590 tests, 415 pass, 175 skipped (147 DAO, 19 smoke, 9 browser workflow); CI runs them all. The activity log hooks are pinned in ActivityLoggingTest; add a case there for each new logged action.
+- Current numbers on a machine without Docker: 592 tests, 417 pass, 175 skipped (147 DAO, 19 smoke, 9 browser workflow); CI runs them all. The activity log hooks are pinned in ActivityLoggingTest; add a case there for each new logged action.
 
 ## 10. Pitfalls
 |Pitfall|What happens|What to do|

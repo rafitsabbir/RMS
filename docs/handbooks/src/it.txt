@@ -174,13 +174,13 @@ The application has no properties files and no profiles. All environment-specifi
 
 ## 11. Decisions needed from IT
 1. Which MySQL version runs in production today? It decides the upgrade steps to 9.7 (docs/mysql-upgrade.md). The read-only db/checks/pre-release-checks.sql answers it and the other database questions in one run.
-2. The JDK standard: 21, or an organisational 17 or 25. The build can target 17 with a one-line change.
+2. **The JDK standard: decided 2026-11-05.** The company's standard JDK 21 (any JDK 21 or later).
 3. Who owns the Tomcat server, the JNDI configuration and the runtime? Is a Java Security Manager in use (Tomcat 11 doesn't support it)?
-4. The deployment target: a virtual machine with Tomcat as described, or the container image (built and tested; which registry, and who runs it?).
+4. **The deployment target: decided 2026-11-05.** Tomcat 11 on a server, as described (not the container image).
 5. Should user sessions survive restarts (session persistence)?
 6. Where should RMS_DOC_DIR live (local disk or a network share), how is it backed up together with the database, and is a virus scanner available for it?
 7. Should Tomcat's maxSwallowSize be raised so very large uploads get a clear message?
 
-8. HTTPS in front of RMS (and then the Secure flag on the session cookie), and the release date.
+8. **HTTPS and the release date: decided 2026-11-05.** HTTPS in front of RMS (set RMS_SECURE_COOKIE=true; with a proxy that ends HTTPS, enable RemoteIpValve as deploy/tomcat/rms.xml shows); the release in February–March 2027, before 31 March 2027. Migration 003 (hashing the stored passwords) runs at the release.
 
 > Detailed sources in the repository: docs/release-tracker.md (what is left before the release), docs/release-dev.md (the runbook), docs/tech-stack.md, docs/build-run.md, docs/config.md and docs/upgrade-status.md.
