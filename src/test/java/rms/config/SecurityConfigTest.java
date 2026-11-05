@@ -636,7 +636,12 @@ class SecurityConfigTest {
 	void validLoginRedirectsToHomeWithProfileInANewSession() throws Exception {
 		MockHttpSession session = new MockHttpSession(null, "before-login");
 
-		MvcResult result = mockMvc.perform(login("test.admin", "test-only-1").session(session))
+		// A browser sends its session id (JSESSIONID): Spring Security only changes an id the request carried
+		// (spring-test 7.0.10 reports a session without a requested id as not valid)
+		MvcResult result = mockMvc.perform(login("test.admin", "test-only-1").session(session).with(request -> {
+			request.setRequestedSessionId("before-login");
+			return request;
+		}))
 				.andExpect(redirectedUrl("/home"))
 				.andExpect(authenticated().withRoles("SUPER_ADMIN"))
 				.andReturn();
