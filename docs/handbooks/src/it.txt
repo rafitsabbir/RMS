@@ -1,6 +1,6 @@
 # RMS Technical Operations Guide
 @ Recruitment Management System — technology stack, architecture, production requirements, sizing, deployment and security
-@ Describes the version on the dev branch as of 5 November 2026, the one to be released (roles plan, Phases 1-4, reports, the activity log, English-only text, the hardening batch and the October features; not yet deployed). Contains no hostnames, passwords or connection strings.
+@ Describes the version on the dev branch as of 6 November 2026, the one to be released (roles plan, Phases 1-4, reports, the activity log, English-only text, the hardening batch, the October features and the November features F1-F11; not yet deployed). Contains no hostnames, passwords or connection strings.
 
 ## 1. At a glance
 |Item|Value|
@@ -8,7 +8,7 @@
 |Application type|Java web application packaged as a WAR file, deployed to Apache Tomcat (no embedded server), or the container image built from the repository (Tomcat 11 on JDK 21)|
 |Runtime|Java 21 or later, Tomcat 11 (Servlet 6.1, Jakarta EE 11)|
 |Database|MySQL 9.7 LTS (8.0 or later works) through a Tomcat JNDI connection pool|
-|Integrations|None: no e-mail, message queues, external APIs or batch jobs|
+|Integrations|Optional outbound e-mail to staff over SMTP (off until RMS_MAIL_HOST is set); no message queues, external APIs or batch jobs|
 |Users' browsers|Load Bootstrap, jQuery and DataTables from the public CDN cdn.jsdelivr.net|
 
 RMS is a single, stateful web application with one MySQL database.
@@ -18,7 +18,8 @@ RMS is a single, stateful web application with one MySQL database.
 |Layer|Technology|Version|
 |---|---|---|
 |Language|Java (class files version 65)|21|
-|Web framework|Spring Framework (MVC, JDBC), Java configuration|7.0.10|
+|Web framework|Spring Framework (MVC, JDBC, context support for mail), Java configuration|7.0.10|
+|E-mail|Eclipse Angus Mail (Jakarta Mail), inside the WAR|2.0.5|
 |Security|Spring Security (form login, roles, CSRF, sessions)|7.1.2|
 |Platform API|Jakarta Servlet, provided by Tomcat|6.1|
 |Views|JSP with Jakarta Tags (JSTL), GlassFish implementation|API 3.0.2 / impl 3.0.1|
@@ -48,8 +49,8 @@ Supported browsers: current versions of Chrome, Edge, Firefox and Safari. Intern
 
 - **Layers:** controller → service → DAO (data access) → model. All SQL lives in the DAO classes. No stored procedures, no ORM, no caching layer.
 - **State:** the logged-in user is kept in the server-side HTTP session (cookie JSESSIONID). Sessions are not shared between servers.
-- **Database tables (13):** users, admin (profiles and roles), position, language, candidate, marks, job, candidate_document, candidate_interviewer, candidate_decision, interview_schedule, activity_log, candidate_stage.
-- **No outbound calls** from the server except to MySQL.
+- **Database tables (14):** users, admin (profiles and roles), position, language, candidate, marks, job, candidate_document, candidate_interviewer, candidate_decision, interview_schedule, activity_log, candidate_stage, candidate_offer.
+- **Outbound calls:** MySQL, and the mail server (SMTP) only when e-mail is configured. Mails are sent by one background thread, so a slow mail server never holds a user's request.
 
 ## 4. Production prerequisites
 |Item|Requirement|Notes|
@@ -59,10 +60,10 @@ Supported browsers: current versions of Chrome, Edge, Firefox and Safari. Intern
 |Servlet container|Apache Tomcat 11.0.x, or the container image|Tested on 11.0.26 and 11.0.27 (the image). Tomcat 9 or 10 will not run this version.|
 |Database|MySQL 9.7 LTS (owner decision, 19 October 2026)|Connector/J 9.7 needs MySQL 8.0 or later. A 5.7 server is upgraded one series at a time, 5.7 → 8.0 → 8.4 → 9.7, moving every account off mysql_native_password while on 8.0 (docs/mysql-upgrade.md). Rehearsed twice, the second time on 20 October 2026 with every migration.|
 |Database driver jar|mysql-connector-j-9.7.0.jar in Tomcat's lib/ folder (the image has it)|Remove any old mysql-connector-java-5.1.x or mysql-connector-j-8.x, slf4j or logback jars from lib/.|
-|Database schema changes|Run db/migrations/001-candidate-isactive.sql, 002-user-roles.sql, 004-candidate-documents-jobs.sql, 005-assignment-evaluation-decision.sql, 006-interview-schedule.sql, 007-activity-log.sql and 008-candidate-stage.sql once each, in order, before deploying. First run the read-only db/checks/pre-release-checks.sql and send its output to the developers|005 is a draft: the owner first compares it with SHOW CREATE TABLE marks (the checks are at the top of the script). It adds columns at the end of marks (which rebuilds that table and blocks writes while it runs), decision columns on candidate, and two tables. After 005, an older WAR shows every status as Pending until 005's rollback lines are run. 001 adds candidate.isactive (without it the Candidates pages fail). 002 adds admin.role and users.mustchangepassword (without them every login fails) and checks that users.password holds 68 characters. Rollback statements are in the files. 002 makes every existing admin a Super Admin: re-assign HR and Hiring Manager roles afterwards on Users and Roles. 004 adds five candidate columns and the tables job and candidate_document (InnoDB); check candidate's collation and engine first, as the script describes. 006 adds the table interview_schedule (InnoDB; check the collation of candidate.candidateid and admin.userid as the script describes). Without 006 the Interview Schedule pages fail with HTTP 500, and the home page opens without its dashboard (one WARN line). 007 adds the table activity_log (InnoDB, no foreign keys, so no collation check is needed). Without 007 the Activity Log page and its CSV fail with HTTP 500; every other action still works, and each failed log write is one WARN line. The table grows with use: RMS never updates or deletes a row, so decide a retention period and archive or purge old rows by hand (the owner's choice). Interview times are stored as typed, with no time zone, and compared with the database server's clock: check SELECT @@global.time_zone, NOW() and tell the users which zone the times are in. 008 adds candidate.stage (filled in: Offer for Selected candidates, Applied for the rest) and the table candidate_stage; its notes cover the collations and MySQL Workbench's safe updates.|
+|Database schema changes|Run db/migrations/001-candidate-isactive.sql, 002-user-roles.sql, 004-candidate-documents-jobs.sql, 005-assignment-evaluation-decision.sql, 006-interview-schedule.sql, 007-activity-log.sql, 008-candidate-stage.sql, 009-interview-rounds.sql, 010-also-interviewer.sql, 011-candidate-offer.sql and 012-retention.sql once each, in order, before deploying. First run the read-only db/checks/pre-release-checks.sql and send its output to the developers|005 is a draft: the owner first compares it with SHOW CREATE TABLE marks (the checks are at the top of the script). It adds columns at the end of marks (which rebuilds that table and blocks writes while it runs), decision columns on candidate, and two tables. After 005, an older WAR shows every status as Pending until 005's rollback lines are run. 001 adds candidate.isactive (without it the Candidates pages fail). 002 adds admin.role and users.mustchangepassword (without them every login fails) and checks that users.password holds 68 characters. Rollback statements are in the files. 002 makes every existing admin a Super Admin: re-assign HR and Hiring Manager roles afterwards on Users and Roles. 004 adds five candidate columns and the tables job and candidate_document (InnoDB); check candidate's collation and engine first, as the script describes. 006 adds the table interview_schedule (InnoDB; check the collation of candidate.candidateid and admin.userid as the script describes). Without 006 the Interview Schedule pages fail with HTTP 500, and the home page opens without its dashboard (one WARN line). 007 adds the table activity_log (InnoDB, no foreign keys, so no collation check is needed). Without 007 the Activity Log page and its CSV fail with HTTP 500; every other action still works, and each failed log write is one WARN line. The table grows with use: RMS never updates or deletes a row, so decide a retention period and archive or purge old rows by hand (the owner's choice). Interview times are stored as typed, with no time zone, and compared with the database server's clock: check SELECT @@global.time_zone, NOW() and tell the users which zone the times are in. 008 adds candidate.stage (filled in: Offer for Selected candidates, Applied for the rest) and the table candidate_stage; its notes cover the collations and MySQL Workbench's safe updates. 009 adds interviewround at the end of marks and on interview_schedule (rounds, F2). 010 adds admin.alsointerviewer (staff who also interview, F3). 011 adds the table candidate_offer (offers, F8). 012 adds candidate.anonymizedat and anonymizedby (data retention, F11).|
 |Document storage|A folder outside Tomcat's webapps and any web root, given to Tomcat as the environment variable RMS_DOC_DIR|Tomcat needs read, write and delete rights on it. Without it RMS starts but refuses uploads and downloads (an ERROR at startup). See sections 5, 7 and 9.|
 |Database account|One MySQL account with SELECT, INSERT, UPDATE and DELETE on the RMS database (data rights only)|The application never changes the schema. (Uploads lock a candidate row with SELECT … FOR UPDATE, which these rights cover.)|
-|Network|Application server → MySQL (default port 3306). Users → application (HTTPS). Users' browsers → cdn.jsdelivr.net|If the CDN is blocked, pages load without styling and tables lose search and sort.|
+|Network|Application server → MySQL (default port 3306). Application server → the mail server (SMTP, usually 587), only if e-mail is used. Users → application (HTTPS). Users' browsers → cdn.jsdelivr.net|If the CDN is blocked, pages load without styling and tables lose search and sort.|
 |TLS|HTTPS in front of Tomcat (reverse proxy or Tomcat connector); TLS to MySQL (sslMode=REQUIRED)|See section 8.|
 |Build machine|JDK 21 and internet access to Maven Central; Docker for the image|Or use the WAR built by CI (artifact "rms-war").|
 
@@ -77,7 +78,7 @@ Supported browsers: current versions of Chrome, Edge, Firefox and Safari. Intern
 |MySQL server (if separate)|2|4 GB|20 GB SSD plus backups|—|
 
 - Disk is used mostly by logs, Tomcat and the JDK; the database itself is small (text rows only).
-- **Document storage (RMS_DOC_DIR):** plan with about 6 files of up to 2 MB per candidate (12 MB; the hard limit is 5 MB per file). For example 1,000 candidates a year need about 12 GB a year, more if replaced documents aren't purged. Watch the free space; files are only removed by a Super Admin's permanent delete.
+- **Document storage (RMS_DOC_DIR):** plan with about 6 files of up to 2 MB per candidate (12 MB; the hard limit is 5 MB per file). For example 1,000 candidates a year need about 12 GB a year, more if replaced documents aren't purged. Watch the free space; files are only removed by a Super Admin's permanent delete or a confirmed data-retention clean-up.
 - The connection pool uses Tomcat's defaults (8 connections). Raise maxTotal in the context file if requests wait for connections under load.
 - For high availability, two Tomcat nodes need sticky sessions at the load balancer, because sessions aren't replicated. Candidate ID generation is protected only within one node, so a database key on candidate.candidateid is advised before running two nodes.
 
@@ -92,10 +93,10 @@ CI builds the same WAR on every push to the dev and master branches; it can be d
 
 ### First installation
 1. Install JDK 21 and Tomcat 11. Copy mysql-connector-j-9.7.0.jar into Tomcat's lib/ folder.
-2. Run db/migrations/001-candidate-isactive.sql, then 002-user-roles.sql, then 004-candidate-documents-jobs.sql, then 005-assignment-evaluation-decision.sql (after the owner's checks), then 006-interview-schedule.sql, then 007-activity-log.sql, on the RMS database (once each). Check them against the real tables first (SHOW CREATE TABLE candidate, users and admin). Create the document folder (outside webapps), owned by the Tomcat user, and add RMS_DOC_DIR to the environment variables of step 5. Do not run 003-hash-passwords without the owner's approval.
+2. Run db/migrations/001-candidate-isactive.sql, then 002-user-roles.sql, then 004-candidate-documents-jobs.sql, then 005-assignment-evaluation-decision.sql (after the owner's checks), then 006-interview-schedule.sql, 007-activity-log.sql, 008-candidate-stage.sql, 009-interview-rounds.sql, 010-also-interviewer.sql, 011-candidate-offer.sql and 012-retention.sql, on the RMS database (once each). Check them against the real tables first (SHOW CREATE TABLE candidate, users and admin). Create the document folder (outside webapps), owned by the Tomcat user, and add RMS_DOC_DIR to the environment variables of step 5. Migration 003 (hashing the stored passwords) is approved and runs at the release, as step 4b of docs/release-dev.md.
 3. Copy deploy/tomcat/rms.xml from the repository, unchanged, to conf/Catalina/localhost/rms.xml. It defines the jdbc/springrms connection pool with placeholders only.
 4. Make Tomcat read the placeholders from the environment: add -Dorg.apache.tomcat.util.digester.PROPERTY_SOURCE=org.apache.tomcat.util.digester.EnvironmentPropertySource to CATALINA_OPTS (for example in bin/setenv.sh).
-5. Provide the four environment variables listed in section 7, through the service manager or a file only the Tomcat user can read.
+5. Provide the four required environment variables listed in section 7 (and the optional ones you use), through the service manager or a file only the Tomcat user can read.
 6. Deploy the WAR as webapps/rms.war (context path /rms), start Tomcat, and open /rms/login.
 
 ### Upgrade and rollback
@@ -105,7 +106,7 @@ CI builds the same WAR on every push to the dev and master branches; it can be d
 - A container image is an alternative to a hand-built Tomcat: build it from the Dockerfile and run it with the same four variables and the document folder mounted at /var/rms/docs (it runs as a non-root user, UID 10001, and has a HEALTHCHECK on /rms/health).
 
 ## 7. Configuration
-The application has no properties files and no profiles. All environment-specific settings live in Tomcat: the database connection and, since Phase 2, the document folder.
+The application has no properties files and no profiles. All environment-specific settings live in Tomcat: the database connection, the document folder, and the optional HTTPS cookie flag, e-mail and data-retention settings.
 
 |Setting|Where|Purpose|
 |---|---|---|
@@ -113,6 +114,9 @@ The application has no properties files and no profiles. All environment-specifi
 |RMS_DB_USER|Tomcat environment|Database account|
 |RMS_DB_PASSWORD|Tomcat environment (protected)|Database password; never on the command line or in the repository|
 |RMS_DOC_DIR|Tomcat environment|Absolute path of the folder for candidate documents (outside webapps). Read once at startup; unset or unusable means an ERROR in the log and no uploads or downloads|
+|RMS_SECURE_COOKIE|Tomcat environment (optional)|true marks the session cookie Secure; set it when RMS is served over HTTPS (the decision)|
+|RMS_MAIL_HOST, RMS_MAIL_PORT (587), RMS_MAIL_USER, RMS_MAIL_PASSWORD (protected), RMS_MAIL_FROM, RMS_MAIL_SECURITY (starttls, ssl or none), RMS_APP_URL|Tomcat environment (optional)|E-mail to staff (F1). No RMS_MAIL_HOST: no e-mail. With a host, RMS_MAIL_FROM is required; an unusable value turns e-mail off with one WARN naming the variable. RMS_APP_URL (https://<host>/rms) adds links to the mails. The log says "E-mail notifications are on"|
+|RMS_RETENTION_MONTHS|Tomcat environment (optional)|Data retention (F11): 1 to 240 months, chosen by the owner from the company's policy. Unset: off. It only lists candidates as due; a Super Admin confirms each clean-up|
 |Upload limits|Inside the WAR (5 MB per file, 6 MB per request)|Tomcat's connector swallows at most 2 MB of a refused upload (maxSwallowSize); raise it (for example 10 MB) so users see "The file is larger than 5 MB" instead of a reset connection. The container's temporary folder holds uploads briefly: treat it as personal data|
 |JNDI name jdbc/springrms|conf/Catalina/localhost/rms.xml|Connection pool the application looks up; validation query SELECT 1 with a 5 s limit, a 10 s wait for a free connection; the URL adds connectTimeout=5000 and socketTimeout=60000 so a stuck database gives an error instead of holding Tomcat's threads|
 |Session timeout|Tomcat conf/web.xml (default 30 minutes)|RMS sets none of its own|
@@ -143,7 +147,8 @@ The application has no properties files and no profiles. All environment-specifi
 |---|---|---|
 |Existing passwords are still plain text in users.password (new ones are bcrypt)|Critical|Run db/migrations/003-hash-passwords (a Java program; see its README). The column must hold at least 68 characters. Needs owner sign-off; afterwards older WARs (before Spring Security) can't log anyone in.|
 |The login lock is in memory, per Tomcat node, by client address|Medium|Behind a reverse proxy, configure Tomcat's RemoteIpValve so the real client address is used; otherwise one user's failures lock that username for everyone. A restart clears the counts.|
-|The session cookie isn't marked Secure|Medium|Serve only over HTTPS and mark the cookie secure (Tomcat or proxy).|
+|The session cookie is marked Secure only with RMS_SECURE_COOKIE=true|Medium|Serve only over HTTPS (decided) and set RMS_SECURE_COOKIE=true.|
+|E-mails go through the organisation's mail server|Low|Use an account that may send only as the RMS sender address; keep RMS_MAIL_PASSWORD with the database password. Mails carry candidate names and interview times, never scores.|
 |HSTS includes subdomains|Check|Confirm this suits the production hostname.|
 |The production version is old: Spring 4.3, Connector/J 5.1.36, MySQL 5.7|High|Release the dev line (docs/release-dev.md) before 31 March 2027.|
 |User ids appear in WARN log lines (refused requests)|Low|Restrict log access if user ids are personal data.|
@@ -153,21 +158,25 @@ The application has no properties files and no profiles. All environment-specifi
 ## 9. Operations
 - **Logs:** written to standard output, so Tomcat captures them in catalina.out (or the service journal). Set up log rotation. Watch for WARN lines from "rms." (refused access, duplicate users) and ERROR lines (database problems).
 - **Health check:** GET (or HEAD) /rms/health, no login: "ok" (HTTP 200) when the application can reach the database within 4 seconds, "unavailable" (503) when it can't. Results are reused for 5 seconds and only changes are logged. Use it for the load balancer, monitoring and the container's HEALTHCHECK.
-- **Backups:** back up the MySQL database **and** the RMS_DOC_DIR folder together, at the same point in time, and restore them together: a document row without its file gives "not found", and a file without its row is never found again. Apart from that folder the application server holds no data.
+- **Backups:** back up the MySQL database **and** the RMS_DOC_DIR folder together, at the same point in time, and restore them together: a document row without its file gives "not found", and a file without its row is never found again. Apart from that folder the application server holds no data. deploy/backup/rms-backup.sh does both once a day (mysqldump --single-transaction --set-gtid-purged=OFF, the folder as a tar file, checksums, 30 days kept); a restore was tested on 5 November 2026. The steps and a quarterly restore drill are in docs/operations.md.
+- **Monitoring** (docs/operations.md): /rms/health every minute (alert after 3 failures), the backup's exit status and age (alert over 26 hours), disk space over 80 %, ERROR lines and WARN "Notification … failed" (the mail server refused), the HTTPS certificate's expiry, and many "Login locked" lines.
 - **Restarts** log everyone out (sessions aren't persisted by default).
 - **User administration** is done by a Super Admin on the Users and Roles screen (see the Business Analyst Guide, section 4). If the last Super Admin is locked out, the owner must fix it in the database.
 - **Documents:** RMS never deletes files by itself. A Super Admin's "Permanently delete documents" removes a candidate's files and logs only the candidate key, the user key and the count. A startup ERROR "RMS_DOC_DIR is not set" means uploads and downloads are off.
 - **Dashboard and schedule:** the home page reads a few counts on every visit. If that fails, it logs one WARN "The dashboard isn't available" (exception class only) and opens without the figures. Interview times follow the database server's time zone; "upcoming" compares them with NOW().
 - **Character set:** forms post ISO-8859-1. Keep WEB-INF/web.xml as shipped; without it Tomcat 11 rejects accented input with HTTP 400. RMS accepts English text only (printable ASCII) in names, decisions, comments, locations and the master lists, so no other scripts reach the database.
 - **Activity log:** every sign-in, failed sign-in, marking, decision, interview, assignment, document, job, position, language, candidate and user action is inserted into activity_log after it succeeds. If the insert fails (for example migration 007 is missing) the user's action still works and the server log gets one WARN "couldn't be logged" with the exception class only. Entries hold keys and codes, never personal data. Times are the database server's clock.
-- **Deleted candidates' files:** a Super Admin deletes them permanently from the Deleted Candidates page (same action as on a profile); RMS never deletes files by itself and sets no retention period, so decide one and apply it by hand. Each purge is in the activity log.
+- **Deleted candidates' files:** a Super Admin deletes them permanently from the Deleted Candidates page (same action as on a profile); RMS never deletes files by itself. Each purge is in the activity log.
+- **Data retention (F11):** off unless RMS_RETENTION_MONTHS is set. A Super Admin then sees the candidates due under Data retention and confirms each clean-up, which purges their files and removes their personal data in one transaction. Nothing runs on a schedule.
+- **E-mail (F1):** sent by one background thread after the action succeeded; a failure is one WARN line and never undoes the action. Interview mails carry the .ics calendar file. Candidates are never e-mailed.
+- **The November features (F2-F10):** interview rounds, staff who also interview, the CSV import (files up to 512 KB and 500 lines, kept only in the user's session between preview and import), the pipeline per job, search, offers, interviewer workload and the home-page reminders add no port, folder or background job.
 - **Hiring stages and the new pages (October 2026):** stage changes, the duplicate check, the Candidates filters, the hiring report and the interview calendar files (.ics) add no dependency, port, folder or background job; they read and write the tables listed above. The calendar files contain no attendees, so nothing is e-mailed.
 - **Reports:** the CSV downloads (candidates, candidate status, interview schedule, hiring report, activity log) are built in memory from the same queries as the screens, at most the 500 newest log entries; each download is logged with its name, never its content. They don't add a new dependency, port or folder.
 
 ## 10. Release status
 |Branch|Contents|Runtime|State|
 |---|---|---|---|
-|dev and master|The same commit since 5 November 2026: everything below plus the hardening batch (error pages, /health, database timeouts, Dependabot), MySQL 9.7 and the October features (hiring stages, calendar files, duplicate warning, filters, hiring report). Feature freeze since 20 October 2026|Spring 7, Tomcat 11, JDK 21, MySQL 9.7|Tested in CI on every change (590 tests, the container image with the smoke test and the browser workflow); the release rehearsed end to end; not released|
+|dev and master|Kept on the same commit: everything below plus the hardening batch (error pages, /health, database timeouts, Dependabot), MySQL 9.7, the October features (hiring stages, calendar files, duplicate warning, filters, hiring report) and the November features F1-F11 (the freeze was lifted on 5 November 2026)|Spring 7, Tomcat 11, JDK 21, MySQL 9.7|Tested in CI on every change (681 tests, the container image with the smoke test and the browser workflow); the release was rehearsed on 20 October and needs a new rehearsal with migrations 009-012; not released|
 |release/phase1|Security upgrades on Java 8 (in master's history)|Spring 5.3.39, Tomcat 9, JDK 8|Tested and rehearsed; not released; kept frozen as a fallback (skipped if dev is released directly)|
 
 **Deadline:** Tomcat 9 support ends on 31 March 2027. Production should move to the dev line (Tomcat 11) before then.
@@ -178,9 +187,11 @@ The application has no properties files and no profiles. All environment-specifi
 3. Who owns the Tomcat server, the JNDI configuration and the runtime? Is a Java Security Manager in use (Tomcat 11 doesn't support it)?
 4. **The deployment target: decided 2026-11-05.** Tomcat 11 on a server, as described (not the container image).
 5. Should user sessions survive restarts (session persistence)?
-6. Where should RMS_DOC_DIR live (local disk or a network share), how is it backed up together with the database, and is a virus scanner available for it?
+6. Where should RMS_DOC_DIR live (local disk or a network share), where do the backup sets go off the server, and is a virus scanner available for it?
 7. Should Tomcat's maxSwallowSize be raised so very large uploads get a clear message?
 
 8. **HTTPS and the release date: decided 2026-11-05.** HTTPS in front of RMS (set RMS_SECURE_COOKIE=true; with a proxy that ends HTTPS, enable RemoteIpValve as deploy/tomcat/rms.xml shows); the release in February–March 2027, before 31 March 2027. Migration 003 (hashing the stored passwords) runs at the release.
+9. **E-mail:** which mail server, port and sender address may RMS use (RMS_MAIL_*)?
+10. **Data retention:** the owner chooses the period (RMS_RETENTION_MONTHS), or leaves it off.
 
-> Detailed sources in the repository: docs/release-tracker.md (what is left before the release), docs/release-dev.md (the runbook), docs/tech-stack.md, docs/build-run.md, docs/config.md and docs/upgrade-status.md.
+> Detailed sources in the repository: docs/release-tracker.md (what is left before the release), docs/release-dev.md (the runbook), docs/operations.md (backups and monitoring), docs/tech-stack.md, docs/build-run.md, docs/config.md and docs/upgrade-status.md.
