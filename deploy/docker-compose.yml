@@ -40,6 +40,9 @@ services:
       RMS_DB_URL: jdbc:mysql://mysql:3306/rms_local?sslMode=REQUIRED&connectTimeout=5000&socketTimeout=60000
       RMS_DB_USER: rms
       RMS_DB_PASSWORD: ${RMS_DB_PASSWORD:?Set RMS_DB_PASSWORD in your shell first}
+      # Trial only: a one-month retention period, so the seed's rejected candidate and an imported one are due under
+      # Data retention (F11). In production retention is off unless the owner sets a period (docs/config.md)
+      RMS_RETENTION_MONTHS: "1"
     ports:
       - "127.0.0.1:${RMS_HTTP_PORT:-8080}:8080"
     volumes:

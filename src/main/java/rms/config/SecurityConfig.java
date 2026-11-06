@@ -75,7 +75,8 @@ public class SecurityConfig {
 	static final String[] USER_ADMIN_PAGES = { "/viewuserlist", "/createuser", "/updateuser", "/saveuser",
 			"/deactivateuser", "/reactivateuser", "/resetpassword" };
 	/** The permanent delete of a candidate's document files: Super Admin only. */
-	static final String[] SUPER_ADMIN_PAGES = { "/purgedocuments", "/viewactivity", "/exportactivity", "/viewdeletedcandidates" };
+	static final String[] SUPER_ADMIN_PAGES = { "/purgedocuments", "/viewactivity", "/exportactivity", "/viewdeletedcandidates",
+			"/viewretention", "/applyretention" };
 	/** Read-only staff pages: Super Admin, HR and Hiring Manager. */
 	static final String[] STAFF_READ_PAGES = { "/adminviewmarks", "/viewcandidatelist", "/viewevaluations",
 			"/viewjoblist", "/viewschedulelist", "/reports", "/exportcandidates", "/exportresults",

@@ -54,7 +54,7 @@ src/test/java/rms/            controller, security, service, DAO (Testcontainers
 db/                           schema.sql (inferred), test-seed.sql (synthetic)
   local/                      local MySQL setup: create DB + load schema and seed (README.md)
   checks/                     pre-release-checks.sql: the owner's database checks, one read-only run (README.md)
-  migrations/                 numbered changes for existing databases, run by the owner (001 candidate.isactive, 002 roles, 003 password hashing, 004 candidate documents and jobs, 005 assignment, evaluation and decision: a draft, 006 interview schedule, 007 activity log, 008 hiring stages, 009 interview rounds, 010 staff who also interview, 011 offers)
+  migrations/                 numbered changes for existing databases, run by the owner (001 candidate.isactive, 002 roles, 003 password hashing, 004 candidate documents and jobs, 005 assignment, evaluation and decision: a draft, 006 interview schedule, 007 activity log, 008 hiring stages, 009 interview rounds, 010 staff who also interview, 011 offers, 012 data retention)
 mvnw, .mvn/wrapper/           Maven Wrapper
 .github/workflows/            CI: build + tests (JDK 21, Testcontainers), OSV-Scanner; dependabot.yml
 deploy/tomcat/rms.xml         JNDI context template (env-var placeholders only)

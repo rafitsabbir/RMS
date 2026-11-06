@@ -1,7 +1,7 @@
 # RMS: What's New
 
 Purpose: the release notes for the people who use RMS: what is new and what changes for them when the new version (`dev`) goes live. Plain language; the technical details are in [release-dev.md](release-dev.md).
-Last updated: 2026-11-05 (import from CSV). 2026-11-05 (staff who also interview). 2026-11-05 (interview rounds). 2026-11-05 (e-mails to staff). 2026-11-05 (passwords all encrypted at the release, HTTPS). 2026-10-20 (written for release-tracker item 3)
+Last updated: 2026-11-06 (data retention). 2026-11-05 (import from CSV). 2026-11-05 (staff who also interview). 2026-11-05 (interview rounds). 2026-11-05 (e-mails to staff). 2026-11-05 (passwords all encrypted at the release, HTTPS). 2026-10-20 (written for release-tracker item 3)
 Read this when: you announce the release to users, or a user asks what changed.
 
 The new RMS replaces the version from 2020. Your data stays: candidates, scores, positions and languages are all kept. Below: what changes for everyone, then what is new for each role.
@@ -22,7 +22,7 @@ The four roles: On the first day, the old administrators are **Super Admins** an
 
 | Role | Can |
 |---|---|
-| Super Admin | everything HR can, plus Users and Roles, the Activity Log, and permanently deleting a deleted candidate's files |
+| Super Admin | everything HR can, plus Users and Roles, the Activity Log, permanently deleting a deleted candidate's files, and Data retention |
 | HR | candidates, documents, jobs, positions, languages, interviewers, decisions, hiring stages, the interview schedule, reports |
 | Hiring Manager | read everything HR sees and download the reports; changes nothing |
 | Interviewer | My Evaluations (score assigned candidates), My Schedule, the profiles of assigned candidates |
@@ -81,6 +81,11 @@ RMS e-mails staff about their work, once the IT team has connected it to a mail 
 - **HR:** when an interviewer saves an evaluation. The mail says who evaluated whom; the scores stay in RMS.
 - **Candidates** are never e-mailed by RMS.
 - Make sure your profile has your work e-mail address (a Super Admin can set it under Users and Roles).
+
+## Data retention (new, Super Admins)
+- If your company keeps the data of candidates who weren't hired only for a set time, the IT team can set that period. **Data retention** then lists the candidates with no activity for that long.
+- You choose who to clean up and confirm. RMS deletes their documents and removes their name, e-mail, phone and written comments; the scores and decisions stay in the counts and reports.
+- Hired candidates are never listed. Until the IT team sets a period, the page only says that retention is off.
 
 ## Not in this release
 - **Times are the server's local time.** This includes the calendar files.
