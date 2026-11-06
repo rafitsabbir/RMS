@@ -1,7 +1,7 @@
 <%@ tag language="java" pageEncoding="ISO-8859-1" body-content="scriptless" trimDirectiveWhitespaces="true"
 	description="Page shell for every page behind the login: head, sidebar menu, top bar and content" %>
 <%@ attribute name="title" required="true" description="Page title, shown as 'title - RMS'" %>
-<%@ attribute name="active" required="false" description="Menu key of the current page: home, marks, candidates, jobs, schedule, positions, languages, users, evaluations, myschedule, reports, activity, deleted or password" %>
+<%@ attribute name="active" required="false" description="Menu key of the current page: home, marks, candidates, jobs, schedule, positions, languages, users, evaluations, myschedule, reports, activity, retention, deleted or password" %>
 <%@ attribute name="tables" required="false" type="java.lang.Boolean" description="true loads jQuery and DataTables" %>
 <%@ attribute name="stylesheet" required="false" description="An extra stylesheet in resources/css, for example viewmarks.css" %>
 <%@ taglib uri="jakarta.tags.core" prefix="c" %>
@@ -105,6 +105,10 @@
 				<li class="nav-item">
 					<a class="nav-link${active eq 'activity' ? ' active' : ''}" href="${base}viewactivity"${active eq 'activity' ? ' aria-current="page"' : ''}>
 						<svg class="rms-icon" aria-hidden="true"><use href="${icons}#clock"/></svg>Activity Log</a>
+				</li>
+				<li class="nav-item">
+					<a class="nav-link${active eq 'retention' ? ' active' : ''}" href="${base}viewretention"${active eq 'retention' ? ' aria-current="page"' : ''}>
+						<svg class="rms-icon" aria-hidden="true"><use href="${icons}#hourglass-split"/></svg>Data retention</a>
 				</li>
 				<li class="nav-item">
 					<a class="nav-link${active eq 'deleted' ? ' active' : ''}" href="${base}viewdeletedcandidates"${active eq 'deleted' ? ' aria-current="page"' : ''}>

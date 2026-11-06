@@ -88,6 +88,7 @@ import rms.controller.MarksController;
 import rms.controller.OfferController;
 import rms.controller.PositionController;
 import rms.controller.ReportController;
+import rms.controller.RetentionController;
 import rms.controller.ScheduleController;
 import rms.controller.UserController;
 import rms.dao.LoginDao;
@@ -112,8 +113,10 @@ import rms.service.LanguageService;
 import rms.service.LoginServiceImpl;
 import rms.service.MarksService;
 import rms.service.OfferService;
+import rms.service.Outcome;
 import rms.service.PositionService;
 import rms.service.ActivityService;
+import rms.service.RetentionService;
 import rms.service.ScheduleService;
 import rms.service.StageService;
 import rms.service.RmsUserDetails;
@@ -223,6 +226,11 @@ class SecurityConfigTest {
 		}
 
 		@Bean
+		RetentionController retentioncontroller() {
+			return new RetentionController();
+		}
+
+		@Bean
 		InternalResourceViewResolver viewResolver() {
 			return new WebConfig().viewResolver();
 		}
@@ -299,6 +307,9 @@ class SecurityConfigTest {
 	OfferService offerservice;
 
 	@MockitoBean
+	RetentionService retentionservice;
+
+	@MockitoBean
 	StageService stageservice;
 
 	MockMvc mockMvc;
@@ -314,6 +325,7 @@ class SecurityConfigTest {
 		givenLogin(NO_ROLE_ID, "test.norole", "test-only-6", null);
 		when(hiringreportservice.getReport()).thenReturn(new HiringReport());
 		when(importservice.preview(any())).thenReturn(new ImportPreview());
+		when(retentionservice.cleanUp(any(), any())).thenReturn(Outcome.refused("Data retention is off."));
 	}
 
 	// --- Access: who may open what ---
@@ -363,6 +375,8 @@ class SecurityConfigTest {
 				new Page(get("/viewactivity"), SUPER_ADMIN_ONLY),
 				new Page(get("/exportactivity"), SUPER_ADMIN_ONLY),
 				new Page(get("/viewdeletedcandidates"), SUPER_ADMIN_ONLY),
+				new Page(get("/viewretention"), SUPER_ADMIN_ONLY),
+				new Page(post("/applyretention").with(csrf()), SUPER_ADMIN_ONLY),
 				new Page(multipart("/uploaddocument").file(new MockMultipartFile("file", "cv.pdf", "application/pdf",
 						"%PDF-1".getBytes())).with(csrf()).param("candidateid", "C1").param("doctype", "CV"), HR_AND_UP),
 				new Page(get("/downloaddocument/1"), EVERY_ROLE),

@@ -1,7 +1,7 @@
 # Release Tracker: `dev` to production
 
 Purpose: the ordered list of what is left before and after releasing `dev`, with who does each item and its state. Work goes one item at a time, top to bottom. The feature freeze of 2026-10-20 was lifted by the owner on 2026-11-05: the features below (F1–F11) are built now, before the release.
-Last updated: 2026-11-05 (freeze lifted: features F1–F11 built before the release, in the order below). 2026-11-05 (items 6 and 8 done: the owner's decisions; `RMS_SECURE_COOKIE` and migration 003 in the runbook). 2026-11-05 (recommended next steps added: items 6–8 made explicit, item 9 runs migration 003, items 11–16 after go-live in order). 2026-11-05 (item 4 done). 2026-10-20 (items 1–3 done). 2026-10-20 (list created; feature freeze)
+Last updated: 2026-11-06 (F11 done: all features F1–F11 built). 2026-11-05 (freeze lifted: features F1–F11 built before the release, in the order below). 2026-11-05 (items 6 and 8 done: the owner's decisions; `RMS_SECURE_COOKIE` and migration 003 in the runbook). 2026-11-05 (recommended next steps added: items 6–8 made explicit, item 9 runs migration 003, items 11–16 after go-live in order). 2026-11-05 (item 4 done). 2026-10-20 (items 1–3 done). 2026-10-20 (list created; feature freeze)
 Read this when: you ask "what's next?" for the release, or finish an item and mark it done.
 
 **Deadline:** before 2027-03-31 (end of Tomcat 9 support). **Runbook:** [release-dev.md](release-dev.md). **Background:** [upgrade-status.md](upgrade-status.md).
@@ -39,7 +39,7 @@ Decisions: e-mails go to staff only, never to candidates; sign-in with a company
 | F8 | Offer tracking: offer date, salary band, start date, accepted or declined | **Done** 2026-11-05 | An Offer card on the profile (migration 011): offers of Selected candidates, one waiting at a time, Accepted moves Offer to Hired, the salary band for Super Admin and HR only and never logged ([business-flows/candidates.md](business-flows/candidates.md)); the rules are open question #34 |
 | F9 | Interviewer workload: interviews and open evaluations per interviewer per week | **Done** 2026-11-05 | Reports page and Hiring Report CSV: every active interviewer, interviews per week (this week and the next three) and evaluations to do ([business-flows/reports-activity.md](business-flows/reports-activity.md)); no schema change |
 | F10 | Home-page reminders: overdue evaluations, candidates too long in one stage | **Done** 2026-11-05 | Reminders on the home page: evaluations overdue 3 days after an interview (in its round), candidates more than 14 days at one stage; interviewers see their own ([business-flows/schedule.md](business-flows/schedule.md)); the periods are open question #35 |
-| F11 | Data retention: a configurable period (off by default); a Super Admin sees who is due and confirms the clean-up of personal data and documents | Pending | |
+| F11 | Data retention: a configurable period (off by default); a Super Admin sees who is due and confirms the clean-up of personal data and documents | **Done** 2026-11-06 | `RMS_RETENTION_MONTHS` (1–240, off when unset); Data retention page (Super Admin): who is due, a confirmed clean-up deletes documents and removes personal data, scores and decisions stay; migration 012 ([business-flows/candidates.md](business-flows/candidates.md)) |
 | F12 | Sign-in with a company account (single sign-on) | Skipped | Until the company names an identity provider |
 
 Dependabot's weekly updates go in as they pass CI.

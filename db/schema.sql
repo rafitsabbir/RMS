@@ -31,6 +31,8 @@
 --     db/migrations/010-also-interviewer.sql before a WAR with it.
 --   * The table candidate_offer is NEW (2026-11-05, offer tracking, F8): production needs
 --     db/migrations/011-candidate-offer.sql before a WAR with it.
+--   * candidate.anonymizedat and anonymizedby are NEW (2026-11-05, data retention, F11): production needs
+--     db/migrations/012-retention.sql before a WAR with them.
 --   * Types, lengths, keys and NULL rules: guessed. No unique index on names,
 --     which keeps the current duplicate behaviour (G33).
 -- Used only by the Testcontainers DAO tests (src/test/java/rms/dao).
@@ -89,6 +91,8 @@ CREATE TABLE candidate (
 	decisiondate DATE,
 	decidedby VARCHAR(50),
 	stage VARCHAR(12),
+	anonymizedat DATETIME,
+	anonymizedby VARCHAR(50),
 	PRIMARY KEY (candidateid)
 );
 

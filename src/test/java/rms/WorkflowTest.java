@@ -478,6 +478,24 @@ class WorkflowTest {
 
 	@Test
 	@Order(16)
+	void theSuperAdminCleansUpCandidatesPastTheRetentionPeriod() {
+		// F11: the trial sets a one-month period (deploy/docker-compose.yml); Cody (seed C2, rejected in September) is due
+		Page sa = pages.get("SA");
+		sa.navigate(base + "/viewretention");
+		assertThat(text(sa, "#retention-period")).contains("1 month without");
+		assertThat(text(sa, "#retentiontable")).contains("C2", "Cody Candidate", "Rejected").doesNotContain("Carla");
+		submit(sa, "form#applyretention button[type=submit]");
+		assertThat(text(sa)).contains("personal data removed");
+		assertThat(sa.locator("#retentiontable", new Page.LocatorOptions().setHasText("Cody")).count()).isZero();
+
+		// The candidate stays, without the name; the log has the clean-up
+		sa.navigate(base + "/viewdeletedcandidates");
+		assertThat(text(sa)).contains("Removed candidate").doesNotContain("Cody");
+		assertThat(activity(sa, "C2")).anyMatch(line -> line.contains("1 month"));
+	}
+
+	@Test
+	@Order(17)
 	void noConsoleErrors() {
 		errors.forEach((page, list) -> assertThat(list).as("console errors").isEmpty());
 	}
