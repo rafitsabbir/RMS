@@ -1,6 +1,7 @@
 package rms.dao;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -12,6 +13,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import rms.model.HiringGroup;
+import rms.model.ReminderInfo;
 
 @Repository
 public class DashboardDaoImpl implements DashboardDao {
@@ -45,6 +47,26 @@ public class DashboardDaoImpl implements DashboardDao {
 			+ "where a.isactive=1 and (upper(trim(a.role))='INTERVIEWER' or (a.role is null and upper(a.isinterviewer)='Y') "
 			+ "or (a.alsointerviewer=1 and upper(trim(a.role)) in ('SUPER_ADMIN', 'HR', 'HIRING_MANAGER'))) "
 			+ "order by a.firstname, a.lastname, a.userid";
+	// Reminders (F10). An interview's evaluation is the interviewer's evaluation in the interview's round; an interview
+	// without a round takes any evaluation of theirs
+	private String overdue = "select s.candidateid, s.interviewerid, s.interviewround, min(s.startat) as startat, "
+			+ "(select min(concat_ws(' ', c2.firstname, c2.lastname)) from candidate c2 where c2.candidateid=s.candidateid) "
+			+ "as candidatename, (select min(concat_ws(' ', a2.firstname, a2.lastname)) from admin a2 "
+			+ "where a2.userid=s.interviewerid) as interviewername from interview_schedule s "
+			+ "join candidate c on c.candidateid=s.candidateid and c.isactive=1 where s.isactive=1 "
+			+ "and s.status<>'CANCELLED' and s.startat<:before and " + undecided + " and exists (select 1 from "
+			+ "candidate_interviewer ci where ci.candidateid=s.candidateid and ci.interviewerid=s.interviewerid "
+			+ "and ci.isactive=1 and " + activeinterviewer + ") and not exists (select 1 from marks m "
+			+ "where m.candidateid=s.candidateid and m.interviewerid=s.interviewerid and m.isactive=1 "
+			+ "and (s.interviewround is null or m.interviewround=s.interviewround))";
+	private String overduegroup = " group by s.candidateid, s.interviewerid, s.interviewround order by startat, "
+			+ "s.candidateid";
+	private String stuck = "select * from (select c.candidateid, concat_ws(' ', c.firstname, c.lastname) as name, "
+			+ "c.stage, coalesce(date((select max(cs.changedat) from candidate_stage cs where cs.candidateid=c.candidateid "
+			+ "and cs.tostage=coalesce(upper(trim(c.stage)), 'APPLIED'))), c.applieddate) as since from candidate c "
+			+ "where c.isactive=1 and (c.candidatestatus is null or upper(trim(c.candidatestatus))<>'R') "
+			+ "and coalesce(upper(trim(c.stage)), 'APPLIED') not in ('HIRED', 'WITHDRAWN')) t "
+			+ "where t.since<:before order by t.since, length(t.candidateid), t.candidateid";
 	private String interviewsbyday = "select s.interviewerid, date(s.startat) as day, count(*) as total "
 			+ "from interview_schedule s where s.isactive=1 and s.status<>'CANCELLED' and s.startat>=:from "
 			+ "and s.startat<:to and exists (select 1 from candidate c where c.candidateid=s.candidateid and c.isactive=1) "
@@ -118,6 +140,39 @@ public class DashboardDaoImpl implements DashboardDao {
 					.put(rs.getObject("day", LocalDate.class), rs.getInt("total"));
 		});
 		return counts;
+	}
+
+	@Override
+	public List<ReminderInfo> getOverdueEvaluations(String interviewerid, LocalDateTime before) {
+		Map<String, Object> paramMap = new HashMap<String, Object>();
+		paramMap.put("before", before);
+		paramMap.put("interviewerid", interviewerid);
+		String sql = overdue + (interviewerid == null ? "" : " and s.interviewerid=:interviewerid") + overduegroup;
+		return namedParameterJdbcTemplate.query(sql, paramMap, (rs, rowNum) -> {
+			ReminderInfo reminder = new ReminderInfo();
+			reminder.setCandidateid(rs.getString("candidateid"));
+			reminder.setCandidatename(rs.getString("candidatename"));
+			reminder.setInterviewerid(rs.getString("interviewerid"));
+			reminder.setInterviewername(rs.getString("interviewername"));
+			reminder.setInterviewround(rs.getString("interviewround"));
+			LocalDateTime startat = rs.getObject("startat", LocalDateTime.class);
+			reminder.setSince(startat == null ? null : startat.toLocalDate());
+			return reminder;
+		});
+	}
+
+	@Override
+	public List<ReminderInfo> getStuckCandidates(LocalDate before) {
+		Map<String, Object> paramMap = new HashMap<String, Object>();
+		paramMap.put("before", before);
+		return namedParameterJdbcTemplate.query(stuck, paramMap, (rs, rowNum) -> {
+			ReminderInfo reminder = new ReminderInfo();
+			reminder.setCandidateid(rs.getString("candidateid"));
+			reminder.setCandidatename(rs.getString("name"));
+			reminder.setStage(rs.getString("stage"));
+			reminder.setSince(rs.getObject("since", LocalDate.class));
+			return reminder;
+		});
 	}
 
 	@Override

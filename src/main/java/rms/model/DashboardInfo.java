@@ -30,6 +30,10 @@ public class DashboardInfo {
 	private int candidateswithoutcv = 0;
 	/** Candidates with no final decision that have an assigned interviewer who is no longer active. */
 	private int candidateswithinactiveinterviewer = 0;
+	/** Reminders (F10): evaluations overdue after an interview; all of them for staff, one's own for an interviewer. */
+	private List<ReminderInfo> overdueevaluations = new ArrayList<ReminderInfo>();
+	/** Reminders (F10, staff): candidates long at one stage. */
+	private List<ReminderInfo> stuckcandidates = new ArrayList<ReminderInfo>();
 
 	public int getTotalcandidates() {
 		return selected + rejected + onhold + pending;
@@ -129,5 +133,21 @@ public class DashboardInfo {
 
 	public void setStagecounts(Map<HiringStage, Integer> stagecounts) {
 		this.stagecounts = stagecounts;
+	}
+
+	public List<ReminderInfo> getOverdueevaluations() {
+		return overdueevaluations;
+	}
+
+	public void setOverdueevaluations(List<ReminderInfo> overdueevaluations) {
+		this.overdueevaluations = overdueevaluations;
+	}
+
+	public List<ReminderInfo> getStuckcandidates() {
+		return stuckcandidates;
+	}
+
+	public void setStuckcandidates(List<ReminderInfo> stuckcandidates) {
+		this.stuckcandidates = stuckcandidates;
 	}
 }

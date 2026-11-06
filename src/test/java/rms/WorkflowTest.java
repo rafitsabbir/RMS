@@ -469,6 +469,15 @@ class WorkflowTest {
 
 	@Test
 	@Order(15)
+	void theHomePageRemindsOfCandidatesLongAtOneStage() {
+		// F10: Ina, imported at Applied with the applied date 2026-10-01, has waited more than 14 days
+		Page hr = pages.get("HR");
+		hr.navigate(base + "/home");
+		assertThat(text(hr, "#stuckcandidates")).contains("Ina Import", "Applied", "since 2026-10-01");
+	}
+
+	@Test
+	@Order(16)
 	void noConsoleErrors() {
 		errors.forEach((page, list) -> assertThat(list).as("console errors").isEmpty());
 	}

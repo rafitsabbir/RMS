@@ -2,6 +2,7 @@
 	pageEncoding="ISO-8859-1" isELIgnored="false" trimDirectiveWhitespaces="true"%>
 <%@ taglib uri="http://www.springframework.org/tags" prefix="spring" %>
 <%@ taglib uri="jakarta.tags.core" prefix="c" %>
+<%@ taglib uri="jakarta.tags.functions" prefix="fn" %>
 <%@ taglib prefix="rms" tagdir="/WEB-INF/tags" %>
 <%-- GET /home (LoginController.home). Spring Security already requires a login (SecurityConfig); this is a fallback --%>
 <c:if test="${empty userinfo}">
@@ -43,6 +44,48 @@
 		<div class="col-6 col-lg"><a class="card rms-card rms-stat${dashboard.candidateswithoutcv > 0 ? ' rms-stat-warn' : ''}" href="${base}viewcandidatelist"><div class="card-body"><div class="rms-stat-value">${dashboard.candidateswithoutcv}</div><div class="rms-stat-label">Candidates with no CV</div></div></a></div>
 		<div class="col-6 col-lg"><a class="card rms-card rms-stat${dashboard.candidateswithinactiveinterviewer > 0 ? ' rms-stat-warn' : ''}" href="${base}viewcandidatelist"><div class="card-body"><div class="rms-stat-value">${dashboard.candidateswithinactiveinterviewer}</div><div class="rms-stat-label">Candidates with an inactive interviewer</div></div></a></div>
 	</div>
+	<%-- Reminders (F10): evaluations overdue after an interview, and candidates long at one stage; the 5 oldest of each --%>
+	<c:if test="${not empty dashboard.overdueevaluations or not empty dashboard.stuckcandidates}">
+	<h2 class="rms-section-title">Reminders</h2>
+	<div class="row g-3 mb-4" id="reminders">
+		<c:if test="${not empty dashboard.overdueevaluations}">
+		<div class="col-lg-6">
+			<div class="card rms-card h-100">
+				<div class="card-body">
+					<h3 class="h6">Evaluations overdue <span class="badge rounded-pill text-bg-warning">${fn:length(dashboard.overdueevaluations)}</span></h3>
+					<p class="small text-body-secondary">Interviews more than 3 days ago that the interviewer hasn't evaluated yet.</p>
+					<ul class="list-unstyled small mb-0" id="overdueevaluations">
+					<c:forEach items="${dashboard.overdueevaluations}" var="r" end="4">
+						<c:url value="/viewevaluations" var="evalURL"><c:param name="candidateid" value="${r.candidateid}"/></c:url>
+						<li class="mb-1"><a href="<c:out value='${evalURL}'/>"><c:out value="${r.candidatename}"/></a>
+							&middot; <c:out value="${empty r.interviewername ? r.interviewerid : r.interviewername}"/><c:if test="${not empty r.interviewround}"> &middot; <c:out value="${r.roundlabel}"/></c:if>
+							<span class="text-body-secondary"> &middot; interview <c:out value="${r.since}"/> (${r.days} days)</span></li>
+					</c:forEach>
+					</ul>
+				</div>
+			</div>
+		</div>
+		</c:if>
+		<c:if test="${not empty dashboard.stuckcandidates}">
+		<div class="col-lg-6">
+			<div class="card rms-card h-100">
+				<div class="card-body">
+					<h3 class="h6">Long at one stage <span class="badge rounded-pill text-bg-warning">${fn:length(dashboard.stuckcandidates)}</span></h3>
+					<p class="small text-body-secondary">Candidates at the same stage for more than 14 days (not Hired, Withdrawn or Rejected).</p>
+					<ul class="list-unstyled small mb-0" id="stuckcandidates">
+					<c:forEach items="${dashboard.stuckcandidates}" var="r" end="4">
+						<c:url value="/viewcandidate" var="profileURL"><c:param name="candidateid" value="${r.candidateid}"/></c:url>
+						<li class="mb-1"><a href="<c:out value='${profileURL}'/>"><c:out value="${r.candidatename}"/></a>
+							&middot; <c:out value="${r.stagelabel}"/>
+							<span class="text-body-secondary"> &middot; since <c:out value="${r.since}"/> (${r.days} days)</span></li>
+					</c:forEach>
+					</ul>
+				</div>
+			</div>
+		</div>
+		</c:if>
+	</div>
+	</c:if>
 	<c:if test="${not empty dashboard.nextinterviews}">
 	<h2 class="rms-section-title">Next interviews</h2>
 	<div class="card rms-card mb-4">
@@ -63,6 +106,22 @@
 		<div class="col-6 col-md-4"><a class="card rms-card rms-stat${dashboard.pendingevaluations > 0 ? ' rms-stat-warn' : ''}" href="${base}myevaluations"><div class="card-body"><div class="rms-stat-value">${dashboard.pendingevaluations}</div><div class="rms-stat-label">Evaluations still to do</div></div></a></div>
 		<div class="col-6 col-md-4"><a class="card rms-card rms-stat" href="${base}myschedule"><div class="card-body"><div class="rms-stat-value">${dashboard.upcominginterviews}</div><div class="rms-stat-label">Upcoming interviews</div></div></a></div>
 	</div>
+	<%-- Reminders (F10): my interviews more than 3 days ago that I haven't evaluated yet --%>
+	<c:if test="${not empty dashboard.overdueevaluations}">
+	<h2 class="rms-section-title">Reminders</h2>
+	<div class="card rms-card mb-4" id="reminders">
+		<div class="card-body">
+			<h3 class="h6">Evaluations overdue <span class="badge rounded-pill text-bg-warning">${fn:length(dashboard.overdueevaluations)}</span></h3>
+			<ul class="list-unstyled small mb-0" id="overdueevaluations">
+			<c:forEach items="${dashboard.overdueevaluations}" var="r">
+				<c:url value="/evaluate" var="evalURL"><c:param name="candidateid" value="${r.candidateid}"/><c:param name="round" value="${r.interviewround}"/></c:url>
+				<li class="mb-1"><a href="<c:out value='${evalURL}'/>">Evaluate <c:out value="${r.candidatename}"/></a><c:if test="${not empty r.interviewround}"> &middot; <c:out value="${r.roundlabel}"/></c:if>
+					<span class="text-body-secondary"> &middot; interview <c:out value="${r.since}"/> (${r.days} days)</span></li>
+			</c:forEach>
+			</ul>
+		</div>
+	</div>
+	</c:if>
 	<c:if test="${not empty dashboard.nextinterviews}">
 	<h2 class="rms-section-title">My next interviews</h2>
 	<div class="card rms-card mb-4">

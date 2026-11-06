@@ -1,7 +1,7 @@
 # Flow: Interview Schedule and Dashboard
 
 Purpose: Traces scheduling an interview, the schedule lists, and the figures on the home page (the dashboard).
-Last updated: 2026-11-05 (F2: interview rounds). 2026-11-05 (F1: e-mails to the interviewer). 2026-10-20 (calendar invites, `/scheduleinvite`). 2026-10-03 (Phase 4 of the roles plan: new; G3 fixed; migration 006, DB-verified NO)
+Last updated: 2026-11-05 (F10: reminders). 2026-11-05 (F2: interview rounds). 2026-11-05 (F1: e-mails to the interviewer). 2026-10-20 (calendar invites, `/scheduleinvite`). 2026-10-03 (Phase 4 of the roles plan: new; G3 fixed; migration 006, DB-verified NO)
 Read this when: you're working on interview scheduling, the Interview Schedule or My Schedule pages, or the home page dashboard.
 
 Evidence: `rms/controller/ScheduleController.java`, `LoginController.java` (`home`); `rms/service/ScheduleServiceImpl.java`, `DashboardServiceImpl.java`; `rms/dao/ScheduleDaoImpl.java`, `DashboardDaoImpl.java`; `rms/model/ScheduleInfo.java`, `DashboardInfo.java`; `WEB-INF/jsp/viewschedule.jsp`, `myschedule.jsp`, `createschedule.jsp`, `main.jsp`; `WEB-INF/tags/schedulestatus.tag`, `layout.tag`; `rms/config/SecurityConfig.java`; `db/migrations/006-interview-schedule.sql`; tests `ScheduleControllerTest`, `ScheduleServiceImplTest`, `DashboardServiceImplTest`, `ScheduleModelTest`, `ScheduleDaoImplTest`, `DashboardDaoImplTest`, `SecurityConfigTest`, `LoginControllerTest`.
@@ -75,3 +75,10 @@ The cards link to Candidate Status, the candidate, schedule and job lists, and M
 - No link from the candidate profile to the schedule, and no history of changes beyond `updatedby` and `updatedat` on the row.
 - No overlap check for different start times, no check that the time is in the future, and no automatic DONE.
 - The DAO tests, the JSPs and migration 006 have not run against a real MySQL or on Tomcat ([../acceptance/roles-phase4.md](../acceptance/roles-phase4.md)).
+
+## Reminders on the home page (F10, 2026-11-05)
+A **Reminders** section under the staff figures, and on an interviewer's home page (`main.jsp`, `DashboardServiceImpl`, `DashboardDaoImpl.getOverdueEvaluations` / `getStuckCandidates`, `ReminderInfo`). Shown only when there is something to remind of; at most the 5 oldest of each kind are listed, with the count.
+- **Evaluations overdue** (staff: everyone's; an interviewer: their own, linking to the evaluation form in the interview's round): an interview that isn't cancelled and started more than **3 days** ago (`OVERDUE_DAYS`), of a candidate without a final decision, whose interviewer is still assigned and active and hasn't evaluated the candidate in that interview's round (an interview without a round: any evaluation of theirs counts). One reminder per candidate, interviewer and round, with the first such interview's day.
+- **Long at one stage** (staff): active candidates, not Rejected, not Hired or Withdrawn, at the same stage for more than **14 days** (`STUCK_DAYS`): since the last move into their stage (`candidate_stage`), or the applied date for one still at Applied without history; candidates with neither date aren't listed.
+- The thresholds are developers' choices (open question #35). Like the other figures, a database failure leaves the home page without them (`LoginController.dashboard`).
+- **Tests:** `DashboardDaoImplTest` (rounds, decided, cancelled and unassigned excluded; stage dates), `DashboardServiceImplTest`, `WorkflowTest.theHomePageRemindsOfCandidatesLongAtOneStage`.
