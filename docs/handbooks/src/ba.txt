@@ -1,6 +1,6 @@
 # RMS Business Analyst Guide
 @ Recruitment Management System — roles, screens, permissions, business flows and how to use the system
-@ Describes the version on the dev branch as of 5 November 2026, the one to be released (roles plan, Phases 1-4, reports, the activity log, English-only text, and the October features: hiring stages, calendar files, the duplicate warning, Candidates filters and the hiring report). Prepared from the code and the project documentation.
+@ Describes the version on the dev branch as of 6 November 2026, the one to be released (roles plan, Phases 1-4, reports, the activity log, English-only text, the October features: hiring stages, calendar files, the duplicate warning, Candidates filters and the hiring report, and the November features F1-F11: e-mails to staff, interview rounds, staff who also interview, import from CSV, the pipeline per job, search, offers, interviewer workload, reminders and data retention). Prepared from the code and the project documentation.
 
 > **Purpose of this document:** explain what RMS does today, who can use which screen, how each business process works, and what is still missing, so that new features can be analysed and proposed.
 
@@ -9,10 +9,10 @@ RMS is a small web application for running interviews. The HR or recruitment sid
 
 |Topic|Summary|
 |---|---|
-|Who uses it|Super Admins, HR staff, hiring managers and interviewers. Each person has one login and one role.|
+|Who uses it|Super Admins, HR staff, hiring managers and interviewers. Each person has one login and one role; a Super Admin, HR user or Hiring Manager can also interview.|
 |Where it runs|In a web browser, on desktop or phone. Nothing is installed on the user's computer.|
-|What works today|Login, Users and Roles, Change password, Positions, Languages/skills, Jobs, Candidates with their profile and documents, assigning interviewers, interviewers' evaluations, Candidate Status (averages), interview scheduling with calendar files, hiring stages, filters on the Candidates list, CSV reports and the hiring report, the activity log, the home page figures (dashboard) and the Selected / Rejected / On hold decision.|
-|What is not built yet|E-mail notifications (to be decided later; interview calendar files are downloaded, not sent), Excel (.xlsx) and PDF reports, several roles for one person.|
+|What works today|Login, Users and Roles, Change password, Positions, Languages/skills, Jobs, Candidates with their profile and documents, assigning interviewers, interviewers' evaluations, Candidate Status (averages), interview scheduling with calendar files and interview rounds, hiring stages, offers, filters and search, importing candidates from CSV, CSV reports with the hiring report and interviewer workload, the activity log, the home page figures and reminders, e-mails to staff, data retention and the Selected / Rejected / On hold decision.|
+|What is not built yet|Excel (.xlsx) and PDF reports, single sign-on (skipped by the owner), e-mails to candidates (never sent, by decision).|
 
 Every menu entry opens a working screen.
 
@@ -23,11 +23,11 @@ RMS has four roles. A Super Admin sets each person's role on the **Users and Rol
 |---|---|---|
 |**Super Admin**|Runs the system: users, roles and everything HR can do.|Everything: Users and Roles, Candidate Status, Candidates and their documents, Jobs, Positions, Languages, and permanently deleting a candidate's documents.|
 |**HR**|Runs recruitment: reference lists, candidates, results.|Candidate Status, Candidates (add, edit, delete, profile, documents), hiring stages, assigning interviewers, decisions, the interview schedule, Jobs, Positions, Languages, reports. No user management.|
-|**Hiring Manager**|Follows recruitment for their team.|Candidate Status and evaluations, the Candidates list and profiles, Jobs, and opening documents; read-only.|
+|**Hiring Manager**|Follows recruitment for their team.|Candidate Status and evaluations, the Candidates list and profiles (offers without the salary band), Jobs, reports, and opening documents; read-only.|
 |**Interviewer**|Interviews candidates and scores them on 10 criteria.|My Evaluations: scores the candidates assigned to them and sees those candidates' profiles and documents. Nothing else.|
 |No role|Not intended; a data error.|Can log in, but sees only Home and Change password.|
 
-> **One role per person.** There are no combined roles (for example a hiring manager who also interviews). Someone who needs two roles needs two logins today.
+> **Also interviews.** Each person has one role, but a Super Admin, HR user or Hiring Manager can be marked **Also interviews** under Users and Roles. They keep their role and also get My Evaluations and My Schedule, can be assigned to candidates and scheduled, and score like an interviewer. One login is enough.
 
 ## 3. Who can open which screen
 The menu shows each role only its own entries. Typing a page's address directly doesn't get around this: the server checks the role on every request, and any page not explicitly opened to a role is refused.
@@ -38,12 +38,15 @@ The menu shows each role only its own entries. Typing a page's address directly 
 |Home (welcome page)|Live|Yes|Yes|Yes|Yes|
 |Recruitment › Candidate Status|Live|Yes|Yes|Read-only|Refused|
 |Recruitment › Candidates|Live|Yes|Yes|List only|Refused|
+|Search box (top bar)|Live|Yes|Yes|Yes|Not shown|
+|Candidates › Import (from CSV)|Live|Yes|Yes|Refused|Refused|
+|Candidate profile › Offers|Live|Yes|Yes|Read-only, without the salary band|Refused|
 |Candidate profile (click a name)|Live|Yes|Yes|Read-only|Assigned candidates only|
 |Candidate's evaluations and decision history|Live|Yes|Yes|Read-only|Refused|
 |Assign interviewers, record a decision|Live|Yes|Yes|Refused|Refused|
 |Candidate profile › Pipeline (hiring stage)|Live|Yes, with history|Yes, with history|Read-only, with history|Assigned candidates: the stage only|
 |Move a candidate to another stage|Live|Yes|Yes|Refused|Refused|
-|Interviews › My Evaluations, evaluation form|Live|Refused|Refused|Refused|Assigned candidates only|
+|Interviews › My Evaluations, evaluation form|Live|If marked Also interviews|If marked Also interviews|If marked Also interviews|Assigned candidates only|
 |Documents: upload, replace, delete|Live|Yes|Yes|Refused|Refused|
 |Documents: open (download)|Live|Yes|Yes|Yes|Assigned candidates only|
 |Permanently delete documents|Live|Yes|Refused|Refused|Refused|
@@ -54,12 +57,13 @@ The menu shows each role only its own entries. Typing a page's address directly 
 |Account › Change password|Live|Yes|Yes|Yes|Yes|
 |Recruitment › Interview Schedule|Live|Yes|Yes|Read-only|Refused|
 |Schedule, change or cancel an interview|Live|Yes|Yes|Refused|Refused|
-|Interviews › My Schedule|Live|Refused|Refused|Refused|Own interviews only|
+|Interviews › My Schedule|Live|If marked Also interviews|If marked Also interviews|If marked Also interviews|Own interviews only|
 |Calendar file of an interview (.ics)|Live|Yes|Yes|Yes|Own interviews only|
-|Home page figures (dashboard)|Live|All figures|All figures|All figures|Own evaluations and interviews only|
+|Home page figures (dashboard) and reminders|Live|All figures|All figures|All figures|Own evaluations, interviews and overdue evaluations only|
 |Reports (CSV downloads: candidates, candidate status, interview schedule, hiring report) and the hiring report on the page|Live|Yes|Yes|Yes|Refused|
 |Administration › Activity Log, and its CSV download|Live|Yes|Refused|Refused|Refused|
 |Administration › Deleted Candidates (delete their document files permanently)|Live|Yes|Refused|Refused|Refused|
+|Administration › Data retention|Live|Yes|Refused|Refused|Refused|
 |Log out (top bar)|Live|Yes|Yes|Yes|Yes|
 
 "Refused" means the user sees an "access denied" error page (HTTP 403) and the attempt is written to the server log. Anyone not logged in is sent to the login page.
@@ -71,6 +75,7 @@ The menu shows each role only its own entries. Typing a page's address directly 
 |---|---|---|---|
 |Add a new user|Users and Roles › Add user: username, names, optional e-mail, phone and designation, role, and a temporary password. RMS gives the user an ID (U1, U2…). The user must choose their own password at first sign-in.|Super Admin|No|
 |Change someone's role|Users and Roles › Edit › Role. It applies at once: the person is signed out at their next click and signs in with the new role.|Super Admin|No|
+|Let a staff member interview too|Users and Roles › Edit › tick **Also interviews**. Like a role change, it applies at their next click.|Super Admin|No|
 |Remove someone's access|Users and Roles › Deactivate. They can't sign in and are signed out at once. Nothing they did is removed, and Reactivate restores everything.|Super Admin|No|
 |Reset a forgotten password|Users and Roles › Edit › Reset password, with a temporary password. The user must change it at their next page.|Super Admin|No|
 |Change my own password|Account › Change password.|Everyone|No|
@@ -93,6 +98,7 @@ The menu shows each role only its own entries. Typing a page's address directly 
 - A list of every user, active or not, with ID, name, username, role, designation and status. "Must change password" marks users with a temporary password.
 - Usernames: 3 to 100 letters, digits or . _ @ -; each username can be used once, also counting deactivated users. The ID and username can't be changed later.
 - Passwords: at least 8 characters. They are stored scrambled (bcrypt), never as readable text.
+- **Also interviews** (Super Admin, HR or Hiring Manager only): the person keeps their role and also interviews. Untick it to stop; their evaluations stay.
 
 ### Change password (everyone)
 - Current password, then the new one twice. The new one must differ from the current one.
@@ -116,7 +122,13 @@ The menu shows each role only its own entries. Typing a page's address directly 
 - The list also shows each candidate's documents at a glance: "CV ✓ · 4/6" means a CV is there and 4 of the 6 document kinds (CV, SSC, HSC, BSc / Honours, Masters, PhD) are uploaded; "No CV" means the required CV is missing.
 - The list shows each candidate's **hiring stage** (sorted in pipeline order).
 - **Filters** above the list: job (or no job), stage, status, source (or not recorded), an applied-date range, "No CV yet" and "Not evaluated yet". They combine; the page says "Showing n of m candidates"; the address can be bookmarked; **Download these as CSV** exports exactly the filtered list.
+- **Search:** the box at the top of every page (Super Admin, HR, Hiring Manager) finds active candidates by ID, name, e-mail or phone; every word typed must match, and phone numbers also match by their digits. It opens the Candidates list with the matches, and combines with the filters.
 - **Possible duplicates:** adding a candidate, or changing a candidate's e-mail, phone or name, first looks for other active candidates with the same e-mail (any case), the same phone number (digits compared, at least 6) or the same first and last name. If there are any, the form shows them with links, and offers **Check again** (the default, also for the Enter key) or **Save anyway**. A save anyway is noted in the activity log with the IDs only. Nothing is merged or blocked.
+
+### Import candidates from CSV
+- **Candidates › Import** (Super Admin, HR): download the template, fill one candidate per line in Excel (first and last name, position, language, and optionally e-mail, phone, source, applied date and job ID), save it as CSV and upload it (at most 500 lines and 512 KB).
+- RMS first shows every line: ready, a possible duplicate (of a candidate in RMS or of another line), or what is wrong. Nothing is saved until **Import** is pressed. Lines with a problem are skipped; possible duplicates are imported only when the box is ticked.
+- The checks are those of the Add candidate form. Imported candidates start at Applied; the activity log records each one and the import's count.
 
 ### Candidate profile and documents
 - Click a candidate's name to open their profile: details, job, and documents grouped by kind. Staff also see the assigned interviewers (Super Admin and HR assign and unassign them there) and the latest decision.
@@ -134,17 +146,25 @@ The menu shows each role only its own entries. Typing a page's address directly 
 - **Moves RMS makes:** recording Selected moves Applied, Screening or Interview to Offer; recording On hold or Rejected moves Offer or Hired back to Interview, so Offer and Hired always mean Selected; scheduling an interview moves Applied or Screening to Interview.
 - Every change is kept in the history and the activity log (the stage names only, never the note).
 
+### Offers
+- An **Offer** card on the profile. Super Admin and HR record an offer for a **Selected** candidate: offer date (required), salary band, start date, status (Waiting for an answer, Accepted, Declined, Withdrawn) and a note.
+- Only one offer can wait for an answer at a time, and only that one can be changed; answered offers stay as history.
+- **Accepted** moves a candidate at Offer to **Hired** (history note "Offer accepted"). Declined and Withdrawn move nothing.
+- Hiring Managers see the offers without the salary band; interviewers see none. The activity log records the offer's status only, never the band or the note.
+
 ### Jobs
 - A job is an opening for a position, with a number of vacancies, an optional closing date and a status, Open or Closed, set by HR. Nothing closes a job automatically.
 - Super Admin and HR can add, edit and delete jobs (a soft delete: candidates linked to it keep the link). Hiring Managers see the list.
 - Only open jobs can be chosen for a candidate. A candidate whose job is later closed or deleted keeps it.
+- **Pipeline per job:** the Jobs list shows, for each job, how many active candidates are at each stage and how many were rejected (each number opens the Candidates list filtered to them), and "Filled on" a date once the hires reach the vacancies.
 
 ### Interviewers and evaluations
-- **Assigning:** on a candidate's profile, Super Admin and HR assign one or more interviewers. Only active users with the Interviewer role can be assigned.
+- **Assigning:** on a candidate's profile, Super Admin and HR assign one or more interviewers. Only active users with the Interviewer role, or marked Also interviews, can be assigned.
 - **A deactivated interviewer** keeps their assignments, flagged "interviewer inactive", so HR can see them and reassign. Reactivating restores everything.
 - **Unassigning** keeps the interviewer's evaluation: it still counts, but they can't change it any more.
 - **My Evaluations** (interviewers): the assigned candidates, with "To do" or "Submitted".
-- **Evaluation:** each of the 10 criteria is scored from 1 to 10 (total at most 100), with an optional comment per criterion and an overall comment. The candidate's documents are listed beside the form. One evaluation per interviewer and candidate: saving again changes it.
+- **Evaluation:** each of the 10 criteria is scored from 1 to 10 (total at most 100), with an optional comment per criterion and an overall comment. The candidate's documents are listed beside the form. One evaluation per interviewer, candidate and **round**: saving again changes it.
+- **Interview rounds:** First, Technical and Final interview (a fixed list). An interview can have a round; the form has a tab per round and opens at the round of the interviewer's interview. Older evaluations show "No round". The candidate's evaluations page shows the averages per round; Candidate Status averages all of them.
 - **Locking:** evaluations can be changed until the candidate is Selected or Rejected. On hold doesn't lock them.
 
 ### Candidate Status (results)
@@ -158,30 +178,44 @@ The menu shows each role only its own entries. Typing a page's address directly 
 - Selected and Rejected lock the evaluations; On hold doesn't.
 
 ### Interview schedule
-- Super Admin and HR schedule an interview from **Interview Schedule › Schedule interview**: first choose the candidate, then the interviewer (only people assigned to that candidate whose account is active are offered), the date and time, and an optional location.
+- Super Admin and HR schedule an interview from **Interview Schedule › Schedule interview**: first choose the candidate, then the interviewer (only people assigned to that candidate whose account is active are offered), the date and time, an optional location and an optional round.
 - Times are the server's local time, as typed. Two interviews for the same interviewer at the same start time are refused. A scheduled interview can't be put in a time that has passed; an interview already in the past can still get a location or be marked Done.
-- An interview can be changed, marked Done or cancelled. Cancelling keeps it in the list, marked Cancelled, and a cancelled interview can't be changed. RMS never marks an interview Done by itself and sends no notification.
+- An interview can be changed, marked Done or cancelled. Cancelling keeps it in the list, marked Cancelled, and a cancelled interview can't be changed. RMS never marks an interview Done by itself.
 - Hiring Managers see the whole list read-only. Interviewers see only their own interviews, under **My Schedule**.
-- **Calendar:** each interview (except one marked Done) has a **Calendar** button that downloads an .ics file for Outlook, Google Calendar or Apple Calendar: one event, the time as RMS shows it, one hour long, with the location. Nobody is invited and nothing is e-mailed. After a change or a cancellation, downloading it again updates or cancels the same event (some calendars, Google in particular, may add a copy instead). An interviewer gets only the files of their own interviews.
+- **Calendar:** each interview (except one marked Done) has a **Calendar** button that downloads an .ics file for Outlook, Google Calendar or Apple Calendar: one event, the time as RMS shows it, one hour long, with the location. Nobody is invited; the interview e-mails (below) carry the same file. After a change or a cancellation, downloading it again updates or cancels the same event (some calendars, Google in particular, may add a copy instead). An interviewer gets only the files of their own interviews.
+
+### E-mails to staff
+- Once the IT team connects RMS to a mail server, it e-mails staff (never candidates):
+  - **Interviewers:** when they are assigned to a candidate, and when an interview of theirs is scheduled, changed (time, place, round or interviewer: the previous interviewer is told too) or cancelled; interview mails carry the calendar file.
+  - **HR** (or the Super Admins, when there is no active HR user with an e-mail): when an evaluation is saved. The mail says who evaluated whom, never the scores or comments.
+- Mails go to the e-mail address on the user's profile; inactive users and users without an address get none. A mail problem never stops the action itself. Without a mail server, RMS works as before.
 
 ### Reports
 - **Reports** (menu, for Super Admin, HR and Hiring Manager) offers CSV downloads that open in Excel: **Candidates** (with status and the reason for the decision), **Candidate Status** (evaluation count, the average of each criterion, the total and the status) and **Interview Schedule**. A Super Admin also sees **Activity Log**.
 - A download contains what the matching screen shows, nothing more. A cell that starts with = + - or @ is shown with a leading apostrophe so that Excel never runs it as a formula; phone numbers that start with + therefore show an apostrophe.
 - **Hiring report** (on the Reports page, and as one CSV): the days from the applied date to the decision for Selected and Rejected candidates (median, average, shortest, longest); the active candidates **per stage, per job and per source**, each split by decision, with no CV, not evaluated and the average days to Selected; and the evaluations still to do per interviewer.
+- **Interviewer workload** (in the hiring report): every active interviewer with their interviews this week and in each of the next three weeks, and their evaluations still to do.
 - Every download is recorded in the activity log. Excel (.xlsx) and PDF files are not offered.
 
 ### Activity log (Super Admin)
 - **Activity Log** (menu, Super Admin only) shows the newest 500 recorded actions with the time, the user, the action, the candidate or user it concerned and a short detail. It can be filtered by action and downloaded as CSV. Nobody can edit or delete an entry in RMS.
-- Recorded: **Marked** (an interviewer saved an evaluation, with the total score only), **Selected**, **Rejected** and **On hold** (decisions; the reason stays in the decision history), interviewer assigned or unassigned, interview scheduled, changed or cancelled, candidate added, changed or deleted, user added, changed, deactivated, reactivated or given a new password, and report downloaded.
-- Also recorded: sign-ins and failed sign-ins (the typed username only if it looks like a username), document uploads, deletes and permanent deletes, and changes to jobs, positions and languages. Not recorded: sign-outs and a user's own password changes. Details never hold scores per criterion, comments, reasons, names or passwords.
+- Recorded: **Marked** (an interviewer saved an evaluation, with the total score and round only), **Selected**, **Rejected** and **On hold** (decisions; the reason stays in the decision history), interviewer assigned or unassigned, interview scheduled, changed or cancelled, candidate added, changed or deleted, user added, changed, deactivated, reactivated or given a new password, and report downloaded.
+- Also recorded: sign-ins and failed sign-ins (the typed username only if it looks like a username), document uploads, deletes and permanent deletes, and changes to jobs, positions and languages. Also offers, imports and data clean-ups. Not recorded: sign-outs and a user's own password changes. Details never hold scores per criterion, comments, reasons, names or passwords.
 
 ### English only
 - RMS accepts English text only: letters, digits and common punctuation (no accented letters and no other scripts). It is checked for candidate and user names, designations, position and language names, decision reasons, evaluation comments and interview locations; anything else is refused with a message.
 - Names already stored with other characters stay as they are, but such a candidate or user can be edited only after the name is changed to English.
 
+### Data retention (Super Admin)
+- Off unless the IT team sets a period (1 to 240 months) chosen by the owner from the company's policy; until then the page says retention is off.
+- **Data retention** lists candidates who weren't hired and have had no activity for that period (no application, decision, stage change, interview, evaluation, upload or offer), active or deleted.
+- The Super Admin ticks who to clean up and confirms. RMS deletes their documents and removes their personal data: the name becomes "Removed candidate"; e-mail, phone, reasons, notes and comments are emptied; the candidate is deleted. The ID, scores, decisions and stages stay, so counts and reports stay right. It can't be undone and is logged.
+- RMS never cleans up by itself.
+
 ### Home page figures (dashboard)
 - Super Admin, HR and Hiring Managers see: candidates by status (Selected, Rejected, On hold, Pending), candidates by stage (each tile opens the Candidates list filtered to that stage), evaluations still to do, upcoming interviews (with the next five), open jobs, candidates with no CV, and candidates with an inactive interviewer.
 - Interviewers see their own evaluations still to do and upcoming interviews.
+- **Reminders** (shown only when there is something): **evaluations overdue**, an interview that wasn't cancelled and started more than 3 days ago, without the interviewer's evaluation for that round, for a candidate without a final decision (staff see all, interviewers their own, with a link to the form); and, for staff, **candidates long at one stage**, more than 14 days at the same stage (not Rejected, Hired or Withdrawn). The five oldest of each are listed with the count.
 - "Evaluations still to do" counts an assigned, active interviewer who hasn't scored a candidate yet, not counting candidates already Selected or Rejected. "Candidates with an inactive interviewer" lists those who still need evaluations but have an assigned interviewer whose account is deactivated, so HR can reassign.
 
 ## 6. Business flows
@@ -224,14 +258,25 @@ The process as built: every step is a working screen.
 2. To make an offer, first record **Selected** (Evaluations and decision): the candidate moves to Offer by itself. Then move them to **Hired** when they accept.
 3. If a candidate drops out, move them to **Withdrawn**.
 
+### Super Admin or HR: import candidates from Excel
+1. Open **Candidates** and click **Import**, then download the **template**.
+2. Fill one candidate per line in Excel, then save as **CSV**.
+3. Choose the file and click **Check the file**. Check each line's result; tick the box to include possible duplicates if they are other people.
+4. Click **Import**. The Candidates list shows how many were added.
+
+### Super Admin or HR: record an offer
+1. Open a Selected candidate's profile. Under **Offer**, enter the offer date and, if you like, the salary band, start date and a note; leave the status Waiting for an answer and save.
+2. When the candidate answers, change the status to Accepted, Declined or Withdrawn and save. Accepted moves them to Hired.
+
 ### Super Admin, HR or Hiring Manager: find candidates
-1. Open **Candidates**, set the filters you need (for example Stage Interview and "Not evaluated yet") and click **Apply**. **Clear** removes them.
-2. Bookmark the page to come back to the same list, or click **Download these as CSV**.
+1. To find one person, type a name, e-mail, phone or ID in the **search box** at the top and press Enter.
+2. Or open **Candidates**, set the filters you need (for example Stage Interview and "Not evaluated yet") and click **Apply**. **Clear** removes them.
+3. Bookmark the page to come back to the same list, or click **Download these as CSV**.
 
 ### Super Admin or HR: schedule an interview
 1. Open **Interview Schedule** and click **Schedule interview**.
 2. Choose the candidate and click **Next**.
-3. Choose the interviewer, enter the date, time and (optionally) the location, and click **Save**. If no interviewer is offered, assign one on the candidate's profile first.
+3. Choose the interviewer, enter the date, time and (optionally) the location and round, and click **Save**. If no interviewer is offered, assign one on the candidate's profile first.
 4. To change an interview use **Edit** (set Status to Done afterwards, if you like); to cancel it use **Cancel** and confirm.
 5. Scheduling moves a candidate at Applied or Screening to Interview.
 
@@ -243,6 +288,10 @@ The process as built: every step is a working screen.
 1. Open **Deleted Candidates**. Candidates with files still stored show the number of files.
 2. Enter the reason (English) and click **Delete**, then confirm. The records stay; only the files are removed, and it can't be undone.
 
+### Super Admin: clean up old candidate data
+1. Open **Data retention**. If it says retention is off, the IT team hasn't set a period.
+2. Untick anyone to keep, click **Clean up the selected candidates** and confirm.
+
 ### Super Admin: see who did what
 1. Open **Activity Log**. Choose an action in the filter (for example Selected) and click **Show**.
 2. Use **Download CSV** to keep a copy.
@@ -253,8 +302,8 @@ The process as built: every step is a working screen.
 3. Super Admin and HR: under **Decision**, choose Selected, Rejected or On hold, give the reason and the date, and click **Save decision**.
 
 ### Interviewer: evaluate a candidate
-1. Sign in and open **My Evaluations** (menu or Home).
-2. Click **Evaluate** next to a candidate. The documents are listed on the right.
+1. Sign in and open **My Evaluations** (menu or Home; Home also lists overdue evaluations).
+2. Click **Evaluate** next to a candidate, and choose the round's tab if there are rounds. The documents are listed on the right.
 3. Score all 10 criteria from 1 to 10, add comments if you like, and click **Save evaluation**. Use **Edit** to change it until the candidate is selected or rejected.
 
 ### Interviewer: put an interview in your calendar
@@ -270,16 +319,17 @@ The process as built: every step is a working screen.
 |Business object|What it holds|Maintained in RMS?|
 |---|---|---|
 |User login|User ID (U1, U2…), username, password (scrambled), "must change password" flag|Yes (Users and Roles, Change password)|
-|User profile|First and last name, e-mail, phone, designation, role, active flag|Yes (Users and Roles)|
+|User profile|First and last name, e-mail, phone, designation, role, Also interviews, active flag|Yes (Users and Roles)|
 |Position|Name (capitals), active flag|Yes|
 |Language / skill|Name (capitals), active flag|Yes|
-|Candidate|ID (C1, C2…), first and last name, position, language, e-mail, phone, source, applied date, job, status (S/R/H/empty), hiring stage, active flag|Yes|
+|Candidate|ID (C1, C2…), first and last name, position, language, e-mail, phone, source, applied date, job, status (S/R/H/empty), hiring stage, active flag, when and by whom the personal data was removed|Yes|
+|Offer|Candidate, offer date, salary band, start date, status (Waiting, Accepted, Declined, Withdrawn), answer date, note, who and when|Yes (Super Admin, HR)|
 |Stage change|Candidate, from and to stage, optional note, who, when; every change kept|Yes (Super Admin, HR; some moves by RMS)|
 |Job|Position, vacancies, closing date, status (Open/Closed), active flag|Yes|
 |Candidate document|Kind, file name (shown only), file type and size, title/issuer/year (professional certificates), who uploaded it and when, deleted or permanently deleted (who, when, why). The file itself is stored outside the database|Yes|
-|Evaluation (score sheet)|Interviewer, candidate, 10 scores (1–10), comments, when saved|Yes (interviewers)|
+|Evaluation (score sheet)|Interviewer, candidate, round, 10 scores (1–10), comments, when saved|Yes (interviewers)|
 |Assignment|Candidate, interviewer, who assigned and when; unassigned (who, when)|Yes (Super Admin, HR)|
-|Interview|Candidate, interviewer, start date and time (the server's time), location, status (Scheduled, Done, Cancelled), who created and changed it|Yes (Super Admin, HR)|
+|Interview|Candidate, interviewer, start date and time (the server's time), location, round, status (Scheduled, Done, Cancelled), who created and changed it|Yes (Super Admin, HR)|
 |Decision|Status (Selected, Rejected, On hold), reason, date, who decided, when; every decision kept|Yes (Super Admin, HR)|
 |Activity log entry|Time, user, action (Marked, Selected, Rejected, On hold, interview, candidate, user and report actions), the candidate, user or report concerned, a short detail (for example the total score)|Written by RMS only; read by Super Admin|
 
@@ -304,7 +354,11 @@ Work Experience, Technical Knowledge, Leadership Skill, Decision Making, Problem
 - Passwords must match exactly, including upper and lower case. An empty password never works. New and changed passwords are at least 8 characters and stored scrambled.
 - A deactivated user can't sign in. A username that appears twice in the database can't log in. A user with a login but no profile can't log in.
 - 5 wrong passwords in 15 minutes lock that username on that computer for 15 minutes.
-- Interviewers see and score only the candidates assigned to them; scores must be 1 to 10; one evaluation per interviewer and candidate; no changes after Selected or Rejected.
+- Interviewers see and score only the candidates assigned to them; scores must be 1 to 10; one evaluation per interviewer, candidate and round; no changes after Selected or Rejected.
+- An offer needs the decision Selected; one offer waits for an answer at a time; Accepted moves Offer to Hired.
+- An import adds nothing until confirmed and checks every line like the Add candidate form.
+- Data retention is off unless a period is set; a Super Admin confirms each clean-up; hired candidates are never cleaned up.
+- E-mails go to staff only, never to candidates.
 - A decision needs a reason and a date that isn't in the future; it is made by a person, never by the system.
 - Stages: Offer and Hired need Selected; no stage change while Rejected; Selected moves to Offer, On hold or Rejected moves Offer or Hired back to Interview, scheduling moves Applied or Screening to Interview.
 - A possible duplicate (same e-mail, phone digits or full name as another active candidate) is shown before saving; saving it anyway is logged.
@@ -320,8 +374,9 @@ Work Experience, Technical Knowledge, Leadership Skill, Decision Making, Problem
 |G34|Names in non-Latin scripts (for example Bengali, Cyrillic)|Closed by decision|Only English is accepted, so such names are refused instead of being stored as unreadable codes. Names already stored that way stay until corrected.|
 |—|Reports or export|Partial|CSV for Excel: candidates, candidate status, interview schedule and the activity log. No .xlsx or PDF, and no other reports yet.|
 |—|Audit trail (who changed what, when)|Built|The activity log records marking, decisions, stages, interviews, assignments, candidate and user changes, sign-ins, documents, jobs, master data and report downloads. Not recorded: sign-outs and a user's own password change.|
-|—|Notifications|Not built|No e-mail; interview calendar files are downloaded by each person. The owner decides later.|
-|—|Several roles for one person|Not built|Someone who manages and interviews needs two logins.|
+|—|Notifications|Built (F1)|E-mails to staff once a mail server is set; candidates are never e-mailed.|
+|—|Several roles for one person|Built (F3)|A staff role can also interview with one login.|
+|—|Single sign-on|Not built (skipped by the owner)|Users sign in with an RMS password.|
 
 ## 11. Decisions made (2 October to 20 October 2026)
 1. **Scoring:** each of the 10 criteria is scored 1–10 (total up to 100). Several interviewers can score one candidate; the result is the average of all evaluations, per criterion and in total. Interviewers can add comments.
@@ -335,13 +390,16 @@ Work Experience, Technical Knowledge, Leadership Skill, Decision Making, Problem
 9. **Interview schedule and dashboard** (built in Phase 4): an interview is for an assigned, active interviewer; times are the server's local time; no notifications yet; the home page shows the figures listed above.
 10. **Reports, activity log and English only** (3 October 2026): reports are CSV files for Excel; the activity log records marking, selecting, rejecting and the other actions listed above and is read by Super Admin only; only English text is accepted; e-mail notifications will be decided later.
 11. **Past interview times and deleted candidates** (3 October 2026): a scheduled interview can't be put in the past; a Super Admin can delete the files of deleted candidates; sign-ins, document actions, jobs and master data are logged.
-12. **October features** (20 October 2026): interview calendar files, the possible-duplicate warning, Candidates filters, the hiring report, and **hiring stages**: the standard stages, linked to the decision. After them, no more features before the release (feature freeze).
+12. **October features** (20 October 2026): interview calendar files, the possible-duplicate warning, Candidates filters, the hiring report, and **hiring stages**: the standard stages, linked to the decision. After them, a feature freeze.
+13. **Features before the release** (5 November 2026): the freeze was lifted and F1-F11 built: e-mails to staff only, interview rounds, staff who also interview, import from CSV, backups and monitoring, the pipeline per job, search, offers, interviewer workload, reminders, and data retention (configurable, off by default, each clean-up confirmed by a Super Admin). Single sign-on was skipped.
 
 ## 12. Open business questions
-1. **One role per user:** is a second login acceptable for someone who both manages and interviews, or should a user hold several roles later?
-2. **Schedules:** e-mail notifications will be decided later. Do all users work in the server's time zone? Interview times and the calendar files use it.
+1. **Interview rounds** (#33): are First, Technical and Final the right rounds, or should HR maintain the list?
+2. **Schedules:** do all users work in the server's time zone? Interview times and the calendar files use it.
 3. **Reports:** which further reports are needed beyond the hiring report (for example per month; Excel or PDF files)?
-4. **Retention:** how long must activity log entries and candidate documents be kept, and who deletes or archives them? RMS deletes nothing by itself; a Super Admin deletes files by hand under Deleted Candidates.
+4. **Retention:** which period should be set for candidate data (the owner chooses it; off until then), and how long must activity log entries be kept?
+6. **Offers** (#34): should Declined move the candidate to Withdrawn? Is the salary band right for HR only?
+7. **Reminder periods** (#35): are 3 days (overdue evaluation) and 14 days (long at one stage) right?
 5. **Hiring stage details** (open question #32): confirm the rules above, and whether candidates who already had interviews should start at Interview rather than Applied when the release fills in the stages.
 
 > Gap references (G…) and question numbers match the project's docs/gaps.md and docs/open-questions.md, so the development team can trace each item.

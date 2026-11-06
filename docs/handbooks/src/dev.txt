@@ -1,6 +1,6 @@
 # RMS Developer Handbook
 @ Recruitment Management System — code structure, request flow, security model, conventions, tests and recipes for common changes
-@ The dev branch as of 5 November 2026 (roles plan Phases 1-4, reports, activity log, English-only text, the hardening batch and the October features: hiring stages, calendar files, duplicate warning, filters, hiring report). Java 21, Spring 7, Tomcat 11, MySQL 9.7.
+@ The dev branch as of 6 November 2026 (roles plan Phases 1-4, reports, activity log, English-only text, the hardening batch, the October features: hiring stages, calendar files, duplicate warning, filters, hiring report, and the November features F1-F11: e-mail, interview rounds, staff who also interview, CSV import, pipeline per job, search, offers, workload, reminders, data retention). Java 21, Spring 7, Tomcat 11, MySQL 9.7.
 
 ## 1. First day
 1. Install **JDK 21** (for example Eclipse Temurin 21) and set JAVA_HOME. A JRE isn't enough. Maven comes with the repository (Maven Wrapper).
@@ -17,18 +17,19 @@
 |---|---|
 |pom.xml|Maven build, packaging war|
 |src/main/java/rms/config/|WebInitializer (bootstraps Spring), WebConfig (MVC, view resolver, JNDI DataSource, static resources), SecurityConfig (access rules, login, logout, CSRF, password check), AccountCheckFilter, LoginThrottle, SecurityInitializer (registers the security filter), PlainTextPasswordEncoder (legacy passwords)|
-|src/main/java/rms/controller/|Login, Account (Change password), User (Users and Roles), Position, Language, Candidate (with the profile), Job, Document (upload, download, delete, permanent delete), Assignment, Evaluation (My Evaluations, the evaluation form, the evaluation detail and the decision) and Marks (Candidate Status) controllers, Schedule (the interview schedule and its .ics calendar files), Stage (moving a candidate through the hiring stages), Report (CSV downloads and the hiring report), Activity (the activity log page), Health (GET /health for monitoring, no login), LoginController.home (the dashboard), and CurrentUser (the session user's ID and role)|
-|src/main/java/rms/service/|*Service interfaces and *ServiceImpl classes (mostly pass-through; UserServiceImpl encodes passwords; DocumentServiceImpl checks and stores uploads), RmsUserDetails, PasswordRules, DocumentRules (file checks), Outcome (a checked action's result)|
+|src/main/java/rms/controller/|Login, Account (Change password), User (Users and Roles), Position, Language, Candidate (with the profile), Job, Document (upload, download, delete, permanent delete), Assignment, Evaluation (My Evaluations, the evaluation form, the evaluation detail and the decision) and Marks (Candidate Status) controllers, Schedule (the interview schedule and its .ics calendar files), Stage (moving a candidate through the hiring stages), Import (candidates from CSV: template, preview, import), Offer (offers on the profile), Retention (data retention, Super Admin), Report (CSV downloads, the hiring report and interviewer workload), Activity (the activity log page), Health (GET /health for monitoring, no login), LoginController.home (the dashboard), and CurrentUser (the session user's ID and role)|
+|src/main/java/rms/service/|*Service interfaces and *ServiceImpl classes (mostly pass-through; UserServiceImpl encodes passwords; DocumentServiceImpl checks and stores uploads), RmsUserDetails, PasswordRules, DocumentRules (file checks), Outcome (a checked action's result), CandidateRules (candidate checks shared by the form and the import), CsvReader and CsvWriter, MailSettings and NotificationServiceImpl (e-mail to staff on a background thread), RetentionServiceImpl|
 |src/main/java/rms/dao/|*Dao interfaces and *DaoImpl classes — all SQL lives here; DocumentFileStore, the files in RMS_DOC_DIR|
-|src/main/java/rms/model/|*Info beans: PositionInfo, LanguageInfo, CandidateInfo, JobInfo, DocumentInfo, MarksInfo, UserInfo, LoginInfo, ResultInfo, AssignmentInfo, DecisionInfo, ScheduleInfo, DashboardInfo, ActivityInfo; the enums Role, DocumentType, CandidateSource, DecisionStatus, Criterion; the record DocumentUpload|
+|src/main/java/rms/model/|*Info beans: PositionInfo, LanguageInfo, CandidateInfo, JobInfo, DocumentInfo, MarksInfo, UserInfo, LoginInfo, ResultInfo, AssignmentInfo, DecisionInfo, ScheduleInfo, DashboardInfo, ActivityInfo, OfferInfo, ReminderInfo, WorkloadRow, RetentionInfo, ImportRow, ImportPreview; the enums Role, DocumentType, CandidateSource, DecisionStatus, Criterion, InterviewRound, OfferStatus; the record DocumentUpload|
 |src/main/resources/logback.xml|Logging configuration|
-|src/main/webapp/WEB-INF/jsp/|24 views: login, main (home, with the dashboard), create*/view* per module, candidateprofile, changepassword, viewmarks, myschedule, myevaluations, reports, viewactivity, viewdeletedcandidates|
+|src/main/webapp/WEB-INF/jsp/|27 views: login, main (home, with the dashboard and reminders), error, create*/view* per module, candidateprofile (with the pipeline and offers), changepassword, evaluate, viewevaluations, viewmarks, myschedule, myevaluations, reports, viewactivity, viewdeletedcandidates, importcandidates, viewretention|
 |src/main/webapp/WEB-INF/tags/layout.tag|Page shell: head, sidebar menu, top bar, Log out (schedulestatus.tag and status.tag are the status badges)|
 |src/main/webapp/WEB-INF/web.xml|Request encoding ISO-8859-1, cookie-only sessions|
 |src/main/webapp/resources/|css/rms.css, js/rms.js, img/ (logo, icons.svg sprite)|
 |src/test/java/rms/|Controller, security, service, DAO and smoke tests|
 |db/schema.sql, db/test-seed.sql|Schema (inferred from the SQL, not the production DDL) and synthetic seed data|
-|db/migrations/|Numbered scripts for existing databases|
+|db/migrations/|Numbered scripts for existing databases (001-012)|
+|deploy/backup/rms-backup.sh|Daily backup of the database and the documents folder (docs/operations.md)|
 |db/local/|Local database setup|
 |deploy/tomcat/rms.xml|Tomcat context template (placeholders only)|
 |.github/workflows/|CI: build and tests, the container image with the smoke and browser workflow tests, OSV dependency scan (Dependabot in .github/dependabot.yml)|
@@ -45,8 +46,9 @@
 
 ## 4. Security model
 - **Login:** Spring Security handles `POST /welcome` (fields username and password) and calls `LoginService.loadUserByUsername`. Never read credentials in a controller.
+- **Also interviews (F3):** admin.alsointerviewer = 1 gives a Super Admin, HR user or Hiring Manager the extra authority ROLE_INTERVIEWER (`RmsUserDetails`); `UserInfo.isInterviewer()` is true for them and for Interviewers, and the menu tests `user.alsointerviewing`. Interviewer SQL (assignment, marks, dashboard) accepts both. A change of the flag signs the user out like a role change.
 - **Roles:** four, in `rms.model.Role`: SUPER_ADMIN, HR, HIRING_MANAGER, INTERVIEWER, read from admin.role (NULL falls back to admin.isinterviewer: N is Super Admin, Y is Interviewer). The authority is ROLE_ plus the name. Writes keep isinterviewer in step (N for Super Admin, Y for the rest) so an older WAR still works after a rollback.
-- **Rules** live in `SecurityConfig.appFilterChain` and **deny by default**: /login and /welcome are public; /, /home, /changepassword and /savepassword need any login; every other page is listed in USER_ADMIN_PAGES, SUPER_ADMIN_PAGES (the permanent delete of documents), STAFF_READ_PAGES, CANDIDATE_READ_PAGES (profile and downloads, all four roles), INTERVIEWER_PAGES or HR_PAGES with its roles; `anyRequest().denyAll()` refuses the rest. A new URL is refused for everyone until you list it.
+- **Rules** live in `SecurityConfig.appFilterChain` and **deny by default**: /login and /welcome are public; /, /home, /changepassword and /savepassword need any login; every other page is listed in USER_ADMIN_PAGES, SUPER_ADMIN_PAGES (the permanent delete of documents, data retention), STAFF_READ_PAGES, CANDIDATE_READ_PAGES (profile and downloads, all four roles), INTERVIEWER_PAGES or HR_PAGES with its roles; `anyRequest().denyAll()` refuses the rest. A new URL is refused for everyone until you list it.
 - **Per-row checks:** interviewers reach a candidate's profile, documents and evaluation form only while assigned to them. The URL rule lets them in; the controller checks with `CurrentUser` and `AssignmentService.isAssigned` and answers 403. Put such checks in the controller or service, never only in the JSP.
 - **Account check:** `AccountCheckFilter` re-reads the user's admin row on every request: deactivated or a changed role ends the session (/login?ended); a reset password (users.mustchangepassword = 1) allows only Change password.
 - **Login lock:** `LoginThrottle`, 5 failures per username and address in 15 minutes lock it there for 15 minutes; in memory per Tomcat node.
@@ -71,6 +73,8 @@
 |English only|Check new free-text fields with EnglishText.isEnglish (single line) or isEnglishMultiline (comments, reasons) and refuse with EnglishText.PROBLEM|CandidateController.check, DecisionServiceImpl|
 |Activity log|After an action that matters works, call activityservice.record(userid, ACTION, ENTITYTYPE, entityid, detail); the detail holds codes and keys only; record never throws|MarksServiceImpl logs MARKED, DecisionServiceImpl logs SELECTED, REJECTED or ON_HOLD; sign-ins in SecurityConfig, documents in DocumentServiceImpl, jobs and master data in their controllers|
 |CSV reports|Build them with CsvWriter (UTF-8 BOM, CRLF, formula cells made text); log the download as REPORT_DOWNLOADED|ReportController|
+|E-mail|Call a NotificationService method after the action has worked (never inside the DAO transaction); it returns at once and never throws. Services start with NotificationService.NONE until Spring wires the real one, so unit tests send nothing. Only staff are mailed|ScheduleServiceImpl, AssignmentServiceImpl, MarksServiceImpl|
+|Settings|An optional setting is an environment variable read once at startup, with a safe default (off) and one WARN naming the variable when unusable; never log its value|MailSettings, RetentionServiceImpl|
 
 ## 6. Pages and UI
 - Every logged-in page wraps its content in the layout tag, for example `<rms:layout title="Positions" active="positions" tables="true">`. "active" highlights the menu entry; tables="true" loads jQuery and DataTables.
@@ -80,6 +84,7 @@
 - Styling: Bootstrap 5 classes plus the rms-* classes and colour tokens in resources/css/rms.css. Icons: `<svg class="rms-icon"><use href="${base}resources/img/icons.svg#pencil"/></svg>`.
 - New CDN libraries need a pinned version and an SRI integrity hash (see layout.tag).
 - Keep rms.js and rms.css ASCII-only; the pages are ISO-8859-1.
+- The JSPs use trimDirectiveWhitespaces, which drops whitespace-only text between tags: "${a} ${b}" next to tags can lose its space. Put the space inside the text or inside one `<c:out value="${a} ${b}"/>`.
 
 ## 7. Recipes
 ### Add a new screen (a CRUD module)
@@ -130,7 +135,7 @@ Messages are set in the controller (the form(info, "message") helper) and shown 
 - The SQL is MySQL-specific (concat(), UPDATE … ORDER BY … LIMIT, REGEXP).
 - marks: since Phase 3 MarksDaoImpl names every column and reads by name; older WARs still read m.* by position, so add marks columns only at the end. Migration 005 (a draft) needs the owner's SHOW CREATE TABLE marks first. Migration 006 adds interview_schedule: startat is a DATETIME with no time zone, compared with now(), so it is the database server's zone. Migration 007 adds activity_log (no foreign keys; RMS only inserts and selects): ActivityServiceImpl.record swallows a DataAccessException with one WARN, so a missing table never breaks the user's action.
 - The decision badge is `<rms:status value="…" icons="…"/>` (WEB-INF/tags/status.tag): S, R, H or Pending.
-- New tables are created ENGINE=InnoDB (transactions and the SELECT … FOR UPDATE lock in DocumentDaoImpl). Migrations so far: 001 candidate.isactive, 002 roles, 003 password hashing (a Java program, not run), 004 candidate documents and jobs, 005 assignment, evaluation and decision (a draft), 006 interview schedule, 007 activity log, 008 hiring stages (candidate.stage and candidate_stage). Migration 008's stage rules live in StageService: a decision or a scheduled interview moves the stage in the same transaction, and a move checks the stage it was read at, so a stale form is refused.
+- New tables are created ENGINE=InnoDB (transactions and the SELECT … FOR UPDATE lock in DocumentDaoImpl). Migrations so far: 001 candidate.isactive, 002 roles, 003 password hashing (a Java program, run at the release), 004 candidate documents and jobs, 005 assignment, evaluation and decision (a draft), 006 interview schedule, 007 activity log, 008 hiring stages (candidate.stage and candidate_stage), 009 interview rounds (marks.interviewround at the end, interview_schedule.interviewround; one evaluation per interviewer, candidate and round, matched with <=> so NULL is a round of its own), 010 admin.alsointerviewer, 011 candidate_offer, 012 candidate.anonymizedat and anonymizedby (data retention: RetentionDaoImpl.anonymize clears the personal data in one transaction after the documents are purged). Migration 008's stage rules live in StageService: a decision or a scheduled interview moves the stage in the same transaction, and a move checks the stage it was read at, so a stale form is refused.
 - Dates: LocalDate and LocalDateTime map to DATE and DATETIME through Connector/J (`rs.getObject(column, LocalDate.class)`); upload times use the database's now().
 
 ## 9. Tests
@@ -140,13 +145,14 @@ Messages are set in the controller (the form(info, "message") helper) and shown 
 |Security|rms/config/SecurityConfigTest|Nothing|@SpringJUnitWebConfig, @MockitoBean services, MockMvc with springSecurity(); POSTs need .with(csrf())|
 |Service|rms/service/*Test|Nothing|Mockito|
 |DAO|rms/dao/*DaoImplTest|Docker|Extend MySqlContainerSupport: a fresh schema.sql and test-seed.sql before each test. Skipped without Docker; RMS_REQUIRE_DOCKER=true turns that into a failure (CI sets it).|
+|Mail delivery|rms/service/MailDeliveryTest|Docker|Sends real mails to a throwaway Mailpit container and reads them back|
 |Smoke|rms/SmokeTest|A deployed WAR|Set RMS_BASE_URL (and RMS_SMOKE_USER, RMS_SMOKE_PASSWORD with seed values); RMS_SMOKE_SEEDED=false on a real database|
-|Browser workflow|rms/WorkflowTest|A fresh trial (deploy/docker-compose.yml) and Chrome|Playwright for Java; set RMS_BASE_URL and RMS_WORKFLOW_SEEDED=true. It writes data, so only against a throwaway trial|
+|Browser workflow|rms/WorkflowTest|A fresh trial (deploy/docker-compose.yml) and Chrome|Playwright for Java; set RMS_BASE_URL and RMS_WORKFLOW_SEEDED=true. It writes data, so only against a throwaway trial (which sets RMS_RETENTION_MONTHS=1 for the retention step). 17 ordered steps, from adding a candidate to the data clean-up|
 
 - These are **characterization tests**: they pin what the code does today. A test that pins a known defect carries a comment such as `// characterizes G10`.
 - Use only synthetic data: no real names, credentials or hostnames.
 - Mockito runs as a Java agent configured in pom.xml. When running tests from an IDE, add -javaagent:<path to the mockito-core jar> to the run configuration, or let Maven run them.
-- Current numbers on a machine without Docker: 592 tests, 417 pass, 175 skipped (147 DAO, 19 smoke, 9 browser workflow); CI runs them all. The activity log hooks are pinned in ActivityLoggingTest; add a case there for each new logged action.
+- Current numbers (6 November 2026) with Docker: 681 tests, 645 pass, 36 skipped (19 smoke, 17 browser workflow, which need a running trial); without Docker the DAO and mail-delivery tests are skipped as well. CI runs them all. The activity log hooks are pinned in ActivityLoggingTest; add a case there for each new logged action.
 
 ## 10. Pitfalls
 |Pitfall|What happens|What to do|
@@ -161,13 +167,16 @@ Messages are set in the controller (the form(info, "message") helper) and shown 
 |Schema change without a migration|Tests pass, production breaks|Always add a db/migrations/ script|
 |An ID both in a multipart form's URL and in a hidden field|The server reads "C1,C1" and finds nothing (404)|Put it in one place only|
 |Using a user-supplied file name in a path|Path traversal|Store under a generated name (DocumentFileStore); show the user's name only with <c:out>|
+|A new service mocked in SecurityConfigTest without a stub|The controller gets null and the matrix fails with a NullPointerException instead of a status|Stub the methods the controller calls (for example an Outcome) in setUp|
+|Spaces between EL expressions in a JSP|trimDirectiveWhitespaces drops them ("Offer1")|Keep the space inside text or one <c:out>|
+|Reusing a CSS class name|rms-pipeline is the profile's Pipeline card; a second use restyles it|Search rms.css before naming a class|
 
 ## 11. Git and CI
 - master is the default (production) branch; day-to-day work happens on dev. Release branches such as release/phase1 are frozen candidates.
 - Keep commits focused and the build green: run ./mvnw -B verify before pushing.
 - CI (.github/workflows/ci.yml) runs on pushes and pull requests to dev and master: a JDK 21 build, all tests with Docker (the DAO tests must run), and the WAR kept as an artifact; a second job builds the container image, starts it with a throwaway MySQL and runs SmokeTest and WorkflowTest against it.
 - Dependabot opens weekly update pull requests into dev; merge them only with green CI.
-- Feature freeze since 20 October 2026: what is left before the release is in docs/release-tracker.md.
+- The feature freeze of 20 October 2026 was lifted on 5 November 2026; features F1-F11 were built one pull request each into dev, with master kept in step. What is left before the release is in docs/release-tracker.md.
 - OSV-Scanner checks the dependencies; a pull request fails if it adds a known vulnerability. GitHub Actions are pinned by commit SHA.
 - Update the owning document in docs/ in the same change when behaviour or facts change.
 
@@ -176,6 +185,7 @@ Messages are set in the controller (the form(info, "message") helper) and shown 
 |---|---|
 |Which document for my task?|docs/ROUTER.md|
 |Coding patterns in detail|docs/conventions.md|
+|Backups, restore and monitoring|docs/operations.md|
 |How a feature works end to end|docs/business-flows/*.md (login, users, masters, candidates, documents, jobs, evaluation, schedule, reports-activity)|
 |Tables and columns|docs/data-model.md|
 |Build, deploy and test details|docs/build-run.md|
