@@ -30,7 +30,7 @@
 		<logback.version>1.6.6</logback.version>
 		<testcontainers.version>2.0.5</testcontainers.version>
 		<angus.mail.version>2.0.5</angus.mail.version>
-		<playwright.version>1.64.0</playwright.version>
+		<playwright.version>1.65.0</playwright.version>
 
 	</properties>
 
